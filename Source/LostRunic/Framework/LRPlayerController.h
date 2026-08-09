@@ -39,7 +39,12 @@ private:
 	void HandleSneakToggle();
 	void HandleRunStarted();
 	void HandleRunStopped();
+	void HandleCloseEyesStarted();
+	void HandleCloseEyesStopped();
+	void HandleOpenEyesStarted();
+	void HandleOpenEyesStopped();
 	UInputMappingContext* ResolveContext(ELRInputMode mode) const;
+	void UpdateStateInputBlocker(ELRInputMode previousMode, ELRInputMode newMode);
 
 	ELRInputMode InputMode = ELRInputMode::Gameplay;
 };

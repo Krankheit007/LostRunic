@@ -4,7 +4,10 @@
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
 #include "Framework/LRGameInstanceSubsystem.h"
+#include "Framework/LRCharacter.h"
 #include "HAL/IConsoleManager.h"
+#include "Kismet/GameplayStatics.h"
+#include "State/LRStateComponent.h"
 
 namespace
 {
@@ -16,7 +19,14 @@ namespace
 
 	void DumpState(UWorld* world)
 	{
-		UE_LOG(LogLostRunicState, Display, TEXT("World=%s State provider is not active until the LR player framework is spawned."), *GetNameSafe(world));
+		const ALRCharacter* character = Cast<ALRCharacter>(UGameplayStatics::GetPlayerCharacter(world, 0));
+		const ULRStateComponent* state = character ? character->GetStateComponent() : nullptr;
+		if (!state)
+		{
+			UE_LOG(LogLostRunicState, Display, TEXT("World=%s has no active LR player state."), *GetNameSafe(world));
+			return;
+		}
+		state->LogDiagnostics();
 	}
 
 	void DumpAlert(UWorld* world)

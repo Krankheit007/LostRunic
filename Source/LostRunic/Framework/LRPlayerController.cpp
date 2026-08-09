@@ -1,13 +1,15 @@
 #include "Framework/LRPlayerController.h"
 
-#include "EnhancedInputComponent.h"
-#include "EnhancedInputSubsystems.h"
+#include "Core/LRGameplayTags.h"
+#include "Data/LRProjectSettings.h"
 #include "Framework/LRCharacter.h"
 #include "Gameplay/LRLocomotionComponent.h"
-#include "InputAction.h"
 #include "Input/LRInputConfig.h"
+#include "State/LRStateComponent.h"
+#include "EnhancedInputComponent.h"
+#include "EnhancedInputSubsystems.h"
+#include "InputAction.h"
 #include "InputMappingContext.h"
-#include "Data/LRProjectSettings.h"
 
 void ALRPlayerController::BeginPlay()
 {
@@ -33,12 +35,19 @@ void ALRPlayerController::SetupInputComponent()
 	enhancedInput->BindAction(InputConfig->RunAction, ETriggerEvent::Started, this, &ALRPlayerController::HandleRunStarted);
 	enhancedInput->BindAction(InputConfig->RunAction, ETriggerEvent::Completed, this, &ALRPlayerController::HandleRunStopped);
 	enhancedInput->BindAction(InputConfig->RunAction, ETriggerEvent::Canceled, this, &ALRPlayerController::HandleRunStopped);
+	enhancedInput->BindAction(InputConfig->CloseEyesAction, ETriggerEvent::Started, this, &ALRPlayerController::HandleCloseEyesStarted);
+	enhancedInput->BindAction(InputConfig->CloseEyesAction, ETriggerEvent::Completed, this, &ALRPlayerController::HandleCloseEyesStopped);
+	enhancedInput->BindAction(InputConfig->CloseEyesAction, ETriggerEvent::Canceled, this, &ALRPlayerController::HandleCloseEyesStopped);
+	enhancedInput->BindAction(InputConfig->OpenEyesAction, ETriggerEvent::Started, this, &ALRPlayerController::HandleOpenEyesStarted);
+	enhancedInput->BindAction(InputConfig->OpenEyesAction, ETriggerEvent::Completed, this, &ALRPlayerController::HandleOpenEyesStopped);
+	enhancedInput->BindAction(InputConfig->OpenEyesAction, ETriggerEvent::Canceled, this, &ALRPlayerController::HandleOpenEyesStopped);
 }
 
 void ALRPlayerController::SetLRInputMode(const ELRInputMode newMode)
 {
 	const ELRInputMode previousMode = InputMode;
 	InputMode = newMode;
+	UpdateStateInputBlocker(previousMode, newMode);
 	UEnhancedInputLocalPlayerSubsystem* subsystem = GetLocalPlayer()
 		? ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer()) : nullptr;
 	UInputMappingContext* context = ResolveContext(newMode);
@@ -89,6 +98,38 @@ void ALRPlayerController::HandleRunStopped()
 	}
 }
 
+void ALRPlayerController::HandleCloseEyesStarted()
+{
+	if (const ALRCharacter* character = Cast<ALRCharacter>(GetPawn()))
+	{
+		character->GetStateComponent()->BeginEyeInput(ELRStateRequestType::CloseEyes);
+	}
+}
+
+void ALRPlayerController::HandleCloseEyesStopped()
+{
+	if (const ALRCharacter* character = Cast<ALRCharacter>(GetPawn()))
+	{
+		character->GetStateComponent()->EndEyeInput(ELRStateRequestType::CloseEyes);
+	}
+}
+
+void ALRPlayerController::HandleOpenEyesStarted()
+{
+	if (const ALRCharacter* character = Cast<ALRCharacter>(GetPawn()))
+	{
+		character->GetStateComponent()->BeginEyeInput(ELRStateRequestType::OpenEyes);
+	}
+}
+
+void ALRPlayerController::HandleOpenEyesStopped()
+{
+	if (const ALRCharacter* character = Cast<ALRCharacter>(GetPawn()))
+	{
+		character->GetStateComponent()->EndEyeInput(ELRStateRequestType::OpenEyes);
+	}
+}
+
 UInputMappingContext* ALRPlayerController::ResolveContext(const ELRInputMode mode) const
 {
 	if (!InputConfig)
@@ -108,4 +149,24 @@ UInputMappingContext* ALRPlayerController::ResolveContext(const ELRInputMode mod
 		return InputConfig->TransitionContext;
 	}
 	return InputConfig->GameplayContext;
+}
+
+void ALRPlayerController::UpdateStateInputBlocker(const ELRInputMode previousMode, const ELRInputMode newMode)
+{
+	ALRCharacter* character = Cast<ALRCharacter>(GetPawn());
+	ULRStateComponent* state = character ? character->GetStateComponent() : nullptr;
+	if (!state)
+	{
+		return;
+	}
+
+	const auto getBlocker = [](const ELRInputMode mode) -> FGameplayTag
+	{
+		if (mode == ELRInputMode::Dialogue) return LRGameplayTags::StateBlockerDialogue;
+		if (mode == ELRInputMode::Menu) return LRGameplayTags::StateBlockerMenu;
+		if (mode == ELRInputMode::Transition) return LRGameplayTags::StateBlockerTransition;
+		return FGameplayTag();
+	};
+	state->SetBlockerActive(getBlocker(previousMode), false);
+	state->SetBlockerActive(getBlocker(newMode), true);
 }

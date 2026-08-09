@@ -1,9 +1,11 @@
 #include "Framework/LRCharacter.h"
 
+#include "Gameplay/LRLocomotionComponent.h"
+#include "State/LRStateComponent.h"
+#include "State/LRStatePresentationComponent.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
-#include "Gameplay/LRLocomotionComponent.h"
 
 ALRCharacter::ALRCharacter()
 {
@@ -23,6 +25,8 @@ ALRCharacter::ALRCharacter()
 	Camera->bUsePawnControlRotation = false;
 
 	Locomotion = CreateDefaultSubobject<ULRLocomotionComponent>(TEXT("Locomotion"));
+	State = CreateDefaultSubobject<ULRStateComponent>(TEXT("State"));
+	StatePresentation = CreateDefaultSubobject<ULRStatePresentationComponent>(TEXT("StatePresentation"));
 }
 
 void ALRCharacter::ApplyMoveInput(const FVector2D& input)

@@ -6,6 +6,8 @@
 
 class UCameraComponent;
 class ULRLocomotionComponent;
+class ULRStateComponent;
+class ULRStatePresentationComponent;
 class USpringArmComponent;
 
 /** Thin player assembly root; independent gameplay capabilities live in components. */
@@ -22,6 +24,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Lost Runic|Movement")
 	ULRLocomotionComponent* GetLocomotionComponent() const { return Locomotion; }
 
+	UFUNCTION(BlueprintPure, Category = "Lost Runic|State")
+	ULRStateComponent* GetStateComponent() const { return State; }
+
 private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<USpringArmComponent> CameraBoom;
@@ -31,4 +36,10 @@ private:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<ULRLocomotionComponent> Locomotion;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<ULRStateComponent> State;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<ULRStatePresentationComponent> StatePresentation;
 };
