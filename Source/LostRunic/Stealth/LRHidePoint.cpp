@@ -9,6 +9,7 @@
 #include "Stealth/LRHidePoint.h"
 
 #include "Components/SceneComponent.h"
+#include "Components/StaticMeshComponent.h"
 #include "Core/LRGameplayTags.h"
 #include "Stealth/LRHideComponent.h"
 
@@ -20,6 +21,9 @@ ALRHidePoint::ALRHidePoint()
 	PrimaryActorTick.bCanEverTick = false;
 	SceneRoot = CreateDefaultSubobject<USceneComponent>(TEXT("SceneRoot"));
 	SetRootComponent(SceneRoot);
+	VisualMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("VisualMesh"));
+	VisualMesh->SetupAttachment(SceneRoot);
+	VisualMesh->SetCollisionProfileName(TEXT("BlockAll"));
 	InteractionOption.ActionTag = LRGameplayTags::InteractionActionHide;
 	InteractionOption.Prompt = NSLOCTEXT("LostRunic", "HidePrompt", "Hide");
 }

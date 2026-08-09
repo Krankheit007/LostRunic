@@ -38,6 +38,7 @@ public:
 	 */
 	UFUNCTION(BlueprintPure, Category = "Lost Runic|AI")
 	ULRAlertComponent* GetAlertComponent() const { return Alert; }
+	const ULRGuardDefinition* GetDefinition() const { return Definition; }
 
 	/**
 	 * @brief 确认目标仍可捕获后提交死亡状态请求，并启动死亡到 Memory 的存档事务。

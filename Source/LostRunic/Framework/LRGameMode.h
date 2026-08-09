@@ -28,4 +28,12 @@ public:
 	 * @brief 在进入世界后解析运行时依赖、绑定事件并启动所需计时器；构造阶段不访问 World 或玩家对象。
 	 */
 	virtual void BeginPlay() override;
+
+protected:
+	/** 首次进入可玩 Home 世界时的稳定出生锚点；关卡可在派生 GameMode 中覆盖。 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lost Runic|Save")
+	FName DefaultResumeAnchorId = FName(TEXT("Home.Hall"));
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lost Runic|Save")
+	bool bInitializeResumeAnchor = true;
 };

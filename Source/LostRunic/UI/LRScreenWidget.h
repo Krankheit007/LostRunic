@@ -13,6 +13,9 @@
 
 #include "LRScreenWidget.generated.h"
 
+class STextBlock;
+class SWidget;
+
 /** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
 UCLASS(Abstract, Blueprintable, meta = (DisplayName = "Lost Runic Screen Widget"))
 class LOSTRUNIC_API ULRScreenWidget : public UUserWidget
@@ -61,12 +64,20 @@ protected:
 	 * @brief 在 UMG 原生初始化阶段建立 Widget 自身状态；领域事件由外部控制器绑定。
 	 */
 	virtual void NativeOnInitialized() override;
+	virtual TSharedRef<SWidget> RebuildWidget() override;
 
 	/** Screen Type 的领域数据，由所属类型负责维护和校验。 C++ 安全默认值为 `ELRScreenType::None`。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Screen")
 	ELRScreenType ScreenType = ELRScreenType::None;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Screen")
+	FText ScreenTitle;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Screen")
+	FText ScreenSubtitle;
+
 private:
 	/** Screen Visible 的运行时状态；由所属类型维护，不在蓝图中配置。 */
 	bool bScreenVisible = false;
+	TSharedPtr<STextBlock> NarrativeTextBlock;
 };

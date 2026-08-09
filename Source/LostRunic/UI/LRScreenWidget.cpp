@@ -8,6 +8,44 @@
  */
 #include "UI/LRScreenWidget.h"
 
+#include "Blueprint/WidgetTree.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Widgets/SBoxPanel.h"
+#include "Widgets/Text/STextBlock.h"
+
+TSharedRef<SWidget> ULRScreenWidget::RebuildWidget()
+{
+	if (WidgetTree && WidgetTree->RootWidget)
+	{
+		NarrativeTextBlock.Reset();
+		return Super::RebuildWidget();
+	}
+
+	const FText title = ScreenTitle.IsEmpty() ? FText::FromString(TEXT("Lost Runic")) : ScreenTitle;
+	const FText subtitle = ScreenSubtitle.IsEmpty() ? FText::FromString(TEXT("Home")) : ScreenSubtitle;
+	return SNew(SBorder)
+		.BorderBackgroundColor(FLinearColor(0.015f, 0.02f, 0.03f, 0.88f))
+		.Padding(FMargin(28.0f))
+		[
+			SNew(SVerticalBox)
+			+ SVerticalBox::Slot().AutoHeight().Padding(0.0f, 0.0f, 0.0f, 8.0f)
+			[
+				SNew(STextBlock).Text(title).ColorAndOpacity(FLinearColor(0.82f, 0.92f, 1.0f))
+			]
+			+ SVerticalBox::Slot().AutoHeight().Padding(0.0f, 0.0f, 0.0f, 16.0f)
+			[
+				SNew(STextBlock).Text(subtitle).ColorAndOpacity(FLinearColor(0.55f, 0.65f, 0.72f))
+			]
+			+ SVerticalBox::Slot().FillHeight(1.0f)
+			[
+				SAssignNew(NarrativeTextBlock, STextBlock)
+				.AutoWrapText(true)
+				.Text(FText::GetEmpty())
+				.ColorAndOpacity(FLinearColor::White)
+			]
+		];
+}
+
 /**
  * @brief 在 UMG 原生初始化阶段建立 Widget 自身状态；领域事件由外部控制器绑定。
  */
@@ -35,5 +73,13 @@ void ULRScreenWidget::SetScreenVisible(const bool bVisible)
  */
 void ULRScreenWidget::PresentNarrative(const FLRNarrativePresentation& presentation)
 {
+	if (NarrativeTextBlock.IsValid())
+	{
+		const FText speaker = presentation.Page.SpeakerId.IsNone()
+			? FText::GetEmpty() : FText::FromName(presentation.Page.SpeakerId);
+		const FText body = speaker.IsEmpty() ? presentation.DisplayedText
+			: FText::Format(FText::FromString(TEXT("{0}\n\n{1}")), speaker, presentation.DisplayedText);
+		NarrativeTextBlock->SetText(body);
+	}
 	OnNarrativePresentationChanged(presentation);
 }
