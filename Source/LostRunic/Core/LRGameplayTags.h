@@ -1,0 +1,50 @@
+#pragma once
+
+#include "NativeGameplayTags.h"
+
+namespace LRGameplayTags
+{
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(StateSourceInputCloseEyes);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(StateSourceInputOpenEyes);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(StateSourceDeath);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(StateSourceNarrative);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(StateBlockerHidden);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(StateBlockerDialogue);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(StateBlockerMenu);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(StateBlockerTransition);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(StateBlockerPresentation);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(StateBlockerDeath);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(StateRejectInvalidTransition);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(StateRejectBlocked);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(StateRejectConcurrentInput);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(StateRejectPresentationLocked);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(StateRejectAlreadyCurrent);
+
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(InteractionActionInteract);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(InteractionActionPickup);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(InteractionActionRead);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(InteractionActionTalk);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(InteractionActionUse);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(InteractionActionHide);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(InteractionRejectNoTarget);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(InteractionRejectTooFar);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(InteractionRejectWrongFacing);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(InteractionRejectOccluded);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(InteractionRejectState);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(InteractionRejectItem);
+
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(ItemCategoryKey);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(ItemCategoryCourageWeapon);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(NoiseFootstepWalk);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(NoiseFootstepRun);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(NoiseInteraction);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(SightPlayer);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(SearchTimeout);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(AIEventAlertChanged);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(NarrativeEventCompleted);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(SavePolicyAutoOnComplete);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(SavePolicyCritical);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TargetDoorHomeKey);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TargetGuardCourageVulnerable);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TargetGuardCourageImmune);
+}

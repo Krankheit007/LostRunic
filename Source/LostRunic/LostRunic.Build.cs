@@ -12,18 +12,24 @@ public class LostRunic : ModuleRules
 			"Core",
 			"CoreUObject",
 			"Engine",
-			"InputCore",
 			"EnhancedInput",
 			"AIModule",
-			"NavigationSystem",
+			"DeveloperSettings",
 			"StateTreeModule",
 			"GameplayStateTreeModule",
-			"Niagara",
+			"GameplayTags",
 			"UMG",
-			"Slate"
 		});
 
-		PrivateDependencyModuleNames.AddRange(new string[] { });
+		PrivateDependencyModuleNames.AddRange(new string[] {
+			"InputCore",
+			"NavigationSystem",
+			"GameplayTasks",
+			"Niagara",
+			"PhysicsCore",
+			"Slate",
+			"SlateCore"
+		});
 
 		PublicIncludePaths.AddRange(new string[] {
 			"LostRunic",
@@ -34,9 +40,6 @@ public class LostRunic : ModuleRules
 			"LostRunic/Variant_TwinStick/Gameplay",
 			"LostRunic/Variant_TwinStick/UI"
 		});
-
-		// Uncomment if you are using Slate UI
-		// PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });
 
 		// Uncomment if you are using online features
 		// PrivateDependencyModuleNames.Add("OnlineSubsystem");
