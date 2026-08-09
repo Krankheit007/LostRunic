@@ -33,6 +33,14 @@ enum class ELRMovementPace : uint8
 	Run UMETA(DisplayName = "Run")
 };
 
+/** Acoustic region used to select authored footstep noise values. */
+UENUM(BlueprintType, meta = (DisplayName = "Lost Runic Noise Environment"))
+enum class ELRNoiseEnvironment : uint8
+{
+	Indoor UMETA(DisplayName = "Indoor"),
+	Outdoor UMETA(DisplayName = "Outdoor")
+};
+
 /** Explicit persistence behavior authored on narrative events. */
 UENUM(BlueprintType, meta = (DisplayName = "Lost Runic Save Policy"))
 enum class ELRSavePolicy : uint8

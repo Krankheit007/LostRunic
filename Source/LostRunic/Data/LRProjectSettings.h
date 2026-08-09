@@ -7,6 +7,7 @@
 
 class ULRGameContentSet;
 class ULRGameTuningSet;
+class ULRInputConfig;
 
 /** Project-level asset roots loaded by the LostRunic game-instance subsystem. */
 UCLASS(Config = Game, DefaultConfig, meta = (DisplayName = "Lost Runic"))
@@ -20,6 +21,9 @@ public:
 
 	UPROPERTY(Config, EditAnywhere, BlueprintReadOnly, Category = "Tuning")
 	TSoftObjectPtr<ULRGameTuningSet> TuningSet;
+
+	UPROPERTY(Config, EditAnywhere, BlueprintReadOnly, Category = "Input")
+	TSoftObjectPtr<ULRInputConfig> InputConfig;
 
 	virtual FName GetCategoryName() const override { return TEXT("Game"); }
 };
