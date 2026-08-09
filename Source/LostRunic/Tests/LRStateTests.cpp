@@ -1,3 +1,11 @@
+/**
+ * @file LRStateTests.cpp
+ * @brief 提供 LostRunic Runtime 自动化测试，覆盖调优边界、状态矩阵、交互筛选、物品双入口、守卫警戒、叙事分支和存档事务顺序。仅在 WITH_DEV_AUTOMATION_TESTS 下编译。
+ *
+ * 关联文件：Tests 目录内调用该公共契约的实现文件；所属领域：Tests。
+ * 设计依据：Docs/Design/01_GameDesignSummary.md 与 Docs/Technical/04_TechnicalDesign.md。
+ * 除带 EditDefaultsOnly、EditAnywhere 或 EditInstanceOnly 的字段外，其余成员均为运行时状态，不应由蓝图直接改写。
+ */
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
@@ -9,6 +17,12 @@
 
 namespace
 {
+	/**
+	 * @brief 根据当前领域状态构建 Make Request 所需的数据，不把临时对象作为长期存档标识。
+	 * @param targetMode 本次操作使用的 `targetMode` 枚举或模式值。
+	 * @param requestType 本次操作使用的 `requestType` 枚举或模式值。
+	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+	 */
 	FLRStateChangeRequest MakeRequest(const ELRPerceptionMode targetMode, const ELRStateRequestType requestType)
 	{
 		FLRStateChangeRequest request;

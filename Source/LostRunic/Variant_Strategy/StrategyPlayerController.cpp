@@ -1,5 +1,14 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
+/**
+ * @file StrategyPlayerController.cpp
+ * @brief 保留 Unreal Strategy 模板玩法，用于回归和 PIE 冒烟；它与 /Game/LostRunic 的“家”切片相互独立，不承载 LostRunic 核心叙事规则。
+ *
+ * 关联文件：StrategyPlayerController.h；所属领域：Variant_Strategy。
+ * 设计依据：Docs/Design/01_GameDesignSummary.md 与 Docs/Technical/04_TechnicalDesign.md。
+ * 除带 EditDefaultsOnly、EditAnywhere 或 EditInstanceOnly 的字段外，其余成员均为运行时状态，不应由蓝图直接改写。
+ */
+
 
 #include "StrategyPlayerController.h"
 #include "EnhancedInputSubsystems.h"
@@ -21,12 +30,18 @@
 #include "Widgets/Input/SVirtualJoystick.h"
 #include "LostRunic.h"
 
+/**
+ * @brief 创建对象并设置默认子对象、能力开关和安全初值；需要 World、资产或玩家的依赖延迟到初始化阶段解析。
+ */
 AStrategyPlayerController::AStrategyPlayerController()
 {
 	// mouse cursor should always be shown
 	bShowMouseCursor = true;
 }
 
+/**
+ * @brief 在进入世界后解析运行时依赖、绑定事件并启动所需计时器；构造阶段不访问 World 或玩家对象。
+ */
 void AStrategyPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
@@ -55,6 +70,9 @@ void AStrategyPlayerController::BeginPlay()
 
 }
 
+/**
+ * @brief 绑定 PlayerController 使用的 Enhanced Input Action；具体按键仍由 Input Mapping Context 资产决定。
+ */
 void AStrategyPlayerController::SetupInputComponent()
 {
 	Super::SetupInputComponent();
@@ -118,6 +136,10 @@ void AStrategyPlayerController::SetupInputComponent()
 	}
 }
 
+/**
+ * @brief 处理 On Possess 事件，将引擎回调转换为对应领域状态更新。
+ * @param InPawn Controller 新接管的 Pawn；期望为 ALRGuardCharacter。
+ */
 void AStrategyPlayerController::OnPossess(APawn* InPawn)
 {
 	Super::OnPossess(InPawn);
@@ -139,6 +161,10 @@ void AStrategyPlayerController::OnPossess(APawn* InPawn)
 	}
 }
 
+/**
+ * @brief 实现 Drag Select Units 对应的领域步骤；调用关系和状态所有权由本文件所属系统维护。
+ * @param Units 调用方提供的 `Units`，只在本次操作范围内使用。
+ */
 void AStrategyPlayerController::DragSelectUnits(const TArray<AStrategyUnit*>& Units)
 {
 	// do we have units in the list?
@@ -170,23 +196,39 @@ void AStrategyPlayerController::DragSelectUnits(const TArray<AStrategyUnit*>& Un
 	}
 }
 
+/**
+ * @brief 查询 Selected Units；不修改领域状态。
+ * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+ */
 const TArray<AStrategyUnit*>& AStrategyPlayerController::GetSelectedUnits()
 {
 	return ControlledUnits;
 }
 
+/**
+ * @brief 查询 Default Zoom Percentage；不修改领域状态。
+ * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+ */
 float AStrategyPlayerController::GetDefaultZoomPercentage() const
 {
 	float ZoomPct = (DefaultZoom - MinZoomLevel) / (MaxZoomLevel - MinZoomLevel);
 	return FMath::Clamp(ZoomPct, 0.0f, 1.0f);
 }
 
+/**
+ * @brief 判断 Should Use Touch Controls 对应条件；不产生玩法副作用。
+ * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+ */
 bool AStrategyPlayerController::ShouldUseTouchControls() const
 {
 	// are we on a mobile platform? Should we force touch?
 	return SVirtualJoystick::ShouldDisplayTouchInterface() || bForceTouchControls;
 }
 
+/**
+ * @brief 执行 Move Camera 的玩法动作；输入层只提供语义，合法性由对应领域组件决定。
+ * @param Value 本次输入、状态更新或测试使用的值。
+ */
 void AStrategyPlayerController::MoveCamera(const FInputActionValue& Value)
 {
 	FVector2D InputVector = Value.Get<FVector2D>();
@@ -210,16 +252,28 @@ void AStrategyPlayerController::MoveCamera(const FInputActionValue& Value)
 	}
 }
 
+/**
+ * @brief 实现 Zoom Camera 对应的领域步骤；调用关系和状态所有权由本文件所属系统维护。
+ * @param Value 本次输入、状态更新或测试使用的值。
+ */
 void AStrategyPlayerController::ZoomCamera(const FInputActionValue& Value)
 {
 	DoCameraModifyZoomCommand(Value.Get<float>() * ZoomScaling);
 }
 
+/**
+ * @brief 实现 Reset Camera 对应的领域步骤；调用关系和状态所有权由本文件所属系统维护。
+ * @param Value 本次输入、状态更新或测试使用的值。
+ */
 void AStrategyPlayerController::ResetCamera(const FInputActionValue& Value)
 {
 	DoCameraResetZoomCommand();
 }
 
+/**
+ * @brief 执行 Select Hold Started 的纯规则或事务判定，失败时提供结构化原因。
+ * @param Value 本次输入、状态更新或测试使用的值。
+ */
 void AStrategyPlayerController::SelectHoldStarted(const FInputActionValue& Value)
 {
 	// save the box selection start position
@@ -227,6 +281,10 @@ void AStrategyPlayerController::SelectHoldStarted(const FInputActionValue& Value
 
 }
 
+/**
+ * @brief 执行 Select Hold Triggered 的纯规则或事务判定，失败时提供结构化原因。
+ * @param Value 本次输入、状态更新或测试使用的值。
+ */
 void AStrategyPlayerController::SelectHoldTriggered(const FInputActionValue& Value)
 {
 	// get the current mouse position
@@ -239,9 +297,13 @@ void AStrategyPlayerController::SelectHoldTriggered(const FInputActionValue& Val
 	if (StrategyHUD)
 	{
 		StrategyHUD->DragSelectUpdate(StartingBoxSelectionPosition, SelectionSize, SelectionPosition, true);
-	}	
+	}
 }
 
+/**
+ * @brief 执行 Select Hold Completed 的纯规则或事务判定，失败时提供结构化原因。
+ * @param Value 本次输入、状态更新或测试使用的值。
+ */
 void AStrategyPlayerController::SelectHoldCompleted(const FInputActionValue& Value)
 {
 	// reset the drag box on the HUD
@@ -251,6 +313,10 @@ void AStrategyPlayerController::SelectHoldCompleted(const FInputActionValue& Val
 	}
 }
 
+/**
+ * @brief 执行 Select Click 的纯规则或事务判定，失败时提供结构化原因。
+ * @param Value 本次输入、状态更新或测试使用的值。
+ */
 void AStrategyPlayerController::SelectClick(const FInputActionValue& Value)
 {
 	// get the cursor location
@@ -263,6 +329,10 @@ void AStrategyPlayerController::SelectClick(const FInputActionValue& Value)
 	}
 }
 
+/**
+ * @brief 执行 Select Click Additive 的纯规则或事务判定，失败时提供结构化原因。
+ * @param Value 本次输入、状态更新或测试使用的值。
+ */
 void AStrategyPlayerController::SelectClickAdditive(const FInputActionValue& Value)
 {
 	// get the cursor location
@@ -275,11 +345,19 @@ void AStrategyPlayerController::SelectClickAdditive(const FInputActionValue& Val
 	}
 }
 
+/**
+ * @brief 执行 Select All Double Click 的纯规则或事务判定，失败时提供结构化原因。
+ * @param Value 本次输入、状态更新或测试使用的值。
+ */
 void AStrategyPlayerController::SelectAllDoubleClick(const FInputActionValue& Value)
 {
 	DoSelectAllUnitsOnScreenCommand();
 }
 
+/**
+ * @brief 执行 Interact Hold Started 的玩法动作；输入层只提供语义，合法性由对应领域组件决定。
+ * @param Value 本次输入、状态更新或测试使用的值。
+ */
 void AStrategyPlayerController::InteractHoldStarted(const FInputActionValue& Value)
 {
 
@@ -287,12 +365,20 @@ void AStrategyPlayerController::InteractHoldStarted(const FInputActionValue& Val
 	StartingDragScrollPosition = GetMouseLocationForPlayer();
 }
 
+/**
+ * @brief 执行 Interact Hold Triggered 的玩法动作；输入层只提供语义，合法性由对应领域组件决定。
+ * @param Value 本次输入、状态更新或测试使用的值。
+ */
 void AStrategyPlayerController::InteractHoldTriggered(const FInputActionValue& Value)
 {
-	// do a drag scroll 
+	// do a drag scroll
 	DoCameraDragScrollCommand(GetMouseLocationForPlayer());
 }
 
+/**
+ * @brief 执行 Interact Click 的玩法动作；输入层只提供语义，合法性由对应领域组件决定。
+ * @param Value 本次输入、状态更新或测试使用的值。
+ */
 void AStrategyPlayerController::InteractClick(const FInputActionValue& Value)
 {
 	// get the cursor location
@@ -306,14 +392,22 @@ void AStrategyPlayerController::InteractClick(const FInputActionValue& Value)
 	}
 }
 
+/**
+ * @brief 实现 Touch Primary Hold Started 对应的领域步骤；调用关系和状态所有权由本文件所属系统维护。
+ * @param Value 本次输入、状态更新或测试使用的值。
+ */
 void AStrategyPlayerController::TouchPrimaryHoldStarted(const FInputActionValue& Value)
 {
 	// save the camera drag screen coords
 	StartingDragScrollPosition = Value.Get<FVector2D>();
 
-	
+
 }
 
+/**
+ * @brief 实现 Touch Primary Hold Triggered 对应的领域步骤；调用关系和状态所有权由本文件所属系统维护。
+ * @param Instance 调用方提供的 `Instance`，只在本次操作范围内使用。
+ */
 void AStrategyPlayerController::TouchPrimaryHoldTriggered(const FInputActionInstance& Instance)
 {
 	FVector2D InputVector = Instance.GetValue().Get<FVector2D>();
@@ -330,6 +424,10 @@ void AStrategyPlayerController::TouchPrimaryHoldTriggered(const FInputActionInst
 	}
 }
 
+/**
+ * @brief 实现 Touch Primary Hold Completed 对应的领域步骤；调用关系和状态所有权由本文件所属系统维护。
+ * @param Value 本次输入、状态更新或测试使用的值。
+ */
 void AStrategyPlayerController::TouchPrimaryHoldCompleted(const FInputActionValue& Value)
 {
 	// ensure we don't trigger a tap input right after we finish a drag scroll
@@ -347,6 +445,10 @@ void AStrategyPlayerController::TouchPrimaryHoldCompleted(const FInputActionValu
 	}
 }
 
+/**
+ * @brief 实现 Touch Secondary Triggered 对应的领域步骤；调用关系和状态所有权由本文件所属系统维护。
+ * @param Value 本次输入、状态更新或测试使用的值。
+ */
 void AStrategyPlayerController::TouchSecondaryTriggered(const FInputActionValue& Value)
 {
 	// get the touch 2 screen coords
@@ -360,9 +462,13 @@ void AStrategyPlayerController::TouchSecondaryTriggered(const FInputActionValue&
 	{
 		StrategyHUD->DragSelectUpdate(StartingBoxSelectionPosition, SelectionSize, SelectionPosition, true);
 	}
-		
+
 }
 
+/**
+ * @brief 实现 Touch Secondary Completed 对应的领域步骤；调用关系和状态所有权由本文件所属系统维护。
+ * @param Value 本次输入、状态更新或测试使用的值。
+ */
 void AStrategyPlayerController::TouchSecondaryCompleted(const FInputActionValue& Value)
 {
 	if (StrategyHUD)
@@ -372,6 +478,12 @@ void AStrategyPlayerController::TouchSecondaryCompleted(const FInputActionValue&
 	}
 }
 
+/**
+ * @brief 实现 Do Select Command 对应的领域步骤；调用关系和状态所有权由本文件所属系统维护。
+ * @param SelectLocation 空间值 `SelectLocation`；距离和位置使用 Unreal 厘米单位。
+ * @param bAdditiveSelection 布尔开关 `bAdditiveSelection`；true 表示启用或条件成立，false 表示禁用或条件不成立。
+ * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+ */
 bool AStrategyPlayerController::DoSelectCommand(const FVector& SelectLocation, bool bAdditiveSelection)
 {
 	// deselect any units unless this is an additive selection
@@ -424,6 +536,9 @@ bool AStrategyPlayerController::DoSelectCommand(const FVector& SelectLocation, b
 	return false;
 }
 
+/**
+ * @brief 实现 Do Select All Units On Screen Command 对应的领域步骤；调用关系和状态所有权由本文件所属系统维护。
+ */
 void AStrategyPlayerController::DoSelectAllUnitsOnScreenCommand()
 {
 	// get all units on the level
@@ -445,10 +560,13 @@ void AStrategyPlayerController::DoSelectAllUnitsOnScreenCommand()
 				CurrentUnit->UnitSelected();
 			}
 		}
-		
+
 	}
 }
 
+/**
+ * @brief 实现 Do Deselect All Units Command 对应的领域步骤；调用关系和状态所有权由本文件所属系统维护。
+ */
 void AStrategyPlayerController::DoDeselectAllUnitsCommand()
 {
 	// deselect each unit
@@ -464,6 +582,9 @@ void AStrategyPlayerController::DoDeselectAllUnitsCommand()
 	ControlledUnits.Empty();
 }
 
+/**
+ * @brief 实现 Do Toggle Select All Units Command 对应的领域步骤；调用关系和状态所有权由本文件所属系统维护。
+ */
 void AStrategyPlayerController::DoToggleSelectAllUnitsCommand()
 {
 	// do we have units selected?
@@ -479,6 +600,10 @@ void AStrategyPlayerController::DoToggleSelectAllUnitsCommand()
 	}
 }
 
+/**
+ * @brief 实现 Do Camera Drag Scroll Command 对应的领域步骤；调用关系和状态所有权由本文件所属系统维护。
+ * @param CurrentCursorPosition 调用方提供的 `CurrentCursorPosition`，只在本次操作范围内使用。
+ */
 void AStrategyPlayerController::DoCameraDragScrollCommand(const FVector2D& CurrentCursorPosition)
 {
 	// subtract the starting position from the cursor to find the on-screen movement delta
@@ -499,6 +624,10 @@ void AStrategyPlayerController::DoCameraDragScrollCommand(const FVector2D& Curre
 	}
 }
 
+/**
+ * @brief 实现 Do Move Units Command 对应的领域步骤；调用关系和状态所有权由本文件所属系统维护。
+ * @param GoalLocation 空间值 `GoalLocation`；距离和位置使用 Unreal 厘米单位。
+ */
 void AStrategyPlayerController::DoMoveUnitsCommand(const FVector& GoalLocation)
 {
 	if (ControlledUnits.Num() > 0)
@@ -526,6 +655,10 @@ void AStrategyPlayerController::DoMoveUnitsCommand(const FVector& GoalLocation)
 	}
 }
 
+/**
+ * @brief 实现 Do Camera Modify Zoom Command 对应的领域步骤；调用关系和状态所有权由本文件所属系统维护。
+ * @param ZoomDelta 调用方提供的 `ZoomDelta`，只在本次操作范围内使用。
+ */
 void AStrategyPlayerController::DoCameraModifyZoomCommand(float ZoomDelta)
 {
 	// add the delta
@@ -541,6 +674,9 @@ void AStrategyPlayerController::DoCameraModifyZoomCommand(float ZoomDelta)
 	}
 }
 
+/**
+ * @brief 实现 Do Camera Reset Zoom Command 对应的领域步骤；调用关系和状态所有权由本文件所属系统维护。
+ */
 void AStrategyPlayerController::DoCameraResetZoomCommand()
 {
 	// reset to default zoom
@@ -553,6 +689,10 @@ void AStrategyPlayerController::DoCameraResetZoomCommand()
 	}
 }
 
+/**
+ * @brief 实现 Do Camera Set Zoom Percentage Command 对应的领域步骤；调用关系和状态所有权由本文件所属系统维护。
+ * @param Percentage 调用方提供的 `Percentage`，只在本次操作范围内使用。
+ */
 void AStrategyPlayerController::DoCameraSetZoomPercentageCommand(float Percentage)
 {
 	// lerp between min and max zoom
@@ -565,6 +705,11 @@ void AStrategyPlayerController::DoCameraSetZoomPercentageCommand(float Percentag
 	}
 }
 
+/**
+ * @brief 查询 Closest Selected Unit To Location；不修改领域状态。
+ * @param TargetLocation 空间值 `TargetLocation`；距离和位置使用 Unreal 厘米单位。
+ * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+ */
 AStrategyUnit* AStrategyPlayerController::GetClosestSelectedUnitToLocation(FVector TargetLocation)
 {
 	// closest unit and distance
@@ -601,13 +746,17 @@ AStrategyUnit* AStrategyPlayerController::GetClosestSelectedUnitToLocation(FVect
 				Closest = FVector::DistSquared2D(TargetLocation, CurrentUnit->GetActorLocation());
 			}
 		}
-		
+
 	}
 
 	// return the selected unit
 	return OutUnit;
 }
 
+/**
+ * @brief 查询 Mouse Location For Player；不修改领域状态。
+ * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+ */
 FVector2D AStrategyPlayerController::GetMouseLocationForPlayer()
 {
 	// attempt to get the mouse position from this PC
@@ -622,6 +771,11 @@ FVector2D AStrategyPlayerController::GetMouseLocationForPlayer()
 	return FVector2D::ZeroVector;
 }
 
+/**
+ * @brief 查询 Location Under Cursor；不修改领域状态。
+ * @param Location 世界空间位置，Unreal 单位为厘米。
+ * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+ */
 bool AStrategyPlayerController::GetLocationUnderCursor(FVector& Location)
 {
 	// trace the visibility channel at the cursor location
@@ -639,6 +793,11 @@ bool AStrategyPlayerController::GetLocationUnderCursor(FVector& Location)
 	return OutHit.bBlockingHit;
 }
 
+/**
+ * @brief 查询 Location Under Finger；不修改领域状态。
+ * @param Location 世界空间位置，Unreal 单位为厘米。
+ * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+ */
 bool AStrategyPlayerController::GetLocationUnderFinger(FVector& Location)
 {
 	// trace the visibility channel at Touch 1 location
@@ -656,6 +815,10 @@ bool AStrategyPlayerController::GetLocationUnderFinger(FVector& Location)
 	return OutHit.bBlockingHit;
 }
 
+/**
+ * @brief 实现 Project Touch Point To World Space 对应的领域步骤；调用关系和状态所有权由本文件所属系统维护。
+ * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+ */
 FVector AStrategyPlayerController::ProjectTouchPointToWorldSpace()
 {
 	// get the touch coordinates for the first finger
@@ -680,7 +843,7 @@ FVector AStrategyPlayerController::ProjectTouchPointToWorldSpace()
 		{
 			return OutHit.ImpactPoint;
 		}
-		
+
 
 		// intersect with a horizontal plane and return the resulting point
 		const FPlane IntersectPlane(FVector::ZeroVector, FVector::UpVector);

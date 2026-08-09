@@ -1,5 +1,14 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
+/**
+ * @file LostRunicPlayerController.h
+ * @brief 提供 Unreal 模块入口及原始 TopDown 模板兼容类；新的“家”垂直切片使用 Framework、State、Interaction、AI、Narrative 与 Save 目录中的 LR 领域实现。
+ *
+ * 关联文件：LostRunicPlayerController.cpp；所属领域：Root。
+ * 设计依据：Docs/Design/01_GameDesignSummary.md 与 Docs/Technical/04_TechnicalDesign.md。
+ * 除带 EditDefaultsOnly、EditAnywhere 或 EditInstanceOnly 的字段外，其余成员均为运行时状态，不应由蓝图直接改写。
+ */
+
 #pragma once
 
 #include "CoreMinimal.h"
@@ -25,60 +34,92 @@ class ALostRunicPlayerController : public APlayerController
 
 protected:
 
-	/** Component used for moving along a NavMesh path. */
+	/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
+	/** Path Following Component 的领域数据，由所属类型负责维护和校验。 仅在蓝图或详情面板中查看，不可编辑。 */
 	UPROPERTY(VisibleDefaultsOnly, Category = AI)
 	TObjectPtr<UPathFollowingComponent> PathFollowingComponent;
 
-	/** Time Threshold to know if it was a short press */
+	/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
+	/** Short Press Threshold 的领域数据，由所属类型负责维护和校验。 可在对应资产、DataTable 行或蓝图实例中配置。 */
 	UPROPERTY(EditAnywhere, Category="Input")
 	float ShortPressThreshold;
 
-	/** FX Class that we will spawn when clicking */
+	/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
+	/** FXCursor 的领域数据，由所属类型负责维护和校验。 可在对应资产、DataTable 行或蓝图实例中配置。 */
 	UPROPERTY(EditAnywhere, Category="Input")
 	TObjectPtr<UNiagaraSystem> FXCursor;
 
-	/** MappingContext */
+	/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
+	/** Default Mapping Context Enhanced Input Mapping Context 资产，用于对应输入模式。 可在对应资产、DataTable 行或蓝图实例中配置。 */
 	UPROPERTY(EditAnywhere, Category="Input")
 	TObjectPtr<UInputMappingContext> DefaultMappingContext;
-	
-	/** Jump Input Action */
+
+	/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
+	/** Set Destination Click Action Enhanced Input Action 资产；C++ 绑定其语义，具体键位在 Mapping Context 中配置。 可在对应资产、DataTable 行或蓝图实例中配置。 */
 	UPROPERTY(EditAnywhere, Category="Input")
 	TObjectPtr<UInputAction> SetDestinationClickAction;
 
-	/** Jump Input Action */
+	/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
+	/** Set Destination Touch Action Enhanced Input Action 资产；C++ 绑定其语义，具体键位在 Mapping Context 中配置。 可在对应资产、DataTable 行或蓝图实例中配置。 */
 	UPROPERTY(EditAnywhere, Category="Input")
 	TObjectPtr<UInputAction> SetDestinationTouchAction;
 
-	/** True if the controlled character should navigate to the mouse cursor. */
+	/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
 	uint32 bMoveToMouseCursor : 1;
 
-	/** Set to true if we're using touch input */
+	/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
 	uint32 bIsTouch : 1;
 
-	/** Saved location of the character movement destination */
+	/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
+	/** Cached Destination 的运行时状态；由所属类型维护，不在蓝图中配置。 */
 	FVector CachedDestination;
 
-	/** Time that the click input has been pressed */
+	/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
+	/** Follow Time 的内部运行时数据；不参与蓝图配置。 */
 	float FollowTime = 0.0f;
 
 public:
 
-	/** Constructor */
+	/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
+	/**
+	 * @brief 创建对象并设置默认子对象、能力开关和安全初值；需要 World、资产或玩家的依赖延迟到初始化阶段解析。
+	 */
 	ALostRunicPlayerController();
 
 protected:
 
-	/** Initialize input bindings */
+	/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
+	/**
+	 * @brief 绑定 PlayerController 使用的 Enhanced Input Action；具体按键仍由 Input Mapping Context 资产决定。
+	 */
 	virtual void SetupInputComponent() override;
-	
-	/** Input handlers */
+
+	/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
+	/**
+	 * @brief 处理 On Input Started 事件，将引擎回调转换为对应领域状态更新。
+	 */
 	void OnInputStarted();
+	/**
+	 * @brief 处理 On Set Destination Triggered 事件，将引擎回调转换为对应领域状态更新。
+	 */
 	void OnSetDestinationTriggered();
+	/**
+	 * @brief 处理 On Set Destination Released 事件，将引擎回调转换为对应领域状态更新。
+	 */
 	void OnSetDestinationReleased();
+	/**
+	 * @brief 处理 On Touch Triggered 事件，将引擎回调转换为对应领域状态更新。
+	 */
 	void OnTouchTriggered();
+	/**
+	 * @brief 处理 On Touch Released 事件，将引擎回调转换为对应领域状态更新。
+	 */
 	void OnTouchReleased();
 
-	/** Helper function to get the move destination */
+	/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
+	/**
+	 * @brief 根据最新领域状态刷新 Update Cached Destination，并仅在值变化时通知订阅者。
+	 */
 	void UpdateCachedDestination();
 };
 

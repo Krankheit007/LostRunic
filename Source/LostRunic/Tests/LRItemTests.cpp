@@ -1,3 +1,11 @@
+/**
+ * @file LRItemTests.cpp
+ * @brief 提供 LostRunic Runtime 自动化测试，覆盖调优边界、状态矩阵、交互筛选、物品双入口、守卫警戒、叙事分支和存档事务顺序。仅在 WITH_DEV_AUTOMATION_TESTS 下编译。
+ *
+ * 关联文件：Tests 目录内调用该公共契约的实现文件；所属领域：Tests。
+ * 设计依据：Docs/Design/01_GameDesignSummary.md 与 Docs/Technical/04_TechnicalDesign.md。
+ * 除带 EditDefaultsOnly、EditAnywhere 或 EditInstanceOnly 的字段外，其余成员均为运行时状态，不应由蓝图直接改写。
+ */
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
@@ -9,6 +17,13 @@
 
 namespace
 {
+	/**
+	 * @brief 根据当前领域状态构建 Make Item 所需的数据，不把临时对象作为长期存档标识。
+	 * @param itemId 物品的稳定 FName ID，用于定义查询和存档，不依赖显示名。
+	 * @param bConsumable 布尔开关 `bConsumable`；true 表示启用或条件成立，false 表示禁用或条件不成立。
+	 * @param bCourage 布尔开关 `bCourage`；true 表示启用或条件成立，false 表示禁用或条件不成立。
+	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+	 */
 	ULRItemDefinition* MakeItem(const FName itemId, const bool bConsumable, const bool bCourage = false)
 	{
 		ULRItemDefinition* definition = NewObject<ULRItemDefinition>();
@@ -23,6 +38,12 @@ namespace
 		return definition;
 	}
 
+	/**
+	 * @brief 根据当前领域状态构建 Make Inventory 所需的数据，不把临时对象作为长期存档标识。
+	 * @param definition 数据或调优来源 `definition`；调用期间只读，并按稳定 ID 解析内容。
+	 * @param count 本次操作使用的计数、增量或索引 `count`；由函数校验合法范围。
+	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+	 */
 	ULRInventoryComponent* MakeInventory(ULRItemDefinition* definition, const int32 count = 1)
 	{
 		ULRInventoryComponent* inventory = NewObject<ULRInventoryComponent>();
@@ -31,6 +52,11 @@ namespace
 		return inventory;
 	}
 
+	/**
+	 * @brief 根据当前领域状态构建 Make Target 所需的数据，不把临时对象作为长期存档标识。
+	 * @param tag Gameplay Tag 或标签集合，用于分类、条件、拒绝原因和可诊断事件。
+	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+	 */
 	ULRTestItemUseTargetComponent* MakeTarget(const FGameplayTag tag)
 	{
 		ULRTestItemUseTargetComponent* target = NewObject<ULRTestItemUseTargetComponent>();

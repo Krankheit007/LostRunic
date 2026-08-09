@@ -1,3 +1,11 @@
+/**
+ * @file LRStateComponent.cpp
+ * @brief 维护玩家当前心理状态、眼部输入先按者优先门控、0.8 秒进入/0.3 秒返回长按和表现安全锁；关联 LRStateRules、LRStateTuning、LRStatePresentationComponent 与 LRPlayerController。
+ *
+ * 关联文件：LRStateComponent.h；所属领域：State。
+ * 设计依据：Docs/Design/01_GameDesignSummary.md 与 Docs/Technical/04_TechnicalDesign.md。
+ * 除带 EditDefaultsOnly、EditAnywhere 或 EditInstanceOnly 的字段外，其余成员均为运行时状态，不应由蓝图直接改写。
+ */
 #include "State/LRStateComponent.h"
 
 #include "Core/LRGameplayTags.h"
@@ -9,11 +17,17 @@
 #include "Framework/LRGameInstanceSubsystem.h"
 #include "TimerManager.h"
 
+/**
+ * @brief 创建对象并设置默认子对象、能力开关和安全初值；需要 World、资产或玩家的依赖延迟到初始化阶段解析。
+ */
 ULRStateComponent::ULRStateComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
 }
 
+/**
+ * @brief 在进入世界后解析运行时依赖、绑定事件并启动所需计时器；构造阶段不访问 World 或玩家对象。
+ */
 void ULRStateComponent::BeginPlay()
 {
 	Super::BeginPlay();
@@ -23,6 +37,10 @@ void ULRStateComponent::BeginPlay()
 	ensureMsgf(Tuning, TEXT("%s is using fallback State tuning because the project tuning set is unavailable."), *GetNameSafe(this));
 }
 
+/**
+ * @brief 解除委托并清理计时器或缓存，避免关卡切换和对象销毁后继续收到回调。
+ * @param endPlayReason Unreal 提供的结束原因，用于区分销毁、关卡切换和退出。
+ */
 void ULRStateComponent::EndPlay(const EEndPlayReason::Type endPlayReason)
 {
 	if (GetWorld())
@@ -32,6 +50,11 @@ void ULRStateComponent::EndPlay(const EEndPlayReason::Type endPlayReason)
 	Super::EndPlay(endPlayReason);
 }
 
+/**
+ * @brief 校验并提交四状态切换请求；成功时广播切换前后事件并启动表现锁，失败时返回原因标签。
+ * @param request 不可变领域请求，包含本次操作所需的稳定 ID、来源、目标或原因。
+ * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+ */
 FLRStateChangeResult ULRStateComponent::RequestStateChange(const FLRStateChangeRequest& request)
 {
 	FLRStateChangeResult result;
@@ -85,6 +108,10 @@ FLRStateChangeResult ULRStateComponent::RequestStateChange(const FLRStateChangeR
 	return result;
 }
 
+/**
+ * @brief 记录一次闭眼或睁眼按下，按先按者优先规则确定目标状态，并使用调优时长启动一次性长按计时。
+ * @param inputType 闭眼或睁眼输入语义，不包含具体键位。
+ */
 void ULRStateComponent::BeginEyeInput(const ELRStateRequestType inputType)
 {
 	if (!InputGate.Press(inputType))
@@ -118,6 +145,10 @@ void ULRStateComponent::BeginEyeInput(const ELRStateRequestType inputType)
 	}
 }
 
+/**
+ * @brief 结束指定眼部输入；未达到阈值时取消请求，已提交的同一次按下不会重复触发。
+ * @param inputType 闭眼或睁眼输入语义，不包含具体键位。
+ */
 void ULRStateComponent::EndEyeInput(const ELRStateRequestType inputType)
 {
 	if (InputGate.GetActiveInput() == inputType && GetWorld())
@@ -130,6 +161,9 @@ void ULRStateComponent::EndEyeInput(const ELRStateRequestType inputType)
 	}
 }
 
+/**
+ * @brief 取消当前眼部输入事务并清空门控，供菜单、对话、死亡或过场接管输入时调用。
+ */
 void ULRStateComponent::CancelEyeInputSequence()
 {
 	const ELRStateRequestType activeInput = InputGate.GetActiveInput();
@@ -144,6 +178,11 @@ void ULRStateComponent::CancelEyeInputSequence()
 	}
 }
 
+/**
+ * @brief 按来源标签启用或解除状态输入阻塞；多个系统可独立持有阻塞，互不覆盖。
+ * @param blocker 标识菜单、对话、过场、死亡等输入阻塞来源的 Gameplay Tag。
+ * @param bActive 为 true 时加入阻塞或启用状态，为 false 时移除或停用。
+ */
 void ULRStateComponent::SetBlockerActive(const FGameplayTag blocker, const bool bActive)
 {
 	if (!blocker.IsValid())
@@ -161,6 +200,9 @@ void ULRStateComponent::SetBlockerActive(const FGameplayTag blocker, const bool 
 	}
 }
 
+/**
+ * @brief 接收 UMG、动画或表现层的完成回调并释放状态锁；安全超时只处理资源异常。
+ */
 void ULRStateComponent::NotifyPresentationComplete()
 {
 	if (!bPresentationLocked)
@@ -175,6 +217,9 @@ void ULRStateComponent::NotifyPresentationComplete()
 	OnPresentationLockChanged.Broadcast(false);
 }
 
+/**
+ * @brief 向对应日志分类输出当前状态、配置来源和关键运行时值，供 LR.Debug 命令诊断。
+ */
 void ULRStateComponent::LogDiagnostics() const
 {
 	UE_LOG(LogLostRunicState, Display, TEXT("Owner=%s Mode=%d PresentationLocked=%s LastReason=%s Blockers=%s"),
@@ -182,6 +227,9 @@ void ULRStateComponent::LogDiagnostics() const
 		*LastTransitionReason.ToString(), *ActiveBlockers.ToStringSimple());
 }
 
+/**
+ * @brief 在长按达到调优阈值时构造并提交唯一状态请求。
+ */
 void ULRStateComponent::HandleHoldThreshold()
 {
 	const ELRStateRequestType inputType = InputGate.GetActiveInput();
@@ -198,6 +246,9 @@ void ULRStateComponent::HandleHoldThreshold()
 	RequestStateChange(request);
 }
 
+/**
+ * @brief 在表现资源未回调时执行安全解锁并记录异常，避免永久阻塞输入。
+ */
 void ULRStateComponent::HandlePresentationSafetyTimeout()
 {
 	UE_LOG(LogLostRunicState, Warning, TEXT("Owner=%s presentation lock reached its %.2fs safety timeout."),
@@ -205,6 +256,11 @@ void ULRStateComponent::HandlePresentationSafetyTimeout()
 	NotifyPresentationComplete();
 }
 
+/**
+ * @brief 统一构造状态拒绝结果、记录原因标签并广播 Rejected 事件。
+ * @param request 不可变领域请求，包含本次操作所需的稳定 ID、来源、目标或原因。
+ * @param reason Gameplay Tag 原因，用于状态转换、日志和自动化测试追踪。
+ */
 void ULRStateComponent::RejectRequest(const FLRStateChangeRequest& request, const FGameplayTag reason)
 {
 	OnStateChangeRejected.Broadcast(request, reason);
@@ -212,6 +268,9 @@ void ULRStateComponent::RejectRequest(const FLRStateChangeRequest& request, cons
 		static_cast<int32>(request.TargetMode), static_cast<int32>(request.RequestType), *reason.ToString());
 }
 
+/**
+ * @brief 开始 Start Presentation Lock 流程，建立本次操作拥有的状态、委托或计时器。
+ */
 void ULRStateComponent::StartPresentationLock()
 {
 	bPresentationLocked = true;
@@ -223,6 +282,10 @@ void ULRStateComponent::StartPresentationLock()
 	}
 }
 
+/**
+ * @brief 查询 Effective Tuning；不修改领域状态。
+ * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+ */
 const ULRStateTuning& ULRStateComponent::GetEffectiveTuning() const
 {
 	return Tuning ? *Tuning : *GetDefault<ULRStateTuning>();

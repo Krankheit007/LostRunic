@@ -1,5 +1,14 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
+/**
+ * @file LostRunicPlayerController.cpp
+ * @brief 提供 Unreal 模块入口及原始 TopDown 模板兼容类；新的“家”垂直切片使用 Framework、State、Interaction、AI、Narrative 与 Save 目录中的 LR 领域实现。
+ *
+ * 关联文件：LostRunicPlayerController.h；所属领域：Root。
+ * 设计依据：Docs/Design/01_GameDesignSummary.md 与 Docs/Technical/04_TechnicalDesign.md。
+ * 除带 EditDefaultsOnly、EditAnywhere 或 EditInstanceOnly 的字段外，其余成员均为运行时状态，不应由蓝图直接改写。
+ */
+
 #include "LostRunicPlayerController.h"
 #include "GameFramework/Pawn.h"
 #include "Blueprint/AIBlueprintHelperLibrary.h"
@@ -14,6 +23,9 @@
 #include "Engine/LocalPlayer.h"
 #include "LostRunic.h"
 
+/**
+ * @brief 创建对象并设置默认子对象、能力开关和安全初值；需要 World、资产或玩家的依赖延迟到初始化阶段解析。
+ */
 ALostRunicPlayerController::ALostRunicPlayerController()
 {
 	bIsTouch = false;
@@ -29,6 +41,9 @@ ALostRunicPlayerController::ALostRunicPlayerController()
 	FollowTime = 0.f;
 }
 
+/**
+ * @brief 绑定 PlayerController 使用的 Enhanced Input Action；具体按键仍由 Input Mapping Context 资产决定。
+ */
 void ALostRunicPlayerController::SetupInputComponent()
 {
 	// set up gameplay key bindings
@@ -65,6 +80,9 @@ void ALostRunicPlayerController::SetupInputComponent()
 	}
 }
 
+/**
+ * @brief 处理 On Input Started 事件，将引擎回调转换为对应领域状态更新。
+ */
 void ALostRunicPlayerController::OnInputStarted()
 {
 	StopMovement();
@@ -73,14 +91,17 @@ void ALostRunicPlayerController::OnInputStarted()
 	UpdateCachedDestination();
 }
 
+/**
+ * @brief 处理 On Set Destination Triggered 事件，将引擎回调转换为对应领域状态更新。
+ */
 void ALostRunicPlayerController::OnSetDestinationTriggered()
 {
 	// We flag that the input is being pressed
 	FollowTime += GetWorld()->GetDeltaSeconds();
-	
+
 	// Update the move destination to wherever the cursor is pointing at
 	UpdateCachedDestination();
-	
+
 	// Move towards mouse pointer or touch
 	APawn* ControlledPawn = GetPawn();
 	if (ControlledPawn != nullptr)
@@ -90,6 +111,9 @@ void ALostRunicPlayerController::OnSetDestinationTriggered()
 	}
 }
 
+/**
+ * @brief 处理 On Set Destination Released 事件，将引擎回调转换为对应领域状态更新。
+ */
 void ALostRunicPlayerController::OnSetDestinationReleased()
 {
 	// If it was a short press
@@ -104,18 +128,27 @@ void ALostRunicPlayerController::OnSetDestinationReleased()
 }
 
 // Triggered every frame when the input is held down
+/**
+ * @brief 处理 On Touch Triggered 事件，将引擎回调转换为对应领域状态更新。
+ */
 void ALostRunicPlayerController::OnTouchTriggered()
 {
 	bIsTouch = true;
 	OnSetDestinationTriggered();
 }
 
+/**
+ * @brief 处理 On Touch Released 事件，将引擎回调转换为对应领域状态更新。
+ */
 void ALostRunicPlayerController::OnTouchReleased()
 {
 	bIsTouch = false;
 	OnSetDestinationReleased();
 }
 
+/**
+ * @brief 根据最新领域状态刷新 Update Cached Destination，并仅在值变化时通知订阅者。
+ */
 void ALostRunicPlayerController::UpdateCachedDestination()
 {
 	// We look for the location in the world where the player has pressed the input

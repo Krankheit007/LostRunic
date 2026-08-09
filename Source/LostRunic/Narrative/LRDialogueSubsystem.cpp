@@ -1,3 +1,11 @@
+/**
+ * @file LRDialogueSubsystem.cpp
+ * @brief 读取 Dialogue/Reading DataTable，计算剧情条件与选项分支，记录一次性事件，并向 UI 发布当前台词、阅读内容及结束事件。
+ *
+ * 关联文件：LRDialogueSubsystem.h；所属领域：Narrative。
+ * 设计依据：Docs/Design/01_GameDesignSummary.md 与 Docs/Technical/04_TechnicalDesign.md。
+ * 除带 EditDefaultsOnly、EditAnywhere 或 EditInstanceOnly 的字段外，其余成员均为运行时状态，不应由蓝图直接改写。
+ */
 #include "Narrative/LRDialogueSubsystem.h"
 
 #include "Core/LRGameplayTags.h"
@@ -9,6 +17,10 @@
 #include "Framework/LRGameInstanceSubsystem.h"
 #include "Narrative/LRNarrativeRules.h"
 
+/**
+ * @brief 初始化子系统拥有的长期状态与事件绑定。
+ * @param collection 调用方提供的 `collection`，只在本次操作范围内使用。
+ */
 void ULRDialogueSubsystem::Initialize(FSubsystemCollectionBase& collection)
 {
 	Super::Initialize(collection);
@@ -17,6 +29,9 @@ void ULRDialogueSubsystem::Initialize(FSubsystemCollectionBase& collection)
 	InitializeContent(dataSubsystem ? dataSubsystem->GetContentSet() : nullptr);
 }
 
+/**
+ * @brief 释放子系统事件绑定和运行时缓存。
+ */
 void ULRDialogueSubsystem::Deinitialize()
 {
 	ResetSession();
@@ -26,12 +41,22 @@ void ULRDialogueSubsystem::Deinitialize()
 	Super::Deinitialize();
 }
 
+/**
+ * @brief 从 LRGameContentSet 建立 DataTable 与定义资产索引，缺失内容返回可诊断错误。
+ * @param contentSet 数据或调优来源 `contentSet`；调用期间只读，并按稳定 ID 解析内容。
+ */
 void ULRDialogueSubsystem::InitializeContent(ULRGameContentSet* contentSet)
 {
 	ContentSet = contentSet;
 	ResetSession();
 }
 
+/**
+ * @brief 使用稳定 Dialogue 行 ID 启动对话会话并发布首个页面。
+ * @param rowId DataTable 稳定行 ID，不使用行号。
+ * @param completionEventId 稳定标识 `completionEventId`；用于内容查询和存档，不依赖显示名或数组序号。
+ * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+ */
 FLRNarrativeResult ULRDialogueSubsystem::StartDialogue(const FName rowId, const FName completionEventId)
 {
 	ResetSession();
@@ -44,6 +69,12 @@ FLRNarrativeResult ULRDialogueSubsystem::StartDialogue(const FName rowId, const 
 	return result;
 }
 
+/**
+ * @brief 使用稳定 Reading 行 ID 启动阅读会话，并复用叙事推进规则。
+ * @param readingId 稳定标识 `readingId`；用于内容查询和存档，不依赖显示名或数组序号。
+ * @param completionEventId 稳定标识 `completionEventId`；用于内容查询和存档，不依赖显示名或数组序号。
+ * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+ */
 FLRNarrativeResult ULRDialogueSubsystem::StartReading(const FName readingId, const FName completionEventId)
 {
 	ResetSession();
@@ -56,6 +87,10 @@ FLRNarrativeResult ULRDialogueSubsystem::StartReading(const FName readingId, con
 	return result;
 }
 
+/**
+ * @brief 推进当前对话或阅读会话；根据条件选择下一行并处理一次性事件。
+ * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+ */
 FLRNarrativeResult ULRDialogueSubsystem::Advance()
 {
 	if (!HasActiveSession())
@@ -89,6 +124,11 @@ FLRNarrativeResult ULRDialogueSubsystem::Advance()
 		: ShowDialogueRow(row->NextRowId, ELRNarrativeAction::Advanced);
 }
 
+/**
+ * @brief 执行 Select Choice 的纯规则或事务判定，失败时提供结构化原因。
+ * @param choiceId 稳定标识 `choiceId`；用于内容查询和存档，不依赖显示名或数组序号。
+ * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+ */
 FLRNarrativeResult ULRDialogueSubsystem::SelectChoice(const FName choiceId)
 {
 	if (CurrentPage.SessionType != ELRNarrativeSessionType::Dialogue)
@@ -107,6 +147,9 @@ FLRNarrativeResult ULRDialogueSubsystem::SelectChoice(const FName choiceId)
 		: ShowDialogueRow(choice->NextContentId, ELRNarrativeAction::Advanced);
 }
 
+/**
+ * @brief 结束或取消 End Session 流程，并清理本次操作拥有的临时状态。
+ */
 void ULRDialogueSubsystem::EndSession()
 {
 	if (!HasActiveSession())
@@ -119,6 +162,12 @@ void ULRDialogueSubsystem::EndSession()
 	OnSessionEnded.Broadcast(sessionType, finalContentId);
 }
 
+/**
+ * @brief 解析指定对话行、条件和选项并发布给 UI，不在 C++ 中硬编码台词。
+ * @param rowId DataTable 稳定行 ID，不使用行号。
+ * @param action 输入动作或数值 `action`；不包含写死的具体键位。
+ * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+ */
 FLRNarrativeResult ULRDialogueSubsystem::ShowDialogueRow(const FName rowId, const ELRNarrativeAction action)
 {
 	const FLRDialogueRow* row = ContentSet && ContentSet->DialogueTable
@@ -154,6 +203,11 @@ FLRNarrativeResult ULRDialogueSubsystem::ShowDialogueRow(const FName rowId, cons
 	return result;
 }
 
+/**
+ * @brief 解析指定阅读行并发布给 UI，同时记录稳定笔记 ID。
+ * @param readingId 稳定标识 `readingId`；用于内容查询和存档，不依赖显示名或数组序号。
+ * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+ */
 FLRNarrativeResult ULRDialogueSubsystem::ShowReadingRow(const FName readingId)
 {
 	const FLRReadingRow* row = ContentSet && ContentSet->ReadingTable
@@ -183,6 +237,10 @@ FLRNarrativeResult ULRDialogueSubsystem::ShowReadingRow(const FName readingId)
 	return result;
 }
 
+/**
+ * @brief 结束当前对话或阅读会话，提交最终事件并广播会话结束。
+ * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+ */
 FLRNarrativeResult ULRDialogueSubsystem::FinishSession()
 {
 	const FName eventId = CompletionEventId;
@@ -206,6 +264,12 @@ FLRNarrativeResult ULRDialogueSubsystem::FinishSession()
 	return result;
 }
 
+/**
+ * @brief 创建带原因 Gameplay Tag 的结构化失败结果，并保留事务不变量。
+ * @param contentId 稳定标识 `contentId`；用于内容查询和存档，不依赖显示名或数组序号。
+ * @param reason Gameplay Tag 原因，用于状态转换、日志和自动化测试追踪。
+ * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+ */
 FLRNarrativeResult ULRDialogueSubsystem::Reject(const FName contentId, const FGameplayTag reason)
 {
 	FLRNarrativeResult result;
@@ -217,6 +281,9 @@ FLRNarrativeResult ULRDialogueSubsystem::Reject(const FName contentId, const FGa
 	return result;
 }
 
+/**
+ * @brief 清空当前对话/阅读行、选项和表现状态，但保留已完成剧情事件。
+ */
 void ULRDialogueSubsystem::ResetSession()
 {
 	CurrentPage = FLRNarrativePage();

@@ -1,3 +1,11 @@
+/**
+ * @file LRSaveSubsystemQueue.cpp
+ * @brief 实现一个自动槽、十个手动槽、版本迁移、不可变快照、FIFO 异步写入，以及死亡进入 Memory 和返回恢复锚点的 A/B 关键事务。
+ *
+ * 关联文件：Save 目录内调用该公共契约的实现文件；所属领域：Save。
+ * 设计依据：Docs/Design/01_GameDesignSummary.md 与 Docs/Technical/04_TechnicalDesign.md。
+ * 除带 EditDefaultsOnly、EditAnywhere 或 EditInstanceOnly 的字段外，其余成员均为运行时状态，不应由蓝图直接改写。
+ */
 #include "Save/LRSaveSubsystem.h"
 
 #include "Core/LRGameplayTags.h"
@@ -13,6 +21,9 @@
 #include "State/LRStateComponent.h"
 #include "TimerManager.h"
 
+/**
+ * @brief 从角色组件捕获位置、状态、库存和剧情进度，更新内存中的存档模型。
+ */
 void ULRSaveSubsystem::CaptureRuntimeState()
 {
 	if (!WorkingSave)
@@ -30,6 +41,10 @@ void ULRSaveSubsystem::CaptureRuntimeState()
 	}
 }
 
+/**
+ * @brief 把 Apply Runtime State 数据应用到运行时对象，并显式处理缺失依赖。
+ * @param character 参与本次操作的运行时对象 `character`；函数会检查空值和所需接口。
+ */
 void ULRSaveSubsystem::ApplyRuntimeState(ALRCharacter* character)
 {
 	if (!WorkingSave)
@@ -60,11 +75,22 @@ void ULRSaveSubsystem::ApplyRuntimeState(ALRCharacter* character)
 	}
 }
 
+/**
+ * @brief 根据当前领域状态构建 Create Snapshot 所需的数据，不把临时对象作为长期存档标识。
+ * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+ */
 ULRSaveGame* ULRSaveSubsystem::CreateSnapshot() const
 {
 	return WorkingSave ? DuplicateObject<ULRSaveGame>(WorkingSave, const_cast<ULRSaveSubsystem*>(this)) : nullptr;
 }
 
+/**
+ * @brief 按既定顺序将 Queue Write 请求加入队列，保留调用时快照。
+ * @param slotName 实际磁盘槽名称，由自动槽或手动槽规则生成。
+ * @param reasonId 稳定标识 `reasonId`；用于内容查询和存档，不依赖显示名或数组序号。
+ * @param writeKind 本次操作使用的 `writeKind` 枚举或模式值。
+ * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+ */
 ELRSaveRequestResult ULRSaveSubsystem::QueueWrite(const FString& slotName, const FName reasonId,
 	const ELRSaveWriteKind writeKind)
 {
@@ -87,6 +113,9 @@ ELRSaveRequestResult ULRSaveSubsystem::QueueWrite(const FString& slotName, const
 	return ELRSaveRequestResult::Queued;
 }
 
+/**
+ * @brief 按既定顺序将 Queue Pending Auto Save 请求加入队列，保留调用时快照。
+ */
 void ULRSaveSubsystem::QueuePendingAutoSave()
 {
 	const FName reasonId = PendingAutoSaveReason.IsNone() ? LRSaveIds::AutoSlotReason : PendingAutoSaveReason;
@@ -94,6 +123,9 @@ void ULRSaveSubsystem::QueuePendingAutoSave()
 	QueueWrite(LRSaveRules::MakeSlotName(ELRSaveSlotType::Auto), reasonId, ELRSaveWriteKind::Auto);
 }
 
+/**
+ * @brief 开始 Start Next Write 流程，建立本次操作拥有的状态、委托或计时器。
+ */
 void ULRSaveSubsystem::StartNextWrite()
 {
 	if (bWriteInProgress || RequestQueue.IsEmpty())
@@ -105,6 +137,9 @@ void ULRSaveSubsystem::StartNextWrite()
 	StartActiveWrite();
 }
 
+/**
+ * @brief 启动 FIFO 队首快照的异步写盘，并保留重试次数和请求种类。
+ */
 void ULRSaveSubsystem::StartActiveWrite()
 {
 	if (!ActiveRequest.Snapshot)
@@ -117,6 +152,9 @@ void ULRSaveSubsystem::StartActiveWrite()
 	UGameplayStatics::AsyncSaveGameToSlot(ActiveRequest.Snapshot, ActiveRequest.SlotName, 0, saveDelegate);
 }
 
+/**
+ * @brief 按 Save 调优延迟重新提交当前不可变快照；超过最大次数后报告失败并推进队列。
+ */
 void ULRSaveSubsystem::RetryActiveWrite()
 {
 	if (bWriteInProgress)
@@ -125,11 +163,21 @@ void ULRSaveSubsystem::RetryActiveWrite()
 	}
 }
 
+/**
+ * @brief 处理 Handle Async Save Finished 事件，将引擎回调转换为对应领域状态更新。
+ * @param slotName 实际磁盘槽名称，由自动槽或手动槽规则生成。
+ * @param userIndex 本次操作使用的计数、增量或索引 `userIndex`；由函数校验合法范围。
+ * @param bSuccess 布尔开关 `bSuccess`；true 表示启用或条件成立，false 表示禁用或条件不成立。
+ */
 void ULRSaveSubsystem::HandleAsyncSaveFinished(const FString& slotName, const int32 userIndex, const bool bSuccess)
 {
 	CompleteActiveWrite(bSuccess);
 }
 
+/**
+ * @brief 处理当前异步写入结果；成功后推进事务，失败时按调优重试或返回错误。
+ * @param bSuccess 布尔开关 `bSuccess`；true 表示启用或条件成立，false 表示禁用或条件不成立。
+ */
 void ULRSaveSubsystem::CompleteActiveWrite(const bool bSuccess)
 {
 	if (!bWriteInProgress)
@@ -167,6 +215,11 @@ void ULRSaveSubsystem::CompleteActiveWrite(const bool bSuccess)
 	StartNextWrite();
 }
 
+/**
+ * @brief 执行 Load Slot 的持久化边界，并返回可诊断结果。
+ * @param slotName 实际磁盘槽名称，由自动槽或手动槽规则生成。
+ * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+ */
 ELRSaveRequestResult ULRSaveSubsystem::LoadSlot(const FString& slotName)
 {
 	if (!UGameplayStatics::DoesSaveGameExist(slotName, 0))
@@ -206,6 +259,11 @@ ELRSaveRequestResult ULRSaveSubsystem::LoadSlot(const FString& slotName)
 	return ELRSaveRequestResult::Loaded;
 }
 
+/**
+ * @brief 执行 Load Manual Slot 的持久化边界，并返回可诊断结果。
+ * @param manualSlotIndex 本次操作使用的计数、增量或索引 `manualSlotIndex`；由函数校验合法范围。
+ * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+ */
 ELRSaveRequestResult ULRSaveSubsystem::LoadManualSlot(const int32 manualSlotIndex)
 {
 	return LRSaveRules::IsManualSlotValid(manualSlotIndex, GetManualSlotCount())
@@ -213,6 +271,10 @@ ELRSaveRequestResult ULRSaveSubsystem::LoadManualSlot(const int32 manualSlotInde
 		: ELRSaveRequestResult::RejectedInvalidSlot;
 }
 
+/**
+ * @brief 比较所有有效槽位时间戳并加载最新存档。
+ * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+ */
 ELRSaveRequestResult ULRSaveSubsystem::ContinueLatestSave()
 {
 	FString latestSlot;

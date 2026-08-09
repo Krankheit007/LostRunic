@@ -1,5 +1,14 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
+/**
+ * @file StrategyPlayerController.h
+ * @brief 保留 Unreal Strategy 模板玩法，用于回归和 PIE 冒烟；它与 /Game/LostRunic 的“家”切片相互独立，不承载 LostRunic 核心叙事规则。
+ *
+ * 关联文件：StrategyPlayerController.cpp；所属领域：Variant_Strategy。
+ * 设计依据：Docs/Design/01_GameDesignSummary.md 与 Docs/Technical/04_TechnicalDesign.md。
+ * 除带 EditDefaultsOnly、EditAnywhere 或 EditInstanceOnly 的字段外，其余成员均为运行时状态，不应由蓝图直接改写。
+ */
+
 #pragma once
 
 #include "CoreMinimal.h"
@@ -28,270 +37,450 @@ class AStrategyPlayerController : public APlayerController
 
 protected:
 
-	/** Strategy Pawn associated with this controller */
+	/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
+	/** Controlled Camera Pawn 的内部运行时数据；不参与蓝图配置。 */
 	TObjectPtr<AStrategyPawn> ControlledCameraPawn;
 
-	/** Strategy HUD associated with this controller */
+	/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
+	/** Strategy HUD 的内部运行时数据；不参与蓝图配置。 */
 	TObjectPtr<AStrategyHUD> StrategyHUD;
 
-	/** Input mapping context to use with mouse input */
+	/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
 	UPROPERTY(EditAnywhere, Category="Input")
 	UInputMappingContext* MouseMappingContext;
 
-	/** Input mapping context to use with touch input */
+	/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
 	UPROPERTY(EditAnywhere, Category="Input")
 	UInputMappingContext* TouchMappingContext;
 
-	/** If true, the player is adding or removing units to the selected units list */
+	/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
+	/** Selection Modifier 的运行时状态；由所属类型维护，不在蓝图中配置。 */
 	bool bSelectionModifier = false;
 
-	/** If true, double-tap touch select all mode is active */
+	/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
+	/** Double Tap Active 的运行时状态；由所属类型维护，不在蓝图中配置。 */
 	bool bDoubleTapActive = false;
 
-	/** If true, allow the player to interact with game objects */
+	/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
+	/** Allow Interaction 的运行时状态；由所属类型维护，不在蓝图中配置。 */
 	bool bAllowInteraction = true;
 
-	/** Input Action for moving the camera */
+	/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
 	UPROPERTY(EditAnywhere, Category="Input")
 	UInputAction* MoveCameraAction;
 
-	/** Input Action for zooming the camera */
+	/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
 	UPROPERTY(EditAnywhere, Category="Input")
 	UInputAction* ZoomCameraAction;
 
-	/** Input Action for resetting the camera to its default position */
+	/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
 	UPROPERTY(EditAnywhere, Category="Input")
 	UInputAction* ResetCameraAction;
 
-	/** Input Action for select click */
+	/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
 	UPROPERTY(EditAnywhere, Category="Input")
 	UInputAction* SelectClickAction;
 
-	/** Input Action for additive select click */
+	/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
 	UPROPERTY(EditAnywhere, Category="Input")
 	UInputAction* SelectClickAdditiveAction;
 
-	/** Input Action for select all double click */
+	/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
 	UPROPERTY(EditAnywhere, Category="Input")
 	UInputAction* SelectAllDoubleClickAction;
 
-	/** Input Action for select press and hold */
+	/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
 	UPROPERTY(EditAnywhere, Category="Input")
 	UInputAction* SelectHoldAction;
 
-	/** Input Action for click interaction */
+	/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
 	UPROPERTY(EditAnywhere, Category="Input")
 	UInputAction* InteractClickAction;
 
-	/** Input Action for interaction press and hold */
+	/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
 	UPROPERTY(EditAnywhere, Category="Input")
 	UInputAction* InteractHoldAction;
 
-	/** Input Action for modifying selection mode */
+	/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
 	UPROPERTY(EditAnywhere, Category="Input")
 	UInputAction* SelectionModifierAction;
 
-	/** Input Action for primary touch hold */
+	/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
 	UPROPERTY(EditAnywhere, Category="Input")
 	UInputAction* TouchPrimaryHoldAction;
 
-	/** Input Action for secondary touch */
+	/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
 	UPROPERTY(EditAnywhere, Category="Input")
 	UInputAction* TouchSecondaryAction;
 
-	/** Pointer to the mobile controls widget */
+	/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
+	/** Mobile Controls Widget 的内部运行时数据；不参与蓝图配置。 */
 	TObjectPtr<UStrategyTouchControls> MobileControlsWidget;
 
-	/** Touch controls widget class to spawn on mobile platforms */
+	/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
+	/** Mobile Controls Widget Class 的软类或类默认引用，用于创建对应蓝图实例。 可在对应资产、DataTable 行或蓝图实例中配置。 */
 	UPROPERTY(EditAnywhere, Category="Input")
 	TSubclassOf<UStrategyTouchControls> MobileControlsWidgetClass;
 
-	/** If true, the PC will be initialized with touchscreen controls */
+	/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
+	/** Force Touch Controls 的开关；true 表示启用，false 表示禁用。 C++ 安全默认值为 `false`。 可在对应资产、DataTable 行或蓝图实例中配置。 */
 	UPROPERTY(EditAnywhere, Category="Input")
 	bool bForceTouchControls = false;
 
-	/** Max distance to look for nearby units when doing a click or touch interaction */
+	/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
+	/** Selection Radius 的空间距离参数，默认使用 Unreal 厘米单位。 C++ 安全默认值为 `250.0f`。 可在对应资产、DataTable 行或蓝图实例中配置。编辑器约束：单位 `cm`，最小值 `0`，最大值 `10000`。 */
 	UPROPERTY(EditAnywhere, Category="Input", meta = (ClampMin = 0, ClampMax = 10000, Units = "cm"))
 	float SelectionRadius = 250.0f;
 
-	/** Cached starting position for camera drag scrolling */
+	/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
+	/** Starting Drag Scroll Position 的内部运行时数据；不参与蓝图配置。 */
 	FVector2D StartingDragScrollPosition;
 
-	/** Cached starting position for box select */
+	/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
+	/** Starting Box Selection Position 的内部运行时数据；不参与蓝图配置。 */
 	FVector2D StartingBoxSelectionPosition;
 
-	/** Last game time when a drag scroll was performed, so we can avoid spamming commands on drag scroll end */
+	/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
+	/** Last Touch Drag Scroll Time 的运行时状态；由所属类型维护，不在蓝图中配置。 */
 	float LastTouchDragScrollTime = 0.0f;
 
-	/** Time the finger needs to be held down to initiate a drag scroll */
+	/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
+	/** Touch Drag Scroll Hold Time 的领域数据，由所属类型负责维护和校验。 C++ 安全默认值为 `0.15f`。 可在对应资产、DataTable 行或蓝图实例中配置。编辑器约束：单位 `s`，最小值 `0`，最大值 `1`。 */
 	UPROPERTY(EditAnywhere, Category="Input", meta = (ClampMin = 0, ClampMax = 1, Units = "s"))
 	float TouchDragScrollHoldTime = 0.15f;
 
-	/** Current camera zoom level */
+	/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
+	/** Camera Zoom 的内部运行时数据；不参与蓝图配置。 */
 	float CameraZoom = 0.0f;
 
-	/** Default camera zoom level */
+	/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
+	/** Default Zoom 的内部运行时数据；不参与蓝图配置。 */
 	float DefaultZoom = 1000.0f;
 
-	/** Minimum allowed camera zoom level */
+	/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
+	/** Min Zoom Level 的领域数据，由所属类型负责维护和校验。 C++ 安全默认值为 `1000.0f`。 可在对应资产、DataTable 行或蓝图实例中配置。编辑器约束：最小值 `0`，最大值 `10000`。 */
 	UPROPERTY(EditAnywhere, Category = "Camera", meta = (ClampMin = 0, ClampMax = 10000))
 	float MinZoomLevel = 1000.0f;
 
-	/** Maximum allowed camera zoom level */
+	/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
+	/** Max Zoom Level 的领域数据，由所属类型负责维护和校验。 C++ 安全默认值为 `2500.0f`。 可在对应资产、DataTable 行或蓝图实例中配置。编辑器约束：最小值 `0`，最大值 `10000`。 */
 	UPROPERTY(EditAnywhere, Category = "Camera", meta = (ClampMin = 0, ClampMax = 10000))
 	float MaxZoomLevel = 2500.0f;
 
-	/** Scales zoom inputs by this value */
+	/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
+	/** Zoom Scaling 的领域数据，由所属类型负责维护和校验。 C++ 安全默认值为 `100.0f`。 可在对应资产、DataTable 行或蓝图实例中配置。编辑器约束：最小值 `0`，最大值 `1000`。 */
 	UPROPERTY(EditAnywhere, Category = "Camera", meta = (ClampMin = 0, ClampMax = 1000))
 	float ZoomScaling = 100.0f;
 
-	/** Affects how fast the camera moves while dragging with the mouse */
+	/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
+	/** Drag Multiplier 的领域数据，由所属类型负责维护和校验。 C++ 安全默认值为 `0.1f`。 可在对应资产、DataTable 行或蓝图实例中配置。编辑器约束：最小值 `0`，最大值 `10000`。 */
 	UPROPERTY(EditAnywhere, Category = "Camera", meta = (ClampMin = 0, ClampMax = 10000))
 	float DragMultiplier = 0.1f;
 
-	/** Trace channel to use for selection trace checks */
+	/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
+	/** Selection Trace Channel 的领域数据，由所属类型负责维护和校验。 可在对应资产、DataTable 行或蓝图实例中配置。 */
 	UPROPERTY(EditAnywhere, Category = "Selection")
 	TEnumAsByte<ETraceTypeQuery> SelectionTraceChannel;
 
-	/** Currently selected unit list */
+	/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
+	/** Controlled Units 的内部运行时数据；不参与蓝图配置。 */
 	TArray<AStrategyUnit*> ControlledUnits;
 
 public:
 
-	/** Constructor */
+	/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
+	/**
+	 * @brief 创建对象并设置默认子对象、能力开关和安全初值；需要 World、资产或玩家的依赖延迟到初始化阶段解析。
+	 */
 	AStrategyPlayerController();
 
-	/** BeginPlay initialization */
+	/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
+	/**
+	 * @brief 在进入世界后解析运行时依赖、绑定事件并启动所需计时器；构造阶段不访问 World 或玩家对象。
+	 */
 	virtual void BeginPlay() override;
 
-	/** Initialize input bindings */
+	/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
+	/**
+	 * @brief 绑定 PlayerController 使用的 Enhanced Input Action；具体按键仍由 Input Mapping Context 资产决定。
+	 */
 	virtual void SetupInputComponent() override;
 
-	/** Pawn initialization */
+	/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
+	/**
+	 * @brief 处理 On Possess 事件，将引擎回调转换为对应领域状态更新。
+	 * @param InPawn Controller 新接管的 Pawn；期望为 ALRGuardCharacter。
+	 */
 	virtual void OnPossess(APawn* InPawn);
 
 public:
 
-	/** Updates selected units from the HUD's drag select box */
+	/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
+	/**
+	 * @brief 实现 Drag Select Units 对应的领域步骤；调用关系和状态所有权由本文件所属系统维护。
+	 * @param Units 调用方提供的 `Units`，只在本次操作范围内使用。
+	 */
 	void DragSelectUnits(const TArray<AStrategyUnit*>& Units);
 
-	/** Passes the list of selected units */
+	/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
+	/**
+	 * @brief 查询 Selected Units；不修改领域状态。
+	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+	 */
 	const TArray<AStrategyUnit*>& GetSelectedUnits();
 
-	/** Returns the default camera zoom percentage value */
+	/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
+	/**
+	 * @brief 查询 Default Zoom Percentage；不修改领域状态。
+	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+	 */
 	float GetDefaultZoomPercentage() const;
 
 protected:
 
-	/** Returns true if the PC should run using touchscreen controls */
+	/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
+	/**
+	 * @brief 判断 Should Use Touch Controls 对应条件；不产生玩法副作用。
+	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+	 */
 	bool ShouldUseTouchControls() const;
 
 	// mouse + keyboard input
 
 protected:
 
-	/** Moves the camera by the given input */
+	/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
+	/**
+	 * @brief 执行 Move Camera 的玩法动作；输入层只提供语义，合法性由对应领域组件决定。
+	 * @param Value 本次输入、状态更新或测试使用的值。
+	 */
 	void MoveCamera(const FInputActionValue& Value);
 
-	/** Changes the camera zoom level by the given input */
+	/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
+	/**
+	 * @brief 实现 Zoom Camera 对应的领域步骤；调用关系和状态所有权由本文件所属系统维护。
+	 * @param Value 本次输入、状态更新或测试使用的值。
+	 */
 	void ZoomCamera(const FInputActionValue& Value);
 
-	/** Resets the camera to its initial value */
+	/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
+	/**
+	 * @brief 实现 Reset Camera 对应的领域步骤；调用关系和状态所有权由本文件所属系统维护。
+	 * @param Value 本次输入、状态更新或测试使用的值。
+	 */
 	void ResetCamera(const FInputActionValue& Value);
 
-	/** Start a select and hold input */
+	/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
+	/**
+	 * @brief 执行 Select Hold Started 的纯规则或事务判定，失败时提供结构化原因。
+	 * @param Value 本次输入、状态更新或测试使用的值。
+	 */
 	void SelectHoldStarted(const FInputActionValue& Value);
-	
-	/** Select and hold input triggered */
+
+	/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
+	/**
+	 * @brief 执行 Select Hold Triggered 的纯规则或事务判定，失败时提供结构化原因。
+	 * @param Value 本次输入、状态更新或测试使用的值。
+	 */
 	void SelectHoldTriggered(const FInputActionValue& Value);
 
-	/** Select and hold input completed */
+	/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
+	/**
+	 * @brief 执行 Select Hold Completed 的纯规则或事务判定，失败时提供结构化原因。
+	 * @param Value 本次输入、状态更新或测试使用的值。
+	 */
 	void SelectHoldCompleted(const FInputActionValue& Value);
 
-	/** Select click action */
+	/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
+	/**
+	 * @brief 执行 Select Click 的纯规则或事务判定，失败时提供结构化原因。
+	 * @param Value 本次输入、状态更新或测试使用的值。
+	 */
 	void SelectClick(const FInputActionValue& Value);
 
-	/** Select Click Additive Action */
+	/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
+	/**
+	 * @brief 执行 Select Click Additive 的纯规则或事务判定，失败时提供结构化原因。
+	 * @param Value 本次输入、状态更新或测试使用的值。
+	 */
 	void SelectClickAdditive(const FInputActionValue& Value);
 
-	/** Select All Double Click Action */
+	/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
+	/**
+	 * @brief 执行 Select All Double Click 的纯规则或事务判定，失败时提供结构化原因。
+	 * @param Value 本次输入、状态更新或测试使用的值。
+	 */
 	void SelectAllDoubleClick(const FInputActionValue& Value);
 
-	/** Starts an interaction hold input */
+	/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
+	/**
+	 * @brief 执行 Interact Hold Started 的玩法动作；输入层只提供语义，合法性由对应领域组件决定。
+	 * @param Value 本次输入、状态更新或测试使用的值。
+	 */
 	void InteractHoldStarted(const FInputActionValue& Value);
 
-	/** Interaction hold input triggered */
+	/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
+	/**
+	 * @brief 执行 Interact Hold Triggered 的玩法动作；输入层只提供语义，合法性由对应领域组件决定。
+	 * @param Value 本次输入、状态更新或测试使用的值。
+	 */
 	void InteractHoldTriggered(const FInputActionValue& Value);
 
-	/** Interaction click input started */
+	/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
+	/**
+	 * @brief 执行 Interact Click 的玩法动作；输入层只提供语义，合法性由对应领域组件决定。
+	 * @param Value 本次输入、状态更新或测试使用的值。
+	 */
 	void InteractClick(const FInputActionValue& Value);
 
-	/** Touch primary finger hold started */
+	/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
+	/**
+	 * @brief 实现 Touch Primary Hold Started 对应的领域步骤；调用关系和状态所有权由本文件所属系统维护。
+	 * @param Value 本次输入、状态更新或测试使用的值。
+	 */
 	void TouchPrimaryHoldStarted(const FInputActionValue& Value);
 
-	/** Touch primary finger hold triggered */
+	/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
+	/**
+	 * @brief 实现 Touch Primary Hold Triggered 对应的领域步骤；调用关系和状态所有权由本文件所属系统维护。
+	 * @param Instance 调用方提供的 `Instance`，只在本次操作范围内使用。
+	 */
 	void TouchPrimaryHoldTriggered(const FInputActionInstance& Instance);
 
-	/** Touch primary finger hold completed */
+	/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
+	/**
+	 * @brief 实现 Touch Primary Hold Completed 对应的领域步骤；调用关系和状态所有权由本文件所属系统维护。
+	 * @param Value 本次输入、状态更新或测试使用的值。
+	 */
 	void TouchPrimaryHoldCompleted(const FInputActionValue& Value);
 
-	/** Touch secondary finger triggered */
+	/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
+	/**
+	 * @brief 实现 Touch Secondary Triggered 对应的领域步骤；调用关系和状态所有权由本文件所属系统维护。
+	 * @param Value 本次输入、状态更新或测试使用的值。
+	 */
 	void TouchSecondaryTriggered(const FInputActionValue& Value);
 
-	/** Touch secondary finger completed */
+	/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
+	/**
+	 * @brief 实现 Touch Secondary Completed 对应的领域步骤；调用关系和状态所有权由本文件所属系统维护。
+	 * @param Value 本次输入、状态更新或测试使用的值。
+	 */
 	void TouchSecondaryCompleted(const FInputActionValue& Value);
 
 	// commands
 
 public:
 
-	/** Attempt to select or deselect a unit near the given location. Supports additive selection modifier. */
+	/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
+	/**
+	 * @brief 实现 Do Select Command 对应的领域步骤；调用关系和状态所有权由本文件所属系统维护。
+	 * @param SelectLocation 空间值 `SelectLocation`；距离和位置使用 Unreal 厘米单位。
+	 * @param bAdditiveSelection 布尔开关 `bAdditiveSelection`；true 表示启用或条件成立，false 表示禁用或条件不成立。
+	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+	 */
 	bool DoSelectCommand(const FVector& SelectLocation, bool bAdditiveSelection);
 
-	/** Attempts to select all units on screen */
+	/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
+	/**
+	 * @brief 实现 Do Select All Units On Screen Command 对应的领域步骤；调用关系和状态所有权由本文件所属系统维护。
+	 */
 	void DoSelectAllUnitsOnScreenCommand();
 
-	/** Deselects any selected units */
+	/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
+	/**
+	 * @brief 实现 Do Deselect All Units Command 对应的领域步骤；调用关系和状态所有权由本文件所属系统维护。
+	 */
 	void DoDeselectAllUnitsCommand();
 
-	/** Toggles between selecting all units on screen and deselecting units */
+	/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
+	/**
+	 * @brief 实现 Do Toggle Select All Units Command 对应的领域步骤；调用关系和状态所有权由本文件所属系统维护。
+	 */
 	void DoToggleSelectAllUnitsCommand();
 
-	/** Scrolls the camera based on a new screen coordinate */
+	/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
+	/**
+	 * @brief 实现 Do Camera Drag Scroll Command 对应的领域步骤；调用关系和状态所有权由本文件所属系统维护。
+	 * @param CurrentCursorPosition 调用方提供的 `CurrentCursorPosition`，只在本次操作范围内使用。
+	 */
 	void DoCameraDragScrollCommand(const FVector2D& CurrentCursorPosition);
 
-	/** Attempts to move all selected units to the given location */
+	/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
+	/**
+	 * @brief 实现 Do Move Units Command 对应的领域步骤；调用关系和状态所有权由本文件所属系统维护。
+	 * @param GoalLocation 空间值 `GoalLocation`；距离和位置使用 Unreal 厘米单位。
+	 */
 	void DoMoveUnitsCommand(const FVector& GoalLocation);
 
-	/** Applies a zoom change to the camera */
+	/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
+	/**
+	 * @brief 实现 Do Camera Modify Zoom Command 对应的领域步骤；调用关系和状态所有权由本文件所属系统维护。
+	 * @param ZoomDelta 调用方提供的 `ZoomDelta`，只在本次操作范围内使用。
+	 */
 	void DoCameraModifyZoomCommand(float ZoomDelta);
 
-	/** Resets the camera zoom to default */
+	/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
+	/**
+	 * @brief 实现 Do Camera Reset Zoom Command 对应的领域步骤；调用关系和状态所有权由本文件所属系统维护。
+	 */
 	void DoCameraResetZoomCommand();
 
-	/** Sets the camera zoom to a percentage between min and max zoom */
+	/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
+	/**
+	 * @brief 实现 Do Camera Set Zoom Percentage Command 对应的领域步骤；调用关系和状态所有权由本文件所属系统维护。
+	 * @param Percentage 调用方提供的 `Percentage`，只在本次操作范围内使用。
+	 */
 	void DoCameraSetZoomPercentageCommand(float Percentage);
 
 protected:
 
-	/** Sorts all controlled units based on their distance to the provided world location */
+	/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
+	/**
+	 * @brief 查询 Closest Selected Unit To Location；不修改领域状态。
+	 * @param TargetLocation 空间值 `TargetLocation`；距离和位置使用 Unreal 厘米单位。
+	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+	 */
 	AStrategyUnit* GetClosestSelectedUnitToLocation(FVector TargetLocation);
 
-	/** Calculates and returns the current mouse location */
+	/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
+	/**
+	 * @brief 查询 Mouse Location For Player；不修改领域状态。
+	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+	 */
 	FVector2D GetMouseLocationForPlayer();
 
-	/** Attempts to get the world location under the cursor, returns true if successful */
+	/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
+	/**
+	 * @brief 查询 Location Under Cursor；不修改领域状态。
+	 * @param Location 世界空间位置，Unreal 单位为厘米。
+	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+	 */
 	bool GetLocationUnderCursor(FVector& Location);
 
-	/** Attempts to get the world location under the Touch 1 finger, returns true if successful */
+	/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
+	/**
+	 * @brief 查询 Location Under Finger；不修改领域状态。
+	 * @param Location 世界空间位置，Unreal 单位为厘米。
+	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+	 */
 	bool GetLocationUnderFinger(FVector& Location);
 
-	/** Projects the current touch location into world space */
+	/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
+	/**
+	 * @brief 实现 Project Touch Point To World Space 对应的领域步骤；调用关系和状态所有权由本文件所属系统维护。
+	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+	 */
 	FVector ProjectTouchPointToWorldSpace();
 
 protected:
 
-	/** Spawns the positive cursor effect */
+	/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
+	/**
+	 * @brief 实现 BP_Cursor Feedback 对应的领域步骤；调用关系和状态所有权由本文件所属系统维护。
+	 * @param Location 世界空间位置，Unreal 单位为厘米。
+	 * @param bPositive 布尔开关 `bPositive`；true 表示启用或条件成立，false 表示禁用或条件不成立。
+	 */
 	UFUNCTION(BlueprintImplementableEvent, Category="Cursor", meta = (DisplayName="Cursor Feedback"))
 	void BP_CursorFeedback(FVector Location, bool bPositive);
 };
