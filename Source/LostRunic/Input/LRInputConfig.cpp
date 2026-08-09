@@ -16,7 +16,8 @@ bool ULRInputConfig::Validate(FString& outError) const
 		outError = TEXT("Gameplay movement, interaction, and state actions are required.");
 		return false;
 	}
-	if (!ConfirmAction || !CancelAction || !UseQuickSlotAction || !ToggleCrouchAction || !OpenJournalAction || !PauseAction
+	if (!ConfirmAction || !CancelAction || !UseQuickSlotAction || !PreviousQuickSlotAction || !NextQuickSlotAction
+		|| !ToggleCrouchAction || !OpenJournalAction || !PauseAction
 		|| QuickSlotActions.Num() != 4 || QuickSlotActions.Contains(nullptr))
 	{
 		outError = TEXT("UI and all four quick-slot actions are required.");

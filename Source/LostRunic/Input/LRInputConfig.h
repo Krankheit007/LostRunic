@@ -58,6 +58,12 @@ public:
 	TObjectPtr<UInputAction> UseQuickSlotAction;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Actions|Gameplay")
+	TObjectPtr<UInputAction> PreviousQuickSlotAction;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Actions|Gameplay")
+	TObjectPtr<UInputAction> NextQuickSlotAction;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Actions|Gameplay")
 	TObjectPtr<UInputAction> ToggleCrouchAction;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Actions|UI")

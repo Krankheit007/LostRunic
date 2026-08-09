@@ -30,9 +30,16 @@ namespace LRGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(InteractionRejectOccluded, "Interaction.Reject.Occluded", "World geometry occludes the target.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(InteractionRejectState, "Interaction.Reject.State", "The current player state is incompatible.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(InteractionRejectItem, "Interaction.Reject.Item", "The selected item is incompatible.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(InteractionRejectCompleted, "Interaction.Reject.Completed", "The one-shot interaction already completed.");
 
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(ItemCategoryKey, "Item.Category.Key", "Key item category.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(ItemCategoryCourageWeapon, "Item.Category.CourageWeapon", "Non-lethal Courage weapon category.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(ItemUseRejectNotOwned, "Item.Use.Reject.NotOwned", "The inventory does not own the requested item.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(ItemUseRejectInvalidSlot, "Item.Use.Reject.InvalidSlot", "The source quick slot is invalid or empty.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(ItemUseRejectCooldown, "Item.Use.Reject.Cooldown", "The item use is on cooldown.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(ItemUseRejectImmune, "Item.Use.Reject.Immune", "The target is immune to this item.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(ItemUseRejectTarget, "Item.Use.Reject.Target", "The target cannot receive item use.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(ItemUseRejectExecution, "Item.Use.Reject.Execution", "The target rejected item execution.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(NoiseFootstepWalk, "Noise.Footstep.Walk", "Walking footstep stimulus.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(NoiseFootstepRun, "Noise.Footstep.Run", "Running footstep stimulus.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(NoiseInteraction, "Noise.Interaction", "Interaction-created noise stimulus.");

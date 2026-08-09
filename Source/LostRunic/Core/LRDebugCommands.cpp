@@ -7,6 +7,7 @@
 #include "Framework/LRCharacter.h"
 #include "HAL/IConsoleManager.h"
 #include "Kismet/GameplayStatics.h"
+#include "Interaction/LRInteractionComponent.h"
 #include "State/LRStateComponent.h"
 
 namespace
@@ -36,7 +37,15 @@ namespace
 
 	void DumpInteraction(UWorld* world)
 	{
-		UE_LOG(LogLostRunicInteraction, Display, TEXT("World=%s Interaction diagnostics require an active LR interaction component."), *GetNameSafe(world));
+		const ALRCharacter* character = Cast<ALRCharacter>(UGameplayStatics::GetPlayerCharacter(world, 0));
+		const ULRInteractionComponent* interaction = character
+			? character->FindComponentByClass<ULRInteractionComponent>() : nullptr;
+		if (interaction)
+		{
+			interaction->LogDiagnostics();
+			return;
+		}
+		UE_LOG(LogLostRunicInteraction, Display, TEXT("World=%s has no active LR interaction component."), *GetNameSafe(world));
 	}
 
 	void DumpSave(UWorld* world)

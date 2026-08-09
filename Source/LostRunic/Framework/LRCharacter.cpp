@@ -1,6 +1,8 @@
 #include "Framework/LRCharacter.h"
 
 #include "Gameplay/LRLocomotionComponent.h"
+#include "Interaction/LRInteractionComponent.h"
+#include "Items/LRInventoryComponent.h"
 #include "State/LRStateComponent.h"
 #include "State/LRStatePresentationComponent.h"
 #include "Camera/CameraComponent.h"
@@ -27,6 +29,8 @@ ALRCharacter::ALRCharacter()
 	Locomotion = CreateDefaultSubobject<ULRLocomotionComponent>(TEXT("Locomotion"));
 	State = CreateDefaultSubobject<ULRStateComponent>(TEXT("State"));
 	StatePresentation = CreateDefaultSubobject<ULRStatePresentationComponent>(TEXT("StatePresentation"));
+	Inventory = CreateDefaultSubobject<ULRInventoryComponent>(TEXT("Inventory"));
+	Interaction = CreateDefaultSubobject<ULRInteractionComponent>(TEXT("Interaction"));
 }
 
 void ALRCharacter::ApplyMoveInput(const FVector2D& input)

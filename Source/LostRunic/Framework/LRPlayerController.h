@@ -43,6 +43,15 @@ private:
 	void HandleCloseEyesStopped();
 	void HandleOpenEyesStarted();
 	void HandleOpenEyesStopped();
+	void HandleInteract();
+	void HandleQuickSlot1();
+	void HandleQuickSlot2();
+	void HandleQuickSlot3();
+	void HandleQuickSlot4();
+	void HandleUseSelectedQuickSlot();
+	void HandlePreviousQuickSlot();
+	void HandleNextQuickSlot();
+	void UseQuickSlot(int32 slotIndex);
 	UInputMappingContext* ResolveContext(ELRInputMode mode) const;
 	void UpdateStateInputBlocker(ELRInputMode previousMode, ELRInputMode newMode);
 

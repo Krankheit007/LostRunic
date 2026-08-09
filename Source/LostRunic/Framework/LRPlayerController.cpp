@@ -5,6 +5,8 @@
 #include "Framework/LRCharacter.h"
 #include "Gameplay/LRLocomotionComponent.h"
 #include "Input/LRInputConfig.h"
+#include "Interaction/LRInteractionComponent.h"
+#include "Items/LRInventoryComponent.h"
 #include "State/LRStateComponent.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
@@ -25,7 +27,10 @@ void ALRPlayerController::SetupInputComponent()
 		InputConfig = GetDefault<ULRProjectSettings>()->InputConfig.LoadSynchronous();
 	}
 	UEnhancedInputComponent* enhancedInput = Cast<UEnhancedInputComponent>(InputComponent);
-	if (!ensureMsgf(enhancedInput && InputConfig, TEXT("%s requires Enhanced Input and an InputConfig."), *GetNameSafe(this)))
+	FString inputError;
+	const bool bInputValid = InputConfig && InputConfig->Validate(inputError);
+	if (!ensureMsgf(enhancedInput && bInputValid, TEXT("%s has invalid input configuration: %s"),
+		*GetNameSafe(this), *inputError))
 	{
 		return;
 	}
@@ -41,6 +46,14 @@ void ALRPlayerController::SetupInputComponent()
 	enhancedInput->BindAction(InputConfig->OpenEyesAction, ETriggerEvent::Started, this, &ALRPlayerController::HandleOpenEyesStarted);
 	enhancedInput->BindAction(InputConfig->OpenEyesAction, ETriggerEvent::Completed, this, &ALRPlayerController::HandleOpenEyesStopped);
 	enhancedInput->BindAction(InputConfig->OpenEyesAction, ETriggerEvent::Canceled, this, &ALRPlayerController::HandleOpenEyesStopped);
+	enhancedInput->BindAction(InputConfig->InteractAction, ETriggerEvent::Started, this, &ALRPlayerController::HandleInteract);
+	enhancedInput->BindAction(InputConfig->QuickSlotActions[0], ETriggerEvent::Started, this, &ALRPlayerController::HandleQuickSlot1);
+	enhancedInput->BindAction(InputConfig->QuickSlotActions[1], ETriggerEvent::Started, this, &ALRPlayerController::HandleQuickSlot2);
+	enhancedInput->BindAction(InputConfig->QuickSlotActions[2], ETriggerEvent::Started, this, &ALRPlayerController::HandleQuickSlot3);
+	enhancedInput->BindAction(InputConfig->QuickSlotActions[3], ETriggerEvent::Started, this, &ALRPlayerController::HandleQuickSlot4);
+	enhancedInput->BindAction(InputConfig->UseQuickSlotAction, ETriggerEvent::Started, this, &ALRPlayerController::HandleUseSelectedQuickSlot);
+	enhancedInput->BindAction(InputConfig->PreviousQuickSlotAction, ETriggerEvent::Started, this, &ALRPlayerController::HandlePreviousQuickSlot);
+	enhancedInput->BindAction(InputConfig->NextQuickSlotAction, ETriggerEvent::Started, this, &ALRPlayerController::HandleNextQuickSlot);
 }
 
 void ALRPlayerController::SetLRInputMode(const ELRInputMode newMode)
@@ -127,6 +140,52 @@ void ALRPlayerController::HandleOpenEyesStopped()
 	if (const ALRCharacter* character = Cast<ALRCharacter>(GetPawn()))
 	{
 		character->GetStateComponent()->EndEyeInput(ELRStateRequestType::OpenEyes);
+	}
+}
+
+void ALRPlayerController::HandleInteract()
+{
+	if (const ALRCharacter* character = Cast<ALRCharacter>(GetPawn()))
+	{
+		character->GetInteractionComponent()->PerformPrimaryInteraction();
+	}
+}
+
+void ALRPlayerController::HandleQuickSlot1() { UseQuickSlot(0); }
+void ALRPlayerController::HandleQuickSlot2() { UseQuickSlot(1); }
+void ALRPlayerController::HandleQuickSlot3() { UseQuickSlot(2); }
+void ALRPlayerController::HandleQuickSlot4() { UseQuickSlot(3); }
+
+void ALRPlayerController::HandleUseSelectedQuickSlot()
+{
+	if (const ALRCharacter* character = Cast<ALRCharacter>(GetPawn()))
+	{
+		UseQuickSlot(character->GetInventoryComponent()->GetSelectedQuickSlot());
+	}
+}
+
+void ALRPlayerController::HandlePreviousQuickSlot()
+{
+	if (const ALRCharacter* character = Cast<ALRCharacter>(GetPawn()))
+	{
+		character->GetInventoryComponent()->SelectAdjacentQuickSlot(-1);
+	}
+}
+
+void ALRPlayerController::HandleNextQuickSlot()
+{
+	if (const ALRCharacter* character = Cast<ALRCharacter>(GetPawn()))
+	{
+		character->GetInventoryComponent()->SelectAdjacentQuickSlot(1);
+	}
+}
+
+void ALRPlayerController::UseQuickSlot(const int32 slotIndex)
+{
+	if (const ALRCharacter* character = Cast<ALRCharacter>(GetPawn()))
+	{
+		character->GetInventoryComponent()->UseQuickSlot(slotIndex,
+			character->GetInteractionComponent()->GetCurrentTarget(), character->GetStateComponent()->GetCurrentMode());
 	}
 }
 
