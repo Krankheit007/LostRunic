@@ -201,6 +201,41 @@ ULRItemDefinition* ULRInventoryComponent::FindDefinition(const FName itemId) con
 	return definition ? definition->Get() : nullptr;
 }
 
+void ULRInventoryComponent::CaptureSaveState(FLRSaveInventoryChunk& outInventory) const
+{
+	outInventory.ItemCounts = ItemCounts;
+	outInventory.QuickSlots = QuickSlots;
+	outInventory.SelectedQuickSlot = SelectedQuickSlot;
+	outInventory.NoteIds = NoteIds;
+	outInventory.CollectibleIds = CollectibleIds;
+}
+
+void ULRInventoryComponent::RestoreSaveState(const FLRSaveInventoryChunk& savedInventory)
+{
+	ItemCounts.Reset();
+	for (const TPair<FName, int32>& item : savedInventory.ItemCounts)
+	{
+		if (item.Value > 0 && Definitions.Contains(item.Key))
+		{
+			ItemCounts.Add(item.Key, item.Value);
+		}
+	}
+	QuickSlots = savedInventory.QuickSlots;
+	QuickSlots.SetNum(QuickSlotCount);
+	SelectedQuickSlot = FMath::Clamp(savedInventory.SelectedQuickSlot, 0, QuickSlotCount - 1);
+	NoteIds = savedInventory.NoteIds;
+	CollectibleIds = savedInventory.CollectibleIds;
+
+	for (const TPair<FName, int32>& item : ItemCounts)
+	{
+		OnInventoryChanged.Broadcast(item.Key, item.Value);
+	}
+	for (int32 slotIndex = 0; slotIndex < QuickSlotCount; ++slotIndex)
+	{
+		OnQuickSlotChanged.Broadcast(slotIndex, QuickSlots[slotIndex]);
+	}
+}
+
 FLRItemUseResult ULRInventoryComponent::UseItem(const FLRItemUseRequest& request)
 {
 	const double currentTime = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0;

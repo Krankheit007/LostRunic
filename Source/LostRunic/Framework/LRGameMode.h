@@ -12,4 +12,6 @@ class LOSTRUNIC_API ALRGameMode : public AGameModeBase
 
 public:
 	ALRGameMode();
+
+	virtual void BeginPlay() override;
 };

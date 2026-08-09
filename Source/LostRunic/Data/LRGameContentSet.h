@@ -45,6 +45,8 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Lost Runic|Content")
 	TSoftObjectPtr<UWorld> FindMap(FName mapId) const;
 
+	FName FindMapIdForWorld(const UWorld* world) const;
+
 #if WITH_EDITOR
 	virtual EDataValidationResult IsDataValid(FDataValidationContext& context) const override;
 #endif

@@ -3,7 +3,10 @@
 #include "AI/LRAlertComponent.h"
 #include "AI/LRGuardAIController.h"
 #include "Core/LRGameplayTags.h"
+#include "Engine/GameInstance.h"
+#include "Framework/LRCharacter.h"
 #include "Items/LRCourageResponseComponent.h"
+#include "Save/LRSaveSubsystem.h"
 #include "State/LRStateComponent.h"
 
 ALRGuardCharacter::ALRGuardCharacter()
@@ -29,6 +32,16 @@ bool ALRGuardCharacter::CaptureTarget(AActor* target)
 	const FLRStateChangeResult result = state->RequestStateChange(request);
 	if (result.bAccepted)
 	{
+		if (ALRCharacter* character = Cast<ALRCharacter>(target))
+		{
+			if (UGameInstance* gameInstance = character->GetGameInstance())
+			{
+				if (ULRSaveSubsystem* saveSubsystem = gameInstance->GetSubsystem<ULRSaveSubsystem>())
+				{
+					saveSubsystem->BeginDeathMemoryTransaction(character);
+				}
+			}
+		}
 		OnPlayerCaptured.Broadcast(target);
 	}
 	return result.bAccepted;

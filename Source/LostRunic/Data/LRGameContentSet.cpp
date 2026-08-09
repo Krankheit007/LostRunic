@@ -119,6 +119,24 @@ TSoftObjectPtr<UWorld> ULRGameContentSet::FindMap(const FName mapId) const
 	return found ? found->World : TSoftObjectPtr<UWorld>();
 }
 
+FName ULRGameContentSet::FindMapIdForWorld(const UWorld* world) const
+{
+	const UPackage* package = world ? world->GetOutermost() : nullptr;
+	if (!package)
+	{
+		return NAME_None;
+	}
+	const FName packageName = package->GetFName();
+	for (const FLRMapRegistration& map : Maps)
+	{
+		if (map.World.ToSoftObjectPath().GetLongPackageFName() == packageName)
+		{
+			return map.MapId;
+		}
+	}
+	return NAME_None;
+}
+
 #if WITH_EDITOR
 EDataValidationResult ULRGameContentSet::IsDataValid(FDataValidationContext& context) const
 {

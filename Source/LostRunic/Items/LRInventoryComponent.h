@@ -3,6 +3,7 @@
 #include "Components/ActorComponent.h"
 #include "GameplayTagContainer.h"
 #include "Items/LRItemUseTypes.h"
+#include "Save/LRSaveTypes.h"
 
 #include "LRInventoryComponent.generated.h"
 
@@ -80,6 +81,9 @@ public:
 	TArray<FName> GetCollectibleIds() const;
 
 	ULRItemDefinition* FindDefinition(FName itemId) const;
+
+	void CaptureSaveState(FLRSaveInventoryChunk& outInventory) const;
+	void RestoreSaveState(const FLRSaveInventoryChunk& savedInventory);
 
 	UPROPERTY(BlueprintAssignable, Category = "Lost Runic|Inventory")
 	FLRInventoryChanged OnInventoryChanged;
