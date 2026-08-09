@@ -41,5 +41,8 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Movement|Noise", meta = (ClampMin = "0.0", ClampMax = "5000.0", Units = "cm"))
 	float OutdoorAlertGuardNoiseRadius = 250.0f;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Movement|Noise", meta = (ClampMin = "0.0", ClampMax = "5000.0", Units = "cm"))
+	float InteractionNoiseRadius = 500.0f;
+
 	virtual bool Validate(FString& outError) const override;
 };

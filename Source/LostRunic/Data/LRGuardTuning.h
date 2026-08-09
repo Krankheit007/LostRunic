@@ -14,11 +14,26 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|Sight", meta = (ClampMin = "50.0", ClampMax = "5000.0", Units = "cm"))
 	float SightRadius = 500.0f;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|Sight", meta = (ClampMin = "50.0", ClampMax = "5000.0", Units = "cm"))
+	float LoseSightRadius = 600.0f;
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|Sight", meta = (ClampMin = "1.0", ClampMax = "180.0", Units = "deg", ToolTip = "Full sight cone; UE perception receives half this value."))
 	float SightConeDegrees = 45.0f;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|Hearing", meta = (ClampMin = "0.0", ClampMax = "10.0"))
 	float HearingRangeMultiplier = 1.0f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|Hearing", meta = (ClampMin = "50.0", ClampMax = "10000.0", Units = "cm"))
+	float MaxHearingRange = 5000.0f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|Alert", meta = (ClampMin = "1", ClampMax = "11"))
+	int32 HearingAlertAmount = 6;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|Alert", meta = (ClampMin = "1", ClampMax = "11"))
+	int32 SightAlertLevel = 11;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|Alert", meta = (ClampMin = "1", ClampMax = "11"))
+	int32 AlertDecayAmount = 1;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|Movement", meta = (ClampMin = "1.0", ClampMax = "1000.0", Units = "cm/s"))
 	float InvestigateSpeed = 170.0f;
@@ -37,6 +52,12 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|Capture", meta = (ClampMin = "10.0", ClampMax = "500.0", Units = "cm"))
 	float CaptureRadius = 75.0f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|Capture", meta = (ClampMin = "0.02", ClampMax = "1.0", Units = "s"))
+	float CaptureCheckIntervalSeconds = 0.1f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|Movement", meta = (ClampMin = "1.0", ClampMax = "500.0", Units = "cm"))
+	float MoveAcceptanceRadius = 50.0f;
 
 	virtual bool Validate(FString& outError) const override;
 };

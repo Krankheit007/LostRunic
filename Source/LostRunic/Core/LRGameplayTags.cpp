@@ -44,6 +44,9 @@ namespace LRGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(NoiseFootstepRun, "Noise.Footstep.Run", "Running footstep stimulus.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(NoiseInteraction, "Noise.Interaction", "Interaction-created noise stimulus.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(SightPlayer, "Sight.Player", "A guard saw the player.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(SightPlayerLost, "Sight.Player.Lost", "A guard lost confirmed sight of the player.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(SearchReached, "Search.Reached", "A guard reached the latest disturbance location.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(SearchAlertDecay, "Search.AlertDecay", "Alert decayed after its observation delay.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(SearchTimeout, "Search.Timeout", "A guard search timed out.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(AIEventAlertChanged, "AI.Event.AlertChanged", "Alert state changed and StateTree should reselect.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(NarrativeEventCompleted, "Narrative.Event.Completed", "A stable narrative event completed.");

@@ -1,5 +1,6 @@
 #include "Core/LRLog.h"
 
+#include "AI/LRGuardAIController.h"
 #include "Data/LRGameTuningSet.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
@@ -9,6 +10,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Interaction/LRInteractionComponent.h"
 #include "State/LRStateComponent.h"
+#include "EngineUtils.h"
 
 namespace
 {
@@ -32,7 +34,14 @@ namespace
 
 	void DumpAlert(UWorld* world)
 	{
-		UE_LOG(LogLostRunicAI, Display, TEXT("World=%s Guard debug drawing is enabled by active LR guard components."), *GetNameSafe(world));
+		int32 guardCount = 0;
+		for (TActorIterator<ALRGuardAIController> controllerIt(world); controllerIt; ++controllerIt)
+		{
+			controllerIt->LogAndDrawDiagnostics();
+			++guardCount;
+		}
+		UE_LOG(LogLostRunicAI, Display, TEXT("World=%s drew diagnostics for %d LR guards."),
+			*GetNameSafe(world), guardCount);
 	}
 
 	void DumpInteraction(UWorld* world)

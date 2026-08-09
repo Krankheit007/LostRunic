@@ -7,9 +7,12 @@
 class UCameraComponent;
 class ULRInteractionComponent;
 class ULRInventoryComponent;
+class ULRHideComponent;
 class ULRLocomotionComponent;
+class ULRNoiseEmitterComponent;
 class ULRStateComponent;
 class ULRStatePresentationComponent;
+class UAIPerceptionStimuliSourceComponent;
 class USpringArmComponent;
 
 /** Thin player assembly root; independent gameplay capabilities live in components. */
@@ -35,6 +38,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Lost Runic|Inventory")
 	ULRInventoryComponent* GetInventoryComponent() const { return Inventory; }
 
+	UFUNCTION(BlueprintPure, Category = "Lost Runic|Stealth")
+	ULRHideComponent* GetHideComponent() const { return Hide; }
+
 private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<USpringArmComponent> CameraBoom;
@@ -56,4 +62,13 @@ private:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<ULRInteractionComponent> Interaction;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<ULRHideComponent> Hide;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<ULRNoiseEmitterComponent> NoiseEmitter;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UAIPerceptionStimuliSourceComponent> StimuliSource;
 };

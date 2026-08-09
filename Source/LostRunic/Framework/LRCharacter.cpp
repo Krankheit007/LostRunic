@@ -3,11 +3,15 @@
 #include "Gameplay/LRLocomotionComponent.h"
 #include "Interaction/LRInteractionComponent.h"
 #include "Items/LRInventoryComponent.h"
+#include "Stealth/LRHideComponent.h"
+#include "Stealth/LRNoiseEmitterComponent.h"
 #include "State/LRStateComponent.h"
 #include "State/LRStatePresentationComponent.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "Perception/AIPerceptionStimuliSourceComponent.h"
+#include "Perception/AISense_Sight.h"
 
 ALRCharacter::ALRCharacter()
 {
@@ -31,6 +35,11 @@ ALRCharacter::ALRCharacter()
 	StatePresentation = CreateDefaultSubobject<ULRStatePresentationComponent>(TEXT("StatePresentation"));
 	Inventory = CreateDefaultSubobject<ULRInventoryComponent>(TEXT("Inventory"));
 	Interaction = CreateDefaultSubobject<ULRInteractionComponent>(TEXT("Interaction"));
+	Hide = CreateDefaultSubobject<ULRHideComponent>(TEXT("Hide"));
+	NoiseEmitter = CreateDefaultSubobject<ULRNoiseEmitterComponent>(TEXT("NoiseEmitter"));
+	StimuliSource = CreateDefaultSubobject<UAIPerceptionStimuliSourceComponent>(TEXT("StimuliSource"));
+	StimuliSource->bAutoRegister = true;
+	StimuliSource->RegisterForSense(UAISense_Sight::StaticClass());
 }
 
 void ALRCharacter::ApplyMoveInput(const FVector2D& input)
