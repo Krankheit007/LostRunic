@@ -1,0 +1,37 @@
+# Unreal Engine generated output
+/Binaries/
+/DerivedDataCache/
+/Intermediate/
+/Saved/
+**/Binaries/
+**/Intermediate/
+
+# IDE and generated project files
+/.vs/
+/.idea/
+/.vscode/
+*.sln
+*.suo
+*.opensdf
+*.sdf
+*.VC.db
+*.VC.opendb
+*.user
+*.userprefs
+*.code-workspace
+
+# Machine-local agent and MCP configuration
+/.agents/
+/.claude/
+/.codex/
+/.mcp.json
+/.ignore
+/AGENTS.md
+/skills-lock.json
+/UE_MCP_功能清单.md
+
+# Local operating-system files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
