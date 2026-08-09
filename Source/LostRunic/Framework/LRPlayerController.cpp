@@ -1,6 +1,7 @@
 #include "Framework/LRPlayerController.h"
 
 #include "Core/LRGameplayTags.h"
+#include "Core/LRLog.h"
 #include "Data/LRProjectSettings.h"
 #include "Framework/LRCharacter.h"
 #include "Gameplay/LRLocomotionComponent.h"
@@ -8,15 +9,38 @@
 #include "Interaction/LRInteractionComponent.h"
 #include "Items/LRInventoryComponent.h"
 #include "State/LRStateComponent.h"
+#include "UI/LRPlayerUIComponent.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "InputAction.h"
 #include "InputMappingContext.h"
 
+ALRPlayerController::ALRPlayerController()
+{
+	PlayerUI = CreateDefaultSubobject<ULRPlayerUIComponent>(TEXT("PlayerUI"));
+}
+
 void ALRPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
+	if (!InputConfig)
+	{
+		InputConfig = GetDefault<ULRProjectSettings>()->InputConfig.LoadSynchronous();
+	}
+	if (PlayerUI)
+	{
+		PlayerUI->InitializeUI(this);
+	}
 	SetLRInputMode(InputMode);
+}
+
+void ALRPlayerController::OnPossess(APawn* pawn)
+{
+	Super::OnPossess(pawn);
+	if (PlayerUI)
+	{
+		PlayerUI->SetObservedCharacter(Cast<ALRCharacter>(pawn));
+	}
 }
 
 void ALRPlayerController::SetupInputComponent()
@@ -54,6 +78,10 @@ void ALRPlayerController::SetupInputComponent()
 	enhancedInput->BindAction(InputConfig->UseQuickSlotAction, ETriggerEvent::Started, this, &ALRPlayerController::HandleUseSelectedQuickSlot);
 	enhancedInput->BindAction(InputConfig->PreviousQuickSlotAction, ETriggerEvent::Started, this, &ALRPlayerController::HandlePreviousQuickSlot);
 	enhancedInput->BindAction(InputConfig->NextQuickSlotAction, ETriggerEvent::Started, this, &ALRPlayerController::HandleNextQuickSlot);
+	enhancedInput->BindAction(InputConfig->ConfirmAction, ETriggerEvent::Started, this, &ALRPlayerController::HandleConfirm);
+	enhancedInput->BindAction(InputConfig->CancelAction, ETriggerEvent::Started, this, &ALRPlayerController::HandleCancel);
+	enhancedInput->BindAction(InputConfig->OpenJournalAction, ETriggerEvent::Started, this, &ALRPlayerController::HandleOpenJournal);
+	enhancedInput->BindAction(InputConfig->PauseAction, ETriggerEvent::Started, this, &ALRPlayerController::HandlePause);
 }
 
 void ALRPlayerController::SetLRInputMode(const ELRInputMode newMode)
@@ -66,6 +94,8 @@ void ALRPlayerController::SetLRInputMode(const ELRInputMode newMode)
 	UInputMappingContext* context = ResolveContext(newMode);
 	if (!subsystem || !context)
 	{
+		UE_LOG(LogLostRunicUI, Warning, TEXT("Controller=%s cannot apply input mode=%d; missing mapping context."),
+			*GetNameSafe(this), static_cast<int32>(newMode));
 		return;
 	}
 
@@ -73,6 +103,7 @@ void ALRPlayerController::SetLRInputMode(const ELRInputMode newMode)
 	FModifyContextOptions options;
 	options.bIgnoreAllPressedKeysUntilRelease = true;
 	subsystem->AddMappingContext(context, static_cast<int32>(newMode), options);
+	ConfigureViewportInput(newMode);
 	if (previousMode != newMode)
 	{
 		OnInputModeChanged.Broadcast(previousMode, newMode);
@@ -177,15 +208,6 @@ void ALRPlayerController::HandleNextQuickSlot()
 	if (const ALRCharacter* character = Cast<ALRCharacter>(GetPawn()))
 	{
 		character->GetInventoryComponent()->SelectAdjacentQuickSlot(1);
-	}
-}
-
-void ALRPlayerController::UseQuickSlot(const int32 slotIndex)
-{
-	if (const ALRCharacter* character = Cast<ALRCharacter>(GetPawn()))
-	{
-		character->GetInventoryComponent()->UseQuickSlot(slotIndex,
-			character->GetInteractionComponent()->GetCurrentTarget(), character->GetStateComponent()->GetCurrentMode());
 	}
 }
 

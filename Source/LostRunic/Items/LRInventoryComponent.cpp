@@ -167,6 +167,34 @@ FGameplayTagContainer ULRInventoryComponent::GetOwnedItemTags() const
 	return tags;
 }
 
+TArray<FName> ULRInventoryComponent::GetOwnedItemIds() const
+{
+	TArray<FName> itemIds;
+	for (const TPair<FName, int32>& item : ItemCounts)
+	{
+		if (item.Value > 0)
+		{
+			itemIds.Add(item.Key);
+		}
+	}
+	itemIds.Sort(FNameLexicalLess());
+	return itemIds;
+}
+
+TArray<FName> ULRInventoryComponent::GetNoteIds() const
+{
+	TArray<FName> noteIds = NoteIds.Array();
+	noteIds.Sort(FNameLexicalLess());
+	return noteIds;
+}
+
+TArray<FName> ULRInventoryComponent::GetCollectibleIds() const
+{
+	TArray<FName> collectibleIds = CollectibleIds.Array();
+	collectibleIds.Sort(FNameLexicalLess());
+	return collectibleIds;
+}
+
 ULRItemDefinition* ULRInventoryComponent::FindDefinition(const FName itemId) const
 {
 	const TObjectPtr<ULRItemDefinition>* definition = Definitions.Find(itemId);

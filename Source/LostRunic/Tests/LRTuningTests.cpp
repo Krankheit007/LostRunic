@@ -69,6 +69,9 @@ bool FLRTuningInvalidTest::RunTest(const FString& parameters)
 	ULRUITuning* ui = NewObject<ULRUITuning>();
 	ui->TypewriterCharactersPerSecond = 0.0f;
 	TestFalse(TEXT("Zero typewriter speed"), ui->Validate(error));
+	ui->TypewriterCharactersPerSecond = 30.0f;
+	ui->TypewriterUpdateSeconds = 0.0f;
+	TestFalse(TEXT("Zero typewriter update frequency"), ui->Validate(error));
 	return true;
 }
 

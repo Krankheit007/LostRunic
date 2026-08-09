@@ -1,9 +1,81 @@
 #include "Data/LRGameContentSet.h"
 
+#include "Data/LRLevelEventDefinition.h"
 #include "Engine/DataTable.h"
 #if WITH_EDITOR
 #include "Misc/DataValidation.h"
 #endif
+
+namespace
+{
+	bool ValidateDialogueTable(const UDataTable* dialogueTable, FString& outError)
+	{
+		const TArray<FName> rowNames = dialogueTable->GetRowNames();
+		TSet<FName> dialogueIds;
+		for (const FName rowName : rowNames)
+		{
+			const FLRDialogueRow* row = dialogueTable->FindRow<FLRDialogueRow>(rowName, TEXT("Validate dialogue"));
+			if (!row || row->DialogueId.IsNone() || row->DialogueId != rowName || dialogueIds.Contains(row->DialogueId))
+			{
+				outError = FString::Printf(TEXT("Dialogue row '%s' must have one matching, unique DialogueId."), *rowName.ToString());
+				return false;
+			}
+			dialogueIds.Add(row->DialogueId);
+		}
+
+		for (const FName rowName : rowNames)
+		{
+			const FLRDialogueRow* row = dialogueTable->FindRow<FLRDialogueRow>(rowName, TEXT("Validate dialogue links"));
+			if (!row->NextRowId.IsNone() && !dialogueIds.Contains(row->NextRowId))
+			{
+				outError = FString::Printf(TEXT("Dialogue '%s' references missing NextRowId '%s'."), *rowName.ToString(), *row->NextRowId.ToString());
+				return false;
+			}
+
+			TSet<FName> optionIds;
+			for (const FLRDialogueOption& option : row->Options)
+			{
+				if (option.OptionId.IsNone() || optionIds.Contains(option.OptionId)
+					|| (!option.NextRowId.IsNone() && !dialogueIds.Contains(option.NextRowId)))
+				{
+					outError = FString::Printf(TEXT("Dialogue '%s' has an empty, duplicate, or unresolved option."), *rowName.ToString());
+					return false;
+				}
+				optionIds.Add(option.OptionId);
+			}
+		}
+		return true;
+	}
+
+	bool ValidateReadingTable(const UDataTable* readingTable, FString& outError)
+	{
+		for (const FName rowName : readingTable->GetRowNames())
+		{
+			const FLRReadingRow* row = readingTable->FindRow<FLRReadingRow>(rowName, TEXT("Validate reading"));
+			if (!row || row->ReadingId.IsNone() || row->ReadingId != rowName)
+			{
+				outError = FString::Printf(TEXT("Reading row '%s' must have a matching, non-empty ReadingId."), *rowName.ToString());
+				return false;
+			}
+		}
+		return true;
+	}
+
+	bool ValidateEvents(const TArray<TObjectPtr<ULRLevelEventDefinition>>& events, FString& outError)
+	{
+		TSet<FName> eventIds;
+		for (const ULRLevelEventDefinition* eventDefinition : events)
+		{
+			if (!eventDefinition || eventDefinition->EventId.IsNone() || eventIds.Contains(eventDefinition->EventId))
+			{
+				outError = TEXT("LevelEvents contains a missing definition, empty EventId, or duplicate EventId.");
+				return false;
+			}
+			eventIds.Add(eventDefinition->EventId);
+		}
+		return true;
+	}
+}
 
 bool ULRGameContentSet::Validate(FString& outError) const
 {
@@ -16,6 +88,11 @@ bool ULRGameContentSet::Validate(FString& outError) const
 	if (!ReadingTable || ReadingTable->GetRowStruct() != FLRReadingRow::StaticStruct())
 	{
 		outError = TEXT("ReadingTable must use FLRReadingRow.");
+		return false;
+	}
+	if (!ValidateDialogueTable(DialogueTable, outError) || !ValidateReadingTable(ReadingTable, outError)
+		|| !ValidateEvents(LevelEvents, outError))
+	{
 		return false;
 	}
 

@@ -50,6 +50,11 @@ namespace LRGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(SearchTimeout, "Search.Timeout", "A guard search timed out.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(AIEventAlertChanged, "AI.Event.AlertChanged", "Alert state changed and StateTree should reselect.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(NarrativeEventCompleted, "Narrative.Event.Completed", "A stable narrative event completed.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(NarrativeRejectNoSession, "Narrative.Reject.NoSession", "No narrative session can receive the request.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(NarrativeRejectMissingContent, "Narrative.Reject.MissingContent", "The requested stable content ID is not registered.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(NarrativeRejectConditions, "Narrative.Reject.Conditions", "Narrative conditions are not satisfied.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(NarrativeRejectInvalidChoice, "Narrative.Reject.InvalidChoice", "The choice is not legal for the current page.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(NarrativeRejectAlreadyCompleted, "Narrative.Reject.AlreadyCompleted", "The one-shot narrative event already completed.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(SavePolicyAutoOnComplete, "Save.Policy.AutoOnComplete", "Completion requests a debounced autosave.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(SavePolicyCritical, "Save.Policy.Critical", "Completion requests an ordered critical save.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(TargetDoorHomeKey, "Target.Door.HomeKey", "The Home key door target.");

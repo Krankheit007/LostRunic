@@ -14,6 +14,9 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI|Dialogue", meta = (ClampMin = "1.0", ClampMax = "240.0", UIMin = "5.0", UIMax = "120.0", ToolTip = "Number of visible dialogue characters revealed per second."))
 	float TypewriterCharactersPerSecond = 30.0f;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI|Dialogue", meta = (ClampMin = "0.01", ClampMax = "0.10", UIMin = "0.02", UIMax = "0.05", Units = "s", ToolTip = "How often the timer refreshes displayed typewriter text."))
+	float TypewriterUpdateSeconds = 0.033f;
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI|Feedback", meta = (ClampMin = "0.1", ClampMax = "10.0", Units = "s"))
 	float FailureMessageSeconds = 2.0f;
 

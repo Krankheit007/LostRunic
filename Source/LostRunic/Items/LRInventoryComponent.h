@@ -70,6 +70,15 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Lost Runic|Inventory")
 	FGameplayTagContainer GetOwnedItemTags() const;
 
+	UFUNCTION(BlueprintPure, Category = "Lost Runic|Inventory")
+	TArray<FName> GetOwnedItemIds() const;
+
+	UFUNCTION(BlueprintPure, Category = "Lost Runic|Inventory|Journal")
+	TArray<FName> GetNoteIds() const;
+
+	UFUNCTION(BlueprintPure, Category = "Lost Runic|Inventory|Journal")
+	TArray<FName> GetCollectibleIds() const;
+
 	ULRItemDefinition* FindDefinition(FName itemId) const;
 
 	UPROPERTY(BlueprintAssignable, Category = "Lost Runic|Inventory")

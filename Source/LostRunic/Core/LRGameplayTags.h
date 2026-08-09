@@ -52,6 +52,11 @@ namespace LRGameplayTags
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(SearchTimeout);
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(AIEventAlertChanged);
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(NarrativeEventCompleted);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(NarrativeRejectNoSession);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(NarrativeRejectMissingContent);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(NarrativeRejectConditions);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(NarrativeRejectInvalidChoice);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(NarrativeRejectAlreadyCompleted);
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(SavePolicyAutoOnComplete);
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(SavePolicyCritical);
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(TargetDoorHomeKey);
