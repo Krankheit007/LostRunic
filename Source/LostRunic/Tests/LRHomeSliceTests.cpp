@@ -1,12 +1,14 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
-#include "Misc/AutomationTest.h"
-
 #include "Data/LRGameContentSet.h"
 #include "Data/LRItemDefinition.h"
+#include "UI/LRScreenWidget.h"
+
+#include "Components/SkeletalMeshComponent.h"
 #include "Engine/DataTable.h"
 #include "Engine/World.h"
-#include "UI/LRScreenWidget.h"
+#include "GameFramework/Character.h"
+#include "Misc/AutomationTest.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLRHomeContentContractTest, "LostRunic.Home.ContentContractIsComplete",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ProductFilter)
@@ -55,6 +57,31 @@ bool FLRHomeAssetLoadTest::RunTest(const FString& parameters)
 		nullptr, TEXT("/Game/LostRunic/Levels/Home/L_Home.L_Home")));
 	TestNotNull(TEXT("Memory world loads"), LoadObject<UWorld>(
 		nullptr, TEXT("/Game/LostRunic/Levels/Memory/L_Memory.L_Memory")));
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLRHomeCharacterMeshOrientationTest,
+	"LostRunic.Home.CharacterMeshesRemainUpright",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ProductFilter)
+
+bool FLRHomeCharacterMeshOrientationTest::RunTest(const FString& parameters)
+{
+	const TCHAR* classPaths[] = {
+		TEXT("/Game/LostRunic/Blueprints/Characters/BP_LRCharacter.BP_LRCharacter_C"),
+		TEXT("/Game/LostRunic/Blueprints/Characters/BP_LRGuard.BP_LRGuard_C")
+	};
+	for (const TCHAR* classPath : classPaths)
+	{
+		const UClass* characterClass = LoadObject<UClass>(nullptr, classPath);
+		const ACharacter* character = characterClass ? characterClass->GetDefaultObject<ACharacter>() : nullptr;
+		if (!TestNotNull(classPath, character))
+		{
+			continue;
+		}
+		const FRotator meshRotation = character->GetMesh()->GetRelativeRotation();
+		TestTrue(*FString::Printf(TEXT("%s mesh pitch is zero"), classPath), FMath::IsNearlyZero(meshRotation.Pitch));
+		TestTrue(*FString::Printf(TEXT("%s mesh roll is zero"), classPath), FMath::IsNearlyZero(meshRotation.Roll));
+	}
 	return true;
 }
 
