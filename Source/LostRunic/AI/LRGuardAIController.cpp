@@ -16,7 +16,6 @@
 #include "Core/LRGameplayTags.h"
 #include "Core/LRLog.h"
 #include "Data/LRGameTuningSet.h"
-#include "Data/LRGuardDefinition.h"
 #include "Data/LRGuardTuning.h"
 #include "DrawDebugHelpers.h"
 #include "Engine/GameInstance.h"
@@ -30,7 +29,6 @@
 #include "Perception/AISenseConfig_Hearing.h"
 #include "Perception/AISenseConfig_Sight.h"
 #include "Stealth/LRGuardVisibility.h"
-#include "StateTree.h"
 #include "TimerManager.h"
 
 /**
@@ -43,15 +41,10 @@ ALRGuardAIController::ALRGuardAIController()
 	bStopAILogicOnUnposses = true;
 	bAttachToPawn = true;
 	StateTreeAI = CreateDefaultSubobject<UStateTreeAIComponent>(TEXT("StateTreeAI"));
-	StateTreeAI->SetStartLogicAutomatically(false);
 	AIPerception = CreateDefaultSubobject<UAIPerceptionComponent>(TEXT("AIPerception"));
 	SetPerceptionComponent(*AIPerception);
 	SightConfig = CreateDefaultSubobject<UAISenseConfig_Sight>(TEXT("SightConfig"));
 	HearingConfig = CreateDefaultSubobject<UAISenseConfig_Hearing>(TEXT("HearingConfig"));
-	ConfigurePerception();
-	AIPerception->ConfigureSense(*SightConfig);
-	AIPerception->ConfigureSense(*HearingConfig);
-	AIPerception->SetDominantSense(SightConfig->GetSenseImplementation());
 }
 
 /**
@@ -68,7 +61,6 @@ void ALRGuardAIController::BeginPlay()
 		return;
 	}
 	ConfigurePerception();
-	AIPerception->RequestStimuliListenerUpdate();
 	AIPerception->OnTargetPerceptionUpdated.AddDynamic(this, &ALRGuardAIController::HandlePerception);
 	GetWorld()->GetTimerManager().SetTimer(CaptureTimer, this, &ALRGuardAIController::HandleCaptureTimer,
 		Tuning->CaptureCheckIntervalSeconds, true);
@@ -98,18 +90,12 @@ void ALRGuardAIController::EndPlay(const EEndPlayReason::Type endPlayReason)
  */
 void ALRGuardAIController::OnPossess(APawn* inPawn)
 {
-	ALRGuardCharacter* guard = Cast<ALRGuardCharacter>(inPawn);
-	const ULRGuardDefinition* definition = guard ? guard->GetDefinition() : nullptr;
-	if (definition)
-	{
-		StateTreeAI->SetStateTree(definition->Behavior.LoadSynchronous());
-	}
 	Super::OnPossess(inPawn);
+	ALRGuardCharacter* guard = Cast<ALRGuardCharacter>(inPawn);
 	Alert = guard ? guard->GetAlertComponent() : nullptr;
 	if (Alert.IsValid())
 	{
 		Alert->OnAlertChanged.AddDynamic(this, &ALRGuardAIController::HandleAlertChanged);
-		EnterBehavior(Alert->GetBehaviorState());
 	}
 }
 
@@ -268,6 +254,9 @@ void ALRGuardAIController::ConfigurePerception()
 	HearingConfig->DetectionByAffiliation.bDetectEnemies = true;
 	HearingConfig->DetectionByAffiliation.bDetectFriendlies = true;
 	HearingConfig->DetectionByAffiliation.bDetectNeutrals = true;
+	AIPerception->ConfigureSense(*SightConfig);
+	AIPerception->ConfigureSense(*HearingConfig);
+	AIPerception->SetDominantSense(SightConfig->GetSenseImplementation());
 }
 
 /**

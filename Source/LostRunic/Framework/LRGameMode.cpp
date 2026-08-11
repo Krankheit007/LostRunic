@@ -9,13 +9,10 @@
 #include "Framework/LRGameMode.h"
 
 #include "Framework/LRCharacter.h"
-#include "Framework/LRGameInstanceSubsystem.h"
 #include "Framework/LRGameState.h"
 #include "Framework/LRPlayerController.h"
-#include "Data/LRGameContentSet.h"
 #include "Kismet/GameplayStatics.h"
 #include "Save/LRSaveSubsystem.h"
-#include "Save/LRSaveTypes.h"
 #include "UI/LRHUD.h"
 
 /**
@@ -39,22 +36,7 @@ void ALRGameMode::BeginPlay()
 	{
 		if (ULRSaveSubsystem* saveSubsystem = gameInstance->GetSubsystem<ULRSaveSubsystem>())
 		{
-			ALRCharacter* character = Cast<ALRCharacter>(UGameplayStatics::GetPlayerCharacter(this, 0));
-			const ULRGameInstanceSubsystem* dataSubsystem = gameInstance->GetSubsystem<ULRGameInstanceSubsystem>();
-			const ULRGameContentSet* contentSet = dataSubsystem ? dataSubsystem->GetContentSet() : nullptr;
-			const FName mapId = contentSet ? contentSet->FindMapIdForWorld(GetWorld()) : NAME_None;
-			if (bInitializeResumeAnchor && character && mapId != LRSaveIds::MemoryMapId
-				&& !saveSubsystem->GetResumeAnchor().IsValid() && !DefaultResumeAnchorId.IsNone())
-			{
-				FLRResumeAnchor anchor;
-				anchor.MapId = mapId;
-				anchor.AnchorId = DefaultResumeAnchorId;
-				anchor.Location = character->GetActorLocation();
-				anchor.Rotation = character->GetActorRotation();
-				saveSubsystem->SetResumeAnchor(anchor);
-				saveSubsystem->RequestAutoSave(DefaultResumeAnchorId);
-			}
-			saveSubsystem->HandleWorldReady(character);
+			saveSubsystem->HandleWorldReady(Cast<ALRCharacter>(UGameplayStatics::GetPlayerCharacter(this, 0)));
 		}
 	}
 }

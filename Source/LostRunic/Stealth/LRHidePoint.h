@@ -14,7 +14,6 @@
 #include "LRHidePoint.generated.h"
 
 class USceneComponent;
-class UStaticMeshComponent;
 
 /** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
 UCLASS(Blueprintable, meta = (DisplayName = "Lost Runic Hide Point"))
@@ -67,10 +66,6 @@ private:
 	/** Scene Root 的领域数据，由所属类型负责维护和校验。 仅在蓝图或详情面板中查看，不可编辑。 */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<USceneComponent> SceneRoot;
-
-	/** 掩体的可视及遮挡几何；固定/可移动规则仍由本 Actor 和 HideComponent 决定。 */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
-	TObjectPtr<UStaticMeshComponent> VisualMesh;
 
 	/** Interaction Option 的领域数据，由所属类型负责维护和校验。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Hide", meta = (AllowPrivateAccess = "true"))

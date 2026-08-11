@@ -14,8 +14,6 @@
 
 #include "LRItemUseTargetActor.generated.h"
 
-class UStaticMeshComponent;
-
 /** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
 UCLASS(Blueprintable, meta = (DisplayName = "Lost Runic Item Use Target"))
 class LOSTRUNIC_API ALRItemUseTargetActor : public AActor, public ILRInteractable, public ILRItemUseTarget
@@ -27,10 +25,6 @@ public:
 	 * @brief 创建对象并设置默认子对象、能力开关和安全初值；需要 World、资产或玩家的依赖延迟到初始化阶段解析。
 	 */
 	ALRItemUseTargetActor();
-
-	/** 关卡装配使用的门、机关或障碍物可视组件。 */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-	TObjectPtr<UStaticMeshComponent> VisualMesh;
 
 	/**
 	 * @brief 查询 Interaction Options_Implementation；不修改领域状态。
@@ -79,10 +73,6 @@ public:
 	/** One Shot 的开关；true 表示启用，false 表示禁用。 C++ 安全默认值为 `true`。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item Use")
 	bool bOneShot = true;
-
-	/** 成功使用物品后隐藏并关闭碰撞，适用于原型门和一次性障碍。 */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item Use")
-	bool bHideAfterUse = true;
 
 	/**
 	 * @brief 判断 Is Completed 对应条件；不产生玩法副作用。

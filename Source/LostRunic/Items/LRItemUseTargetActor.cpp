@@ -10,9 +10,6 @@
 
 #include "Core/LRGameplayTags.h"
 #include "Data/LRItemDefinition.h"
-#include "Components/StaticMeshComponent.h"
-#include "Engine/GameInstance.h"
-#include "Narrative/LRDialogueSubsystem.h"
 
 /**
  * @brief 创建对象并设置默认子对象、能力开关和安全初值；需要 World、资产或玩家的依赖延迟到初始化阶段解析。
@@ -20,9 +17,6 @@
 ALRItemUseTargetActor::ALRItemUseTargetActor()
 {
 	PrimaryActorTick.bCanEverTick = false;
-	VisualMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("VisualMesh"));
-	SetRootComponent(VisualMesh);
-	VisualMesh->SetCollisionProfileName(TEXT("BlockAll"));
 	InteractionOption.ActionTag = LRGameplayTags::InteractionActionUse;
 }
 
@@ -89,20 +83,6 @@ FLRItemUseResult ALRItemUseTargetActor::ApplyItemUse_Implementation(const FLRIte
 	bCompleted = true;
 	result.bSuccess = true;
 	result.EventId = EventId;
-	if (!EventId.IsNone())
-	{
-		UGameInstance* gameInstance = GetGameInstance();
-		ULRDialogueSubsystem* dialogue = gameInstance ? gameInstance->GetSubsystem<ULRDialogueSubsystem>() : nullptr;
-		if (dialogue)
-		{
-			dialogue->TryCompleteEvent(EventId);
-		}
-	}
-	if (bHideAfterUse)
-	{
-		SetActorHiddenInGame(true);
-		SetActorEnableCollision(false);
-	}
 	OnItemUseApplied(request, definition);
 	return result;
 }
