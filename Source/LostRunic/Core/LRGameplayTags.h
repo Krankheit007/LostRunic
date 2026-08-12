@@ -115,6 +115,11 @@ namespace LRGameplayTags
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(InteractionActionUse);
 	/**
 	 * @brief 创建对象并设置默认子对象、能力开关和安全初值；需要 World、资产或玩家的依赖延迟到初始化阶段解析。
+	 * @param InteractionActionAttack 调用方提供的 `InteractionActionAttack`，只在本次操作范围内使用。
+	 */
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(InteractionActionAttack);
+	/**
+	 * @brief 创建对象并设置默认子对象、能力开关和安全初值；需要 World、资产或玩家的依赖延迟到初始化阶段解析。
 	 * @param InteractionActionHide 调用方提供的 `InteractionActionHide`，只在本次操作范围内使用。
 	 */
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(InteractionActionHide);
@@ -161,19 +166,14 @@ namespace LRGameplayTags
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(ItemCategoryKey);
 	/**
 	 * @brief 创建对象并设置默认子对象、能力开关和安全初值；需要 World、资产或玩家的依赖延迟到初始化阶段解析。
-	 * @param ItemCategoryCourageWeapon 调用方提供的 `ItemCategoryCourageWeapon`，只在本次操作范围内使用。
+	 * @param ItemCategoryWeapon 调用方提供的 `ItemCategoryWeapon`，只在本次操作范围内使用。
 	 */
-	UE_DECLARE_GAMEPLAY_TAG_EXTERN(ItemCategoryCourageWeapon);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(ItemCategoryWeapon);
 	/**
 	 * @brief 创建对象并设置默认子对象、能力开关和安全初值；需要 World、资产或玩家的依赖延迟到初始化阶段解析。
 	 * @param ItemUseRejectNotOwned 调用方提供的 `ItemUseRejectNotOwned`，只在本次操作范围内使用。
 	 */
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(ItemUseRejectNotOwned);
-	/**
-	 * @brief 创建对象并设置默认子对象、能力开关和安全初值；需要 World、资产或玩家的依赖延迟到初始化阶段解析。
-	 * @param ItemUseRejectInvalidSlot 本次操作使用的计数、增量或索引 `ItemUseRejectInvalidSlot`；由函数校验合法范围。
-	 */
-	UE_DECLARE_GAMEPLAY_TAG_EXTERN(ItemUseRejectInvalidSlot);
 	/**
 	 * @brief 创建对象并设置默认子对象、能力开关和安全初值；需要 World、资产或玩家的依赖延迟到初始化阶段解析。
 	 * @param ItemUseRejectCooldown 时间值 `ItemUseRejectCooldown`，单位为秒。
@@ -194,6 +194,36 @@ namespace LRGameplayTags
 	 * @param ItemUseRejectExecution 调用方提供的 `ItemUseRejectExecution`，只在本次操作范围内使用。
 	 */
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(ItemUseRejectExecution);
+	/**
+	 * @brief 创建对象并设置默认子对象、能力开关和安全初值；需要 World、资产或玩家的依赖延迟到初始化阶段解析。
+	 * @param ItemUseRejectAttackState 调用方提供的 `ItemUseRejectAttackState`，只在本次操作范围内使用。
+	 */
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(ItemUseRejectAttackState);
+	/**
+	 * @brief 创建对象并设置默认子对象、能力开关和安全初值；需要 World、资产或玩家的依赖延迟到初始化阶段解析。
+	 * @param ItemUseRejectInvalidAttackItem 调用方提供的 `ItemUseRejectInvalidAttackItem`，只在本次操作范围内使用。
+	 */
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(ItemUseRejectInvalidAttackItem);
+	/**
+	 * @brief 创建对象并设置默认子对象、能力开关和安全初值；需要 World、资产或玩家的依赖延迟到初始化阶段解析。
+	 * @param ItemUseRejectInventoryFull 调用方提供的 `ItemUseRejectInventoryFull`，只在本次操作范围内使用。
+	 */
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(ItemUseRejectInventoryFull);
+	/**
+	 * @brief 创建对象并设置默认子对象、能力开关和安全初值；需要 World、资产或玩家的依赖延迟到初始化阶段解析。
+	 * @param ItemUseRejectInvalidDefinition 调用方提供的 `ItemUseRejectInvalidDefinition`，只在本次操作范围内使用。
+	 */
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(ItemUseRejectInvalidDefinition);
+	/**
+	 * @brief 创建对象并设置默认子对象、能力开关和安全初值；需要 World、资产或玩家的依赖延迟到初始化阶段解析。
+	 * @param ItemUseRejectInvalidQuantity 调用方提供的 `ItemUseRejectInvalidQuantity`，只在本次操作范围内使用。
+	 */
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(ItemUseRejectInvalidQuantity);
+	/**
+	 * @brief 创建对象并设置默认子对象、能力开关和安全初值；需要 World、资产或玩家的依赖延迟到初始化阶段解析。
+	 * @param CollectibleRejectAlreadyOwned 调用方提供的 `CollectibleRejectAlreadyOwned`，只在本次操作范围内使用。
+	 */
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(CollectibleRejectAlreadyOwned);
 	/**
 	 * @brief 创建对象并设置默认子对象、能力开关和安全初值；需要 World、资产或玩家的依赖延迟到初始化阶段解析。
 	 * @param NoiseFootstepWalk 调用方提供的 `NoiseFootstepWalk`，只在本次操作范围内使用。

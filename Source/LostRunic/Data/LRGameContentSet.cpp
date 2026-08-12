@@ -8,6 +8,9 @@
  */
 #include "Data/LRGameContentSet.h"
 
+#include "Data/LRCollectibleDefinition.h"
+#include "Data/LRGuardDefinition.h"
+#include "Data/LRItemDefinition.h"
 #include "Data/LRLevelEventDefinition.h"
 #include "Engine/DataTable.h"
 #if WITH_EDITOR
@@ -101,6 +104,24 @@ namespace
 		}
 		return true;
 	}
+
+	template <typename DefinitionType, typename GetIdFunc>
+	bool ValidateDefinitionIds(const TArray<TObjectPtr<DefinitionType>>& definitions,
+		GetIdFunc getId, const TCHAR* label, FString& outError)
+	{
+		TSet<FName> ids;
+		for (const DefinitionType* definition : definitions)
+		{
+			const FName id = definition ? getId(*definition) : NAME_None;
+			if (!definition || id.IsNone() || ids.Contains(id))
+			{
+				outError = FString::Printf(TEXT("%s contains a missing definition, empty ID, or duplicate ID."), label);
+				return false;
+			}
+			ids.Add(id);
+		}
+		return true;
+	}
 }
 
 /**
@@ -122,7 +143,11 @@ bool ULRGameContentSet::Validate(FString& outError) const
 		return false;
 	}
 	if (!ValidateDialogueTable(DialogueTable, outError) || !ValidateReadingTable(ReadingTable, outError)
-		|| !ValidateEvents(LevelEvents, outError))
+		|| !ValidateEvents(LevelEvents, outError)
+		|| !ValidateDefinitionIds(Items, [](const ULRItemDefinition& definition) -> FName { return definition.ItemId; }, TEXT("Items"), outError)
+		|| !ValidateDefinitionIds(Collectibles,
+			[](const ULRCollectibleDefinition& definition) -> FName { return definition.CollectibleId; }, TEXT("Collectibles"), outError)
+		|| !ValidateDefinitionIds(Guards, [](const ULRGuardDefinition& definition) -> FName { return definition.GuardId; }, TEXT("Guards"), outError))
 	{
 		return false;
 	}
@@ -153,6 +178,34 @@ TSoftObjectPtr<UWorld> ULRGameContentSet::FindMap(const FName mapId) const
 		return map.MapId == mapId;
 	});
 	return found ? found->World : TSoftObjectPtr<UWorld>();
+}
+
+ULRItemDefinition* ULRGameContentSet::FindItemDefinition(const FName itemId) const
+{
+	const TObjectPtr<ULRItemDefinition>* found = Items.FindByPredicate([itemId](const TObjectPtr<ULRItemDefinition>& definition)
+	{
+		return definition && definition->ItemId == itemId;
+	});
+	return found ? found->Get() : nullptr;
+}
+
+ULRCollectibleDefinition* ULRGameContentSet::FindCollectibleDefinition(const FName collectibleId) const
+{
+	const TObjectPtr<ULRCollectibleDefinition>* found = Collectibles.FindByPredicate(
+		[collectibleId](const TObjectPtr<ULRCollectibleDefinition>& definition)
+		{
+			return definition && definition->CollectibleId == collectibleId;
+		});
+	return found ? found->Get() : nullptr;
+}
+
+ULRGuardDefinition* ULRGameContentSet::FindGuardDefinition(const FName guardId) const
+{
+	const TObjectPtr<ULRGuardDefinition>* found = Guards.FindByPredicate([guardId](const TObjectPtr<ULRGuardDefinition>& definition)
+	{
+		return definition && definition->GuardId == guardId;
+	});
+	return found ? found->Get() : nullptr;
 }
 
 /**

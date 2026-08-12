@@ -12,7 +12,10 @@
 
 #include "Core/LRGameplayTags.h"
 #include "Data/LRContentRows.h"
+#include "Data/LRCollectibleDefinition.h"
 #include "Data/LRGameContentSet.h"
+#include "Data/LRGuardDefinition.h"
+#include "Data/LRItemDefinition.h"
 #include "Data/LRLevelEventDefinition.h"
 #include "Data/LRUITuning.h"
 #include "Engine/DataTable.h"
@@ -84,6 +87,37 @@ bool FLRNarrativeConditionsTest::RunTest(const FString& parameters)
 	LRNarrativeRules::BuildAvailableChoices({ available, blocked }, contextTags, choices);
 	TestEqual(TEXT("Only the legal choice is exposed"), choices.Num(), 1);
 	TestEqual(TEXT("Available branch retains stable ID"), choices[0].NextContentId, FName(TEXT("Next")));
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLRContentRegistryTest, "LostRunic.Content.RegistryValidatesAndFindsDefinitions",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FLRContentRegistryTest::RunTest(const FString& parameters)
+{
+	ULRGameContentSet* contentSet = MakeContentSet();
+	ULRItemDefinition* item = NewObject<ULRItemDefinition>(contentSet);
+	item->ItemId = TEXT("Key.Home");
+	ULRCollectibleDefinition* collectible = NewObject<ULRCollectibleDefinition>(contentSet);
+	collectible->CollectibleId = TEXT("Collectible.Doll");
+	ULRGuardDefinition* guard = NewObject<ULRGuardDefinition>(contentSet);
+	guard->GuardId = TEXT("Guard.Home");
+	contentSet->Items.Add(item);
+	contentSet->Collectibles.Add(collectible);
+	contentSet->Guards.Add(guard);
+
+	FString error;
+	TestTrue(TEXT("Content definitions validate"), contentSet->Validate(error));
+	TestTrue(TEXT("Item definition is found by stable ID"), contentSet->FindItemDefinition(TEXT("Key.Home")) == item);
+	TestTrue(TEXT("Collectible definition is found by stable ID"),
+		contentSet->FindCollectibleDefinition(TEXT("Collectible.Doll")) == collectible);
+	TestTrue(TEXT("Guard definition is found by stable ID"), contentSet->FindGuardDefinition(TEXT("Guard.Home")) == guard);
+
+	ULRItemDefinition* duplicate = NewObject<ULRItemDefinition>(contentSet);
+	duplicate->ItemId = item->ItemId;
+	contentSet->Items.Add(duplicate);
+	error.Reset();
+	TestFalse(TEXT("Duplicate item IDs are rejected"), contentSet->Validate(error));
 	return true;
 }
 

@@ -1,6 +1,6 @@
 /**
  * @file LRPlayerUIComponent.h
- * @brief 实现 HUD、状态遮罩、对话/阅读、背包/笔记/收藏、暂停、存档槽和过场的控制器边界。UI 订阅领域事件并负责表现，不参与核心规则判定。
+ * @brief 实现 HUD、状态遮罩、对话/阅读、统一菜单（背包/笔记/收藏）、暂停、存档槽和过场的控制器边界。UI 订阅领域事件并负责表现，不参与核心规则判定。
  *
  * 关联文件：LRPlayerUIComponent.cpp；所属领域：UI。
  * 设计依据：Docs/Design/01_GameDesignSummary.md 与 Docs/Technical/04_TechnicalDesign.md。
@@ -17,6 +17,7 @@
 
 class ALRCharacter;
 class ALRPlayerController;
+class AActor;
 
 /** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
 UCLASS(ClassGroup = "Lost Runic", BlueprintType, meta = (BlueprintSpawnableComponent, DisplayName = "Lost Runic Player UI"))
@@ -68,11 +69,16 @@ public:
 	 */
 	void OpenMenuScreen(ELRScreenType screen);
 	/**
+	 * @brief 为需要物品的交互目标打开统一菜单的背包 Tab（交互选物模式）；只有与目标兼容的物品可提交。
+	 * @param target 当前已通过交互筛选的物品使用目标。
+	 */
+	void OpenItemSelector(AActor* target);
+	/**
 	 * @brief 关闭当前菜单层并恢复 Gameplay 输入上下文，同时抑制切换时仍按住的按键。
 	 */
 	void CloseMenuScreen();
 	/**
-	 * @brief 执行 Use Inventory Item 的玩法动作；输入层只提供语义，合法性由对应领域组件决定。
+	 * @brief 执行 Use Inventory Item 的玩法动作；输入层只提供语义，合法性由统一物品事务决定。
 	 * @param itemId 物品的稳定 FName ID，用于定义查询和存档，不依赖显示名。
 	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
 	 */
@@ -95,6 +101,12 @@ private:
 	void HandleNarrativeSessionEnded(ELRNarrativeSessionType sessionType, FName finalContentId);
 
 	/**
+	 * @brief 把内部失败原因标签映射为面向玩家的友好提示，不暴露内部 Tag。
+	 * @param failureReason Gameplay Tag 原因，用于状态转换、日志和自动化测试追踪。
+	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+	 */
+	FText DescribeItemUseFailure(FGameplayTag failureReason) const;
+	/**
 	 * @brief 查询 LRHUD；不修改领域状态。
 	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
 	 */
@@ -108,4 +120,6 @@ private:
 	TWeakObjectPtr<ALRPlayerController> OwnerController;
 	/** Dialogue Subsystem 的内部运行时数据；不参与蓝图配置。 */
 	TWeakObjectPtr<class ULRDialogueSubsystem> DialogueSubsystem;
+	/** 交互选物模式的物品使用目标；为空时菜单为普通浏览模式。 */
+	TWeakObjectPtr<AActor> ItemSelectorTarget;
 };

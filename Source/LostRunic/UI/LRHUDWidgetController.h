@@ -9,6 +9,7 @@
 #pragma once
 
 #include "Core/LRTypes.h"
+#include "Interaction/LRInteractionTypes.h"
 #include "UObject/Object.h"
 
 #include "LRHUDWidgetController.generated.h"
@@ -16,6 +17,7 @@
 class ALRCharacter;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FLRHUDPerceptionModeChanged, ELRPerceptionMode, mode, FGameplayTag, reason);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FLRHUDInteractionPromptChanged, FLRInteractionPromptView, promptView);
 
 /** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
 UCLASS(BlueprintType, meta = (DisplayName = "Lost Runic HUD Widget Controller"))
@@ -39,10 +41,17 @@ public:
 	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
 	 */
 	ELRPerceptionMode GetCurrentMode() const { return CurrentMode; }
+	/** Returns the last interaction prompt forwarded from the player interaction component. */
+	UFUNCTION(BlueprintPure, Category = "Lost Runic|UI")
+	FLRInteractionPromptView GetCurrentInteractionPrompt() const { return CurrentInteractionPrompt; }
 
 	/** 当 Perception Mode Changed 发生时广播；蓝图可绑定该委托以更新表现，不应在回调中改写核心规则。  */
 	UPROPERTY(BlueprintAssignable, Category = "Lost Runic|UI")
 	FLRHUDPerceptionModeChanged OnPerceptionModeChanged;
+
+	/** Focus-only prompt event for the HUD widget; this controller never performs world queries. */
+	UPROPERTY(BlueprintAssignable, Category = "Lost Runic|UI")
+	FLRHUDInteractionPromptChanged OnInteractionPromptChanged;
 
 private:
 	/**
@@ -52,9 +61,13 @@ private:
 	 */
 	UFUNCTION()
 	void HandleStateChanged(ELRPerceptionMode currentMode, FGameplayTag reason);
+	/** Forwards the player component's selected Focus prompt without interpreting target rules. */
+	UFUNCTION()
+	void HandleFocusedInteractionChanged(FLRInteractionPromptView promptView);
 
 	/** Observed Character 的内部运行时数据；不参与蓝图配置。 */
 	TWeakObjectPtr<ALRCharacter> ObservedCharacter;
 	/** 当前已提交的心理状态；仅状态组件可修改，蓝图只能读取。该字段由 C++ 在运行时维护，不在蓝图中配置。 */
 	ELRPerceptionMode CurrentMode = ELRPerceptionMode::Normal;
+	FLRInteractionPromptView CurrentInteractionPrompt;
 };

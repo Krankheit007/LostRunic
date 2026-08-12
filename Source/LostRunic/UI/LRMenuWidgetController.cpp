@@ -1,6 +1,6 @@
 /**
  * @file LRMenuWidgetController.cpp
- * @brief 实现 HUD、状态遮罩、对话/阅读、背包/笔记/收藏、暂停、存档槽和过场的控制器边界。UI 订阅领域事件并负责表现，不参与核心规则判定。
+ * @brief 统一菜单控制器：维护背包/笔记/收集品/暂停/存档槽 Tab 状态，构建不含快捷栏数据的库存快照；交互选物模式下计算物品与目标兼容性。
  *
  * 关联文件：LRMenuWidgetController.h；所属领域：UI。
  * 设计依据：Docs/Design/01_GameDesignSummary.md 与 Docs/Technical/04_TechnicalDesign.md。
@@ -8,7 +8,11 @@
  */
 #include "UI/LRMenuWidgetController.h"
 
+#include "Core/LRGameplayTags.h"
+#include "Data/LRItemDefinition.h"
+#include "GameFramework/Actor.h"
 #include "Items/LRInventoryComponent.h"
+#include "Items/LRItemUseTarget.h"
 
 /**
  * @brief 切换到指定菜单页面并广播变化；同一时刻只保留一个可见菜单。
@@ -43,24 +47,50 @@ void ULRMenuWidgetController::CloseScreen()
 }
 
 /**
- * @brief 根据当前领域状态构建 Build Inventory Snapshot 所需的数据，不把临时对象作为长期存档标识。
+ * @brief 构建统一菜单的库存快照；传入 itemUseTarget 时计算每件物品与目标的兼容性（交互选物模式）。
  * @param inventory 参与本次操作的运行时对象 `inventory`；函数会检查空值和所需接口。
+ * @param itemUseTarget 本次规则检查或操作的目标对象；交互选物模式下传入，普通浏览传 nullptr。
  * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
  */
-FLRInventorySnapshot ULRMenuWidgetController::BuildInventorySnapshot(const ULRInventoryComponent* inventory) const
+FLRInventorySnapshot ULRMenuWidgetController::BuildInventorySnapshot(const ULRInventoryComponent* inventory,
+	AActor* itemUseTarget) const
 {
 	FLRInventorySnapshot snapshot;
 	if (!inventory)
 	{
 		return snapshot;
 	}
-	snapshot.ItemIds = inventory->GetOwnedItemIds();
-	snapshot.NoteIds = inventory->GetNoteIds();
-	snapshot.CollectibleIds = inventory->GetCollectibleIds();
-	snapshot.SelectedQuickSlot = inventory->GetSelectedQuickSlot();
-	for (int32 slotIndex = 0; slotIndex < 4; ++slotIndex)
+	snapshot.SelectedWeaponItemId = inventory->GetSelectedWeapon();
+	snapshot.EffectiveWeaponItemId = inventory->GetEffectiveWeapon();
+
+	FGameplayTagContainer targetTags;
+	if (itemUseTarget && itemUseTarget->GetClass()->ImplementsInterface(ULRItemUseTarget::StaticClass()))
 	{
-		snapshot.QuickSlots.Add(inventory->GetQuickSlotItem(slotIndex));
+		targetTags = ILRItemUseTarget::Execute_GetItemUseTargetTags(itemUseTarget);
+	}
+
+	for (const FName itemId : inventory->GetOwnedItemIds())
+	{
+		const ULRItemDefinition* definition = inventory->FindDefinition(itemId);
+		if (!definition)
+		{
+			continue;
+		}
+		const FLRInventoryEntry* entry = inventory->FindEntry(itemId);
+		FLRInventoryItemView& view = snapshot.Items.AddDefaulted_GetRef();
+		view.ItemId = itemId;
+		view.DisplayName = definition->DisplayName.IsEmpty() ? FText::FromName(itemId) : definition->DisplayName;
+		view.Description = definition->Description;
+		view.Quantity = entry ? entry->Quantity : 0;
+		view.bConsumable = definition->bConsumable;
+		view.bIsWeapon = definition->ItemTags.HasTag(LRGameplayTags::ItemCategoryWeapon);
+		view.bIsSelectedWeapon = view.bIsWeapon && snapshot.SelectedWeaponItemId == itemId;
+		if (targetTags.IsValid())
+		{
+			view.bCompatibleWithTarget = definition->AllowedActionTags.HasTag(LRGameplayTags::InteractionActionUse)
+				&& targetTags.HasAny(definition->AllowedTargetTags);
+			view.FailureReason = view.bCompatibleWithTarget ? FGameplayTag() : LRGameplayTags::InteractionRejectItem;
+		}
 	}
 	return snapshot;
 }

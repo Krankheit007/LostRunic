@@ -13,6 +13,7 @@
 
 #include "LRMenuWidgetController.generated.h"
 
+class AActor;
 class ULRInventoryComponent;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FLRMenuScreenChanged, ELRScreenType, previousScreen, ELRScreenType, currentScreen);
@@ -35,11 +36,13 @@ public:
 	 */
 	void CloseScreen();
 	/**
-	 * @brief 根据当前领域状态构建 Build Inventory Snapshot 所需的数据，不把临时对象作为长期存档标识。
+	 * @brief 构建统一菜单的库存快照；传入 itemUseTarget 时计算每件物品与目标的兼容性（交互选物模式）。
 	 * @param inventory 参与本次操作的运行时对象 `inventory`；函数会检查空值和所需接口。
+	 * @param itemUseTarget 本次规则检查或操作的目标对象；交互选物模式下传入，普通浏览传 nullptr。
 	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
 	 */
-	FLRInventorySnapshot BuildInventorySnapshot(const ULRInventoryComponent* inventory) const;
+	UFUNCTION(BlueprintCallable, Category = "Lost Runic|UI")
+	FLRInventorySnapshot BuildInventorySnapshot(const ULRInventoryComponent* inventory, AActor* itemUseTarget = nullptr) const;
 
 	/**
 	 * @brief 查询 Open Screen；不修改领域状态。

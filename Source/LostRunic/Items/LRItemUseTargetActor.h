@@ -8,15 +8,14 @@
  */
 #pragma once
 
-#include "GameFramework/Actor.h"
-#include "Interaction/LRInteractable.h"
+#include "Interaction/LRWorldInteractionActor.h"
 #include "Items/LRItemUseTarget.h"
 
 #include "LRItemUseTargetActor.generated.h"
 
 /** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
 UCLASS(Blueprintable, meta = (DisplayName = "Lost Runic Item Use Target"))
-class LOSTRUNIC_API ALRItemUseTargetActor : public AActor, public ILRInteractable, public ILRItemUseTarget
+class LOSTRUNIC_API ALRItemUseTargetActor : public ALRWorldInteractionActor, public ILRItemUseTarget
 {
 	GENERATED_BODY()
 
@@ -70,16 +69,12 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item Use")
 	FName EventId = NAME_None;
 
-	/** One Shot 的开关；true 表示启用，false 表示禁用。 C++ 安全默认值为 `true`。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。 */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item Use")
-	bool bOneShot = true;
-
 	/**
 	 * @brief 判断 Is Completed 对应条件；不产生玩法副作用。
 	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
 	 */
 	UFUNCTION(BlueprintPure, Category = "Lost Runic|Item Use")
-	bool IsCompleted() const { return bCompleted; }
+	bool IsCompleted() const { return IsInteractionCompleted(); }
 
 protected:
 	/**
@@ -90,8 +85,4 @@ protected:
 	UFUNCTION(BlueprintImplementableEvent, Category = "Lost Runic|Item Use", meta = (DisplayName = "Item Use Applied"))
 	void OnItemUseApplied(const FLRItemUseRequest& request, ULRItemDefinition* definition);
 
-private:
-	/** Completed 的开关；true 表示启用，false 表示禁用。 C++ 安全默认值为 `false`。 仅在蓝图或详情面板中查看，不可编辑。 */
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Item Use", meta = (AllowPrivateAccess = "true"))
-	bool bCompleted = false;
 };

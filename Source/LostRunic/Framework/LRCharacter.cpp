@@ -10,7 +10,10 @@
 
 #include "Gameplay/LRLocomotionComponent.h"
 #include "Interaction/LRInteractionComponent.h"
+#include "Items/LRAttackTargetResolver.h"
 #include "Items/LRInventoryComponent.h"
+#include "Items/LRItemActionComponent.h"
+#include "Items/LRItemUseTypes.h"
 #include "Stealth/LRHideComponent.h"
 #include "Stealth/LRNoiseEmitterComponent.h"
 #include "State/LRStateComponent.h"
@@ -33,6 +36,7 @@ ALRCharacter::ALRCharacter()
 
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
 	CameraBoom->SetupAttachment(RootComponent);
+	CameraBoom->SetUsingAbsoluteRotation(true);
 	CameraBoom->TargetArmLength = 700.0f;
 	CameraBoom->SetRelativeRotation(FRotator(-50.0f, 0.0f, 0.0f));
 	CameraBoom->bDoCollisionTest = true;
@@ -45,6 +49,8 @@ ALRCharacter::ALRCharacter()
 	State = CreateDefaultSubobject<ULRStateComponent>(TEXT("State"));
 	StatePresentation = CreateDefaultSubobject<ULRStatePresentationComponent>(TEXT("StatePresentation"));
 	Inventory = CreateDefaultSubobject<ULRInventoryComponent>(TEXT("Inventory"));
+	ItemAction = CreateDefaultSubobject<ULRItemActionComponent>(TEXT("ItemAction"));
+	AttackTargetResolver = CreateDefaultSubobject<ULRAttackTargetResolver>(TEXT("AttackTargetResolver"));
 	Interaction = CreateDefaultSubobject<ULRInteractionComponent>(TEXT("Interaction"));
 	Hide = CreateDefaultSubobject<ULRHideComponent>(TEXT("Hide"));
 	NoiseEmitter = CreateDefaultSubobject<ULRNoiseEmitterComponent>(TEXT("NoiseEmitter"));
@@ -63,4 +69,24 @@ void ALRCharacter::ApplyMoveInput(const FVector2D& input)
 	const FRotator yawRotation(0.0f, controlRotation.Yaw, 0.0f);
 	AddMovementInput(FRotationMatrix(yawRotation).GetUnitAxis(EAxis::X), input.Y);
 	AddMovementInput(FRotationMatrix(yawRotation).GetUnitAxis(EAxis::Y), input.X);
+}
+
+/**
+ * @brief 稳定玩法动作入口：使用物品；语义合法性由 ItemActionComponent 与统一事务决定。
+ * @param itemId 物品的稳定 FName ID，用于定义查询和存档，不依赖显示名。
+ * @param target 本次规则检查或操作的目标对象。
+ * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+ */
+FLRItemUseResult ALRCharacter::RequestUseItem(const FName itemId, AActor* target)
+{
+	return ItemAction ? ItemAction->RequestUseItem(itemId, target) : FLRItemUseResult();
+}
+
+/**
+ * @brief 稳定玩法动作入口：发起攻击；语义合法性由 ItemActionComponent 与统一事务决定。
+ * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+ */
+FLRItemUseResult ALRCharacter::RequestAttack()
+{
+	return ItemAction ? ItemAction->RequestAttack() : FLRItemUseResult();
 }

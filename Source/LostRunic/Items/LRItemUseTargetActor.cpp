@@ -27,7 +27,8 @@ ALRItemUseTargetActor::ALRItemUseTargetActor()
  */
 TArray<FLRInteractionOption> ALRItemUseTargetActor::GetInteractionOptions_Implementation(AActor* interactor)
 {
-	return bCompleted && bOneShot ? TArray<FLRInteractionOption>() : TArray<FLRInteractionOption>({ InteractionOption });
+	const bool bAvailable = interactor && bInteractionEnabled && (!bOneShot || !IsInteractionCompleted());
+	return bAvailable ? TArray<FLRInteractionOption>({ InteractionOption }) : TArray<FLRInteractionOption>();
 }
 
 /**
@@ -50,8 +51,18 @@ FLRInteractionResult ALRItemUseTargetActor::ExecuteInteraction_Implementation(AA
 {
 	FLRInteractionResult result;
 	result.ActionTag = actionTag;
-	result.FailureReason = bCompleted && bOneShot ? LRGameplayTags::InteractionRejectCompleted
-		: LRGameplayTags::InteractionRejectItem;
+	if (IsInteractionCompleted() && bOneShot)
+	{
+		result.FailureReason = LRGameplayTags::InteractionRejectCompleted;
+	}
+	else if (!interactor || !bInteractionEnabled || actionTag != InteractionOption.ActionTag)
+	{
+		result.FailureReason = LRGameplayTags::InteractionRejectNoTarget;
+	}
+	else
+	{
+		result.FailureReason = LRGameplayTags::InteractionRejectItem;
+	}
 	return result;
 }
 
@@ -75,12 +86,12 @@ FLRItemUseResult ALRItemUseTargetActor::ApplyItemUse_Implementation(const FLRIte
 {
 	FLRItemUseResult result;
 	result.ItemId = request.ItemId;
-	if (bCompleted && bOneShot)
+	if (IsInteractionCompleted() && bOneShot)
 	{
 		result.FailureReason = LRGameplayTags::InteractionRejectCompleted;
 		return result;
 	}
-	bCompleted = true;
+	CompleteInteraction();
 	result.bSuccess = true;
 	result.EventId = EventId;
 	OnItemUseApplied(request, definition);

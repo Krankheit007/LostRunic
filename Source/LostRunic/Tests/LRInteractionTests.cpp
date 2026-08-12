@@ -20,11 +20,11 @@ bool FLRInteractionCandidateTest::RunTest(const FString& parameters)
 {
 	const ULRInteractionTuning* tuning = GetDefault<ULRInteractionTuning>();
 	TArray<FLRInteractionCandidateScore> candidates;
-	candidates.Add({ 180.0f, 1.0f, true, true, true });
-	candidates.Add({ 350.0f, 1.0f, false, true, true });
-	candidates.Add({ 120.0f, 0.0f, false, true, true });
-	candidates.Add({ 90.0f, 1.0f, false, false, true });
-	candidates.Add({ 70.0f, 1.0f, false, true, false });
+	candidates.Add({ FMath::Square(180.0f), 1.0f, true, true, true });
+	candidates.Add({ FMath::Square(350.0f), 1.0f, false, true, true });
+	candidates.Add({ FMath::Square(120.0f), 0.0f, false, true, true });
+	candidates.Add({ FMath::Square(90.0f), 1.0f, false, false, true });
+	candidates.Add({ FMath::Square(70.0f), 1.0f, false, true, false });
 
 	TestEqual(TEXT("Nearest candidate surviving occlusion, facing, state, and item rules is selected"),
 		LRInteractionRules::SelectBestCandidate(candidates, *tuning), 1);
@@ -37,20 +37,34 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLRInteractionRangeTest, "LostRunic.Interaction
 bool FLRInteractionRangeTest::RunTest(const FString& parameters)
 {
 	const ULRInteractionTuning* tuning = GetDefault<ULRInteractionTuning>();
-	TestEqual(TEXT("200 cm is executable"), LRInteractionRules::GetRange(200.0f, 200.0f, *tuning),
-		ELRInteractionRange::Executable);
-	TestEqual(TEXT("500 cm is outlined"), LRInteractionRules::GetRange(500.0f, 200.0f, *tuning),
-		ELRInteractionRange::Outline);
-	TestEqual(TEXT("1000 cm has a far hint"), LRInteractionRules::GetRange(1000.0f, 200.0f, *tuning),
-		ELRInteractionRange::FarHint);
-	TestEqual(TEXT("Beyond the far hint is hidden"), LRInteractionRules::GetRange(1000.1f, 200.0f, *tuning),
-		ELRInteractionRange::None);
+	TestEqual(TEXT("Beyond the outline radius uses the far hint"),
+		LRInteractionRules::GetPresentationState(FMath::Square(tuning->OutlineDistance + 0.1f), *tuning),
+		ELRInteractionPresentationState::FarHint);
+	TestEqual(TEXT("Outline distance uses the outline state"),
+		LRInteractionRules::GetPresentationState(FMath::Square(tuning->OutlineDistance), *tuning),
+		ELRInteractionPresentationState::NearOutline);
+	TestEqual(TEXT("Far hint boundary stays visible"),
+		LRInteractionRules::GetPresentationState(FMath::Square(tuning->FarHintDistance), *tuning),
+		ELRInteractionPresentationState::FarHint);
+	TestEqual(TEXT("Beyond the far hint is hidden"),
+		LRInteractionRules::GetPresentationState(FMath::Square(tuning->FarHintDistance + 0.1f), *tuning),
+		ELRInteractionPresentationState::None);
+	TestTrue(TEXT("Execution boundary is included"),
+		LRInteractionRules::IsWithinExecutionDistance(FMath::Square(tuning->ExecuteDistance), tuning->ExecuteDistance));
+	TestFalse(TEXT("Outside execution boundary is rejected"),
+		LRInteractionRules::IsWithinExecutionDistance(FMath::Square(tuning->ExecuteDistance + 0.1f), tuning->ExecuteDistance));
 
 	const float boundaryDot = FMath::Cos(FMath::DegreesToRadians(tuning->FacingConeDegrees * 0.5f));
-	TestTrue(TEXT("Total 90 degree cone includes its 45 degree half-angle boundary"),
+	const float insideDot = FMath::Cos(FMath::DegreesToRadians(44.9f));
+	const float outsideDot = FMath::Cos(FMath::DegreesToRadians(45.1f));
+	TestTrue(TEXT("44.9 degree target is inside the half-angle"),
+		LRInteractionRules::IsFacingAllowed(insideDot, *tuning));
+	TestTrue(TEXT("45.0 degree boundary is included"),
 		LRInteractionRules::IsFacingAllowed(boundaryDot, *tuning));
-	TestFalse(TEXT("Target outside the facing cone is rejected"),
-		LRInteractionRules::IsFacingAllowed(boundaryDot - 0.01f, *tuning));
+	TestFalse(TEXT("45.1 degree target is outside the half-angle"),
+		LRInteractionRules::IsFacingAllowed(outsideDot, *tuning));
+	TestTrue(TEXT("The same 44.9 degree rule applies on the opposite side"),
+		LRInteractionRules::IsFacingAllowed(insideDot, *tuning));
 	return true;
 }
 

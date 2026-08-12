@@ -1,6 +1,6 @@
 /**
  * @file LRInteractionComponent.h
- * @brief 以可调计时器扫描交互候选，按照提示 500 cm、描边 200 cm、总计 90 度朝向、遮挡和状态选择唯一目标，并向 HUD 广播提示。
+ * @brief 以可调计时器扫描 Interaction 通道，分别计算 20 m 提示、5 m 描边和 2 m 执行状态，并向 HUD 发布唯一焦点。
  *
  * 关联文件：LRInteractionComponent.cpp；所属领域：Interaction。
  * 设计依据：Docs/Design/01_GameDesignSummary.md 与 Docs/Technical/04_TechnicalDesign.md。
@@ -15,11 +15,13 @@
 
 class ULRInteractionTuning;
 class ULRInventoryComponent;
+class ULRInteractionPresentationComponent;
 class ULRStateComponent;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FLRInteractionTargetChanged, AActor*, target,
 	FLRInteractionOption, option, ELRInteractionRange, range);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FLRInteractionExecuted, FLRInteractionResult, result);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FLRFocusedInteractionChanged, FLRInteractionPromptView, promptView);
 
 /** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
 UCLASS(ClassGroup = "Lost Runic", BlueprintType, meta = (BlueprintSpawnableComponent, DisplayName = "Lost Runic Interaction"))
@@ -50,6 +52,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Lost Runic|Interaction")
 	FLRInteractionResult PerformPrimaryInteraction();
 
+	/** Re-evaluates nearby interactables immediately after execution or a meaningful world-state change. */
+	UFUNCTION(BlueprintCallable, Category = "Lost Runic|Interaction")
+	void RefreshInteractionState();
+
 	/**
 	 * @brief 查询 Current Target；不修改领域状态。
 	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
@@ -63,6 +69,10 @@ public:
 	 */
 	UFUNCTION(BlueprintPure, Category = "Lost Runic|Interaction")
 	FLRInteractionOption GetCurrentOption() const { return CurrentOption; }
+
+	/** Returns the HUD data for the only actor currently allowed to receive primary interaction. */
+	UFUNCTION(BlueprintPure, Category = "Lost Runic|Interaction")
+	FLRInteractionPromptView GetFocusedPrompt() const { return CurrentPrompt; }
 
 	/**
 	 * @brief 查询 Current Range；不修改领域状态。
@@ -84,19 +94,32 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Lost Runic|Interaction")
 	FLRInteractionExecuted OnInteractionExecuted;
 
+	/** Published only by the interaction component; HUD subscribers never search world actors themselves. */
+	UPROPERTY(BlueprintAssignable, Category = "Lost Runic|Interaction")
+	FLRFocusedInteractionChanged OnFocusedInteractionChanged;
+
 private:
-	struct FCandidate
+	struct FEvaluation
 	{
 		TWeakObjectPtr<AActor> Actor;
 		FLRInteractionOption Option;
 		FLRInteractionCandidateScore Score;
 		float ExecuteDistance = 0.0f;
+		bool bShowHint = false;
+		bool bCanExecute = false;
+		ELRInteractionPresentationState PresentationState = ELRInteractionPresentationState::None;
 	};
 
 	/**
 	 * @brief 按距离、朝向、遮挡和当前状态筛选交互候选，并只保留唯一最优目标。
 	 */
 	void ScanCandidates();
+	/** Builds evaluation values without producing traces or presentation side effects. */
+	void BuildEvaluations(TArray<FEvaluation>& outEvaluations) const;
+	/** Applies presentation state to every visible actor independently from the unique Focus target. */
+	void ApplyPresentationStates(const TArray<FEvaluation>& evaluations, int32 focusedIndex);
+	/** Selects the nearest executable, facing candidate that is not occluded. */
+	int32 SelectFocusedEvaluation(TArray<FEvaluation>& evaluations) const;
 	/**
 	 * @brief 判断 Is Occluded 对应条件；不产生玩法副作用。
 	 * @param target 本次规则检查或操作的目标对象。
@@ -109,7 +132,7 @@ private:
 	 * @param candidates 本次领域操作的结构化数据 `candidates`；字段语义由对应 USTRUCT 定义。
 	 * @param selectedIndex 本次操作使用的计数、增量或索引 `selectedIndex`；由函数校验合法范围。
 	 */
-	void ApplySelection(const TArray<FCandidate>& candidates, int32 selectedIndex);
+	void ApplySelection(const TArray<FEvaluation>& evaluations, int32 selectedIndex);
 	/**
 	 * @brief 查询 Effective Tuning；不修改领域状态。
 	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
@@ -134,6 +157,10 @@ private:
 	FLRInteractionOption CurrentOption;
 	/** Current Range 的运行时状态；由所属类型维护，不在蓝图中配置。 */
 	ELRInteractionRange CurrentRange = ELRInteractionRange::None;
+	/** Last prompt supplied to the HUD. Target is weak to avoid owning a world actor from UI. */
+	FLRInteractionPromptView CurrentPrompt;
+	/** Components changed by the prior scan; reset before the next state map is applied. */
+	TArray<TWeakObjectPtr<ULRInteractionPresentationComponent>> PresentedComponents;
 	/** Query Timer 的运行时句柄，用于取消回调并避免 Tick；不在蓝图中配置。 */
 	FTimerHandle QueryTimer;
 };

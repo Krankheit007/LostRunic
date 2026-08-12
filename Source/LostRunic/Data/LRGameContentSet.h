@@ -70,6 +70,18 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Lost Runic|Content")
 	TSoftObjectPtr<UWorld> FindMap(FName mapId) const;
 
+	/** Finds an item definition by its stable ItemId. */
+	UFUNCTION(BlueprintPure, Category = "Lost Runic|Content")
+	ULRItemDefinition* FindItemDefinition(FName itemId) const;
+
+	/** Finds a collectible definition by its stable CollectibleId. */
+	UFUNCTION(BlueprintPure, Category = "Lost Runic|Content")
+	ULRCollectibleDefinition* FindCollectibleDefinition(FName collectibleId) const;
+
+	/** Finds a guard definition by its stable GuardId. */
+	UFUNCTION(BlueprintPure, Category = "Lost Runic|Content")
+	ULRGuardDefinition* FindGuardDefinition(FName guardId) const;
+
 	/**
 	 * @brief 按稳定 ID 或运行时条件查找 Map Id For World，未找到时返回明确失败值。
 	 * @param world 要解析地图 ID、应用恢复状态或执行查询的 Unreal World。

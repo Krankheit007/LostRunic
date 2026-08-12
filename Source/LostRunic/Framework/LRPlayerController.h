@@ -62,6 +62,10 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Lost Runic|Input")
 	ELRInputMode GetLRInputMode() const { return InputMode; }
 
+	/** Returns the semantic input configuration without exposing mutation to gameplay components. */
+	UFUNCTION(BlueprintPure, Category = "Lost Runic|Input")
+	ULRInputConfig* GetInputConfig() const { return InputConfig; }
+
 	/**
 	 * @brief 打开指定背包、笔记、收藏、暂停或存档页面，并切换到 Menu 输入上下文。
 	 * @param screen 本次操作使用的 `screen` 枚举或模式值。
@@ -131,33 +135,9 @@ private:
 	 */
 	void HandleInteract();
 	/**
-	 * @brief 处理 Handle Quick Slot1 事件，将引擎回调转换为对应领域状态更新。
+	 * @brief 处理 Handle Attack 事件，将引擎回调转换为对应领域状态更新。
 	 */
-	void HandleQuickSlot1();
-	/**
-	 * @brief 处理 Handle Quick Slot2 事件，将引擎回调转换为对应领域状态更新。
-	 */
-	void HandleQuickSlot2();
-	/**
-	 * @brief 处理 Handle Quick Slot3 事件，将引擎回调转换为对应领域状态更新。
-	 */
-	void HandleQuickSlot3();
-	/**
-	 * @brief 处理 Handle Quick Slot4 事件，将引擎回调转换为对应领域状态更新。
-	 */
-	void HandleQuickSlot4();
-	/**
-	 * @brief 处理 Handle Use Selected Quick Slot 事件，将引擎回调转换为对应领域状态更新。
-	 */
-	void HandleUseSelectedQuickSlot();
-	/**
-	 * @brief 处理 Handle Previous Quick Slot 事件，将引擎回调转换为对应领域状态更新。
-	 */
-	void HandlePreviousQuickSlot();
-	/**
-	 * @brief 处理 Handle Next Quick Slot 事件，将引擎回调转换为对应领域状态更新。
-	 */
-	void HandleNextQuickSlot();
+	void HandleAttack();
 	/**
 	 * @brief 处理 Handle Confirm 事件，将引擎回调转换为对应领域状态更新。
 	 */
@@ -174,11 +154,6 @@ private:
 	 * @brief 处理 Handle Pause 事件，将引擎回调转换为对应领域状态更新。
 	 */
 	void HandlePause();
-	/**
-	 * @brief 从指定快捷栏取得物品并通过统一物品事务作用于当前目标。
-	 * @param slotIndex 槽位下标；快捷栏为 0-3，手动存档槽按调优上限校验。
-	 */
-	void UseQuickSlot(int32 slotIndex);
 	/**
 	 * @brief 执行 Resolve Context 的纯规则或事务判定，失败时提供结构化原因。
 	 * @param mode 本次操作使用的 `mode` 枚举或模式值。

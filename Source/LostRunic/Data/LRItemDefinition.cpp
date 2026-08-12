@@ -8,6 +8,8 @@
  */
 #include "Data/LRItemDefinition.h"
 
+#include "Core/LRGameplayTags.h"
+
 #if WITH_EDITOR
 #include "Misc/DataValidation.h"
 #endif
@@ -32,6 +34,33 @@ EDataValidationResult ULRItemDefinition::IsDataValid(FDataValidationContext& con
 	if (ItemId.IsNone())
 	{
 		context.AddError(FText::FromString(TEXT("ItemId must be a stable, non-empty name.")));
+		return EDataValidationResult::Invalid;
+	}
+	if (MaxStackSize < 1)
+	{
+		context.AddError(FText::FromString(TEXT("MaxStackSize must be at least one.")));
+		return EDataValidationResult::Invalid;
+	}
+	if (!bConsumable && MaxStackSize > 1)
+	{
+		context.AddError(FText::FromString(
+			TEXT("Infinite-use items (bConsumable=false) must keep MaxStackSize=1 so a missing quantity number is unambiguous.")));
+		return EDataValidationResult::Invalid;
+	}
+	const FGameplayTagContainer legalActionTags = FGameplayTagContainer::CreateFromArray(
+		TArray<FGameplayTag>({ LRGameplayTags::InteractionActionUse, LRGameplayTags::InteractionActionAttack }));
+	for (const FGameplayTag& actionTag : AllowedActionTags)
+	{
+		if (!legalActionTags.HasTagExact(actionTag))
+		{
+			context.AddError(FText::FromString(TEXT("AllowedActionTags may only declare Interaction.Action.Use or Interaction.Action.Attack.")));
+			return EDataValidationResult::Invalid;
+		}
+	}
+	if (AllowedActionTags.HasTag(LRGameplayTags::InteractionActionAttack)
+		&& !ItemTags.HasTag(LRGameplayTags::ItemCategoryWeapon))
+	{
+		context.AddError(FText::FromString(TEXT("Items declaring the Attack entry point must include Item.Category.Weapon.")));
 		return EDataValidationResult::Invalid;
 	}
 

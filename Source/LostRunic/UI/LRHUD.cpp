@@ -8,7 +8,9 @@
  */
 #include "UI/LRHUD.h"
 
+#include "Core/LRLog.h"
 #include "Data/LRGameTuningSet.h"
+#include "Data/LRProjectSettings.h"
 #include "Framework/LRCharacter.h"
 #include "Framework/LRGameInstanceSubsystem.h"
 #include "Framework/LRPlayerController.h"
@@ -46,22 +48,39 @@ void ALRHUD::InitializeForController(ALRPlayerController* playerController)
 	{
 		return;
 	}
-	CreateScreens(playerController);
+	ULRGameInstanceSubsystem* dataSubsystem = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<ULRGameInstanceSubsystem>() : nullptr;
+	ULRGameTuningSet* tuningSet = dataSubsystem ? dataSubsystem->GetTuningSet() : nullptr;
 	if (!DialogueController)
 	{
 		DialogueController = NewObject<ULRDialogueWidgetController>(this);
 		ULRDialogueSubsystem* dialogueSubsystem = GetGameInstance()->GetSubsystem<ULRDialogueSubsystem>();
-		ULRGameInstanceSubsystem* dataSubsystem = GetGameInstance()->GetSubsystem<ULRGameInstanceSubsystem>();
-		ULRGameTuningSet* tuningSet = dataSubsystem ? dataSubsystem->GetTuningSet() : nullptr;
 		DialogueController->Initialize(dialogueSubsystem, tuningSet ? tuningSet->UI : nullptr, GetWorld());
 		DialogueController->OnPresentationChanged.AddDynamic(this, &ALRHUD::HandleNarrativePresentationChanged);
-
+	}
+	if (!HUDController)
+	{
 		HUDController = NewObject<ULRHUDWidgetController>(this);
+	}
+	if (!MenuController)
+	{
 		MenuController = NewObject<ULRMenuWidgetController>(this);
 		MenuController->OnMenuScreenChanged.AddDynamic(this, &ALRHUD::HandleMenuScreenChanged);
+	}
+	if (!TransitionController)
+	{
 		TransitionController = NewObject<ULRTransitionWidgetController>(this);
 		TransitionController->OnTransitionVisibilityChanged.AddDynamic(this, &ALRHUD::HandleTransitionVisibilityChanged);
 	}
+	if (!HUDScreenClass)
+	{
+		HUDScreenClass = GetDefault<ULRProjectSettings>()->HUDScreenClass.LoadSynchronous();
+	}
+	if (!HUDScreenClass)
+	{
+		UE_LOG(LogLostRunicUI, Warning, TEXT("HUD=%s has no HUDScreenClass; no HUD screen will be created."), *GetNameSafe(this));
+	}
+	CreateScreens(playerController);
 	SetObservedCharacter(Cast<ALRCharacter>(playerController->GetPawn()));
 	SetScreenVisible(ELRScreenType::HUD, true);
 	SetScreenVisible(ELRScreenType::StateOverlay, true);
@@ -145,7 +164,12 @@ ULRScreenWidget* ALRHUD::GetFocusableScreen(const ELRInputMode inputMode) const
 	}
 	if (inputMode == ELRInputMode::Menu && MenuController)
 	{
-		return GetScreen(MenuController->GetOpenScreen());
+		const ELRScreenType openScreen = MenuController->GetOpenScreen();
+		if (openScreen == ELRScreenType::Pause || openScreen == ELRScreenType::SaveSlots)
+		{
+			return GetScreen(openScreen);
+		}
+		return GetScreen(ELRScreenType::Inventory);
 	}
 	if (inputMode == ELRInputMode::Transition)
 	{
@@ -167,9 +191,7 @@ void ALRHUD::CreateScreens(ALRPlayerController* playerController)
 	CreateScreen(playerController, ELRScreenType::HUD, HUDScreenClass);
 	CreateScreen(playerController, ELRScreenType::StateOverlay, StateOverlayScreenClass);
 	CreateScreen(playerController, ELRScreenType::Narrative, NarrativeScreenClass);
-	CreateScreen(playerController, ELRScreenType::Journal, JournalScreenClass);
-	CreateScreen(playerController, ELRScreenType::Inventory, InventoryScreenClass);
-	CreateScreen(playerController, ELRScreenType::Collectibles, CollectiblesScreenClass);
+	CreateScreen(playerController, ELRScreenType::Inventory, MenuScreenClass);
 	CreateScreen(playerController, ELRScreenType::Pause, PauseScreenClass);
 	CreateScreen(playerController, ELRScreenType::SaveSlots, SaveSlotsScreenClass);
 	CreateScreen(playerController, ELRScreenType::Transition, TransitionScreenClass);
@@ -192,6 +214,7 @@ void ALRHUD::CreateScreen(ALRPlayerController* playerController, const ELRScreen
 	if (widget)
 	{
 		widget->AddToPlayerScreen();
+		widget->SetHUDWidgetController(HUDController);
 		widget->SetScreenVisible(false);
 		ScreenWidgets.Add(screen, widget);
 	}
@@ -215,11 +238,22 @@ void ALRHUD::SetScreenVisible(const ELRScreenType screen, const bool bVisible)
  */
 void ALRHUD::HideMenuScreens()
 {
-	SetScreenVisible(ELRScreenType::Journal, false);
 	SetScreenVisible(ELRScreenType::Inventory, false);
-	SetScreenVisible(ELRScreenType::Collectibles, false);
 	SetScreenVisible(ELRScreenType::Pause, false);
 	SetScreenVisible(ELRScreenType::SaveSlots, false);
+}
+
+/**
+ * @brief 处理统一菜单 Tab 切换：显示单个菜单 Widget 并触发 OnMenuTabChanged。
+ * @param tab 本次操作使用的 `tab` 枚举或模式值。
+ */
+void ALRHUD::ShowMenuTab(const ELRScreenType tab)
+{
+	if (ULRScreenWidget* menuWidget = GetScreen(ELRScreenType::Inventory))
+	{
+		menuWidget->SetScreenVisible(true);
+		menuWidget->OnMenuTabChanged(tab);
+	}
 }
 
 /**
@@ -242,7 +276,16 @@ void ALRHUD::HandleNarrativePresentationChanged(const FLRNarrativePresentation p
 void ALRHUD::HandleMenuScreenChanged(const ELRScreenType previousScreen, const ELRScreenType currentScreen)
 {
 	HideMenuScreens();
-	SetScreenVisible(currentScreen, currentScreen != ELRScreenType::None);
+	if (currentScreen == ELRScreenType::None)
+	{
+		return;
+	}
+	if (currentScreen == ELRScreenType::Pause || currentScreen == ELRScreenType::SaveSlots)
+	{
+		SetScreenVisible(currentScreen, true);
+		return;
+	}
+	ShowMenuTab(currentScreen);
 }
 
 /**

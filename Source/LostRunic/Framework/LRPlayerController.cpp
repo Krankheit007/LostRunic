@@ -16,6 +16,7 @@
 #include "Input/LRInputConfig.h"
 #include "Interaction/LRInteractionComponent.h"
 #include "Items/LRInventoryComponent.h"
+#include "Items/LRItemUseTarget.h"
 #include "State/LRStateComponent.h"
 #include "UI/LRPlayerUIComponent.h"
 #include "EnhancedInputComponent.h"
@@ -92,13 +93,7 @@ void ALRPlayerController::SetupInputComponent()
 	enhancedInput->BindAction(InputConfig->OpenEyesAction, ETriggerEvent::Completed, this, &ALRPlayerController::HandleOpenEyesStopped);
 	enhancedInput->BindAction(InputConfig->OpenEyesAction, ETriggerEvent::Canceled, this, &ALRPlayerController::HandleOpenEyesStopped);
 	enhancedInput->BindAction(InputConfig->InteractAction, ETriggerEvent::Started, this, &ALRPlayerController::HandleInteract);
-	enhancedInput->BindAction(InputConfig->QuickSlotActions[0], ETriggerEvent::Started, this, &ALRPlayerController::HandleQuickSlot1);
-	enhancedInput->BindAction(InputConfig->QuickSlotActions[1], ETriggerEvent::Started, this, &ALRPlayerController::HandleQuickSlot2);
-	enhancedInput->BindAction(InputConfig->QuickSlotActions[2], ETriggerEvent::Started, this, &ALRPlayerController::HandleQuickSlot3);
-	enhancedInput->BindAction(InputConfig->QuickSlotActions[3], ETriggerEvent::Started, this, &ALRPlayerController::HandleQuickSlot4);
-	enhancedInput->BindAction(InputConfig->UseQuickSlotAction, ETriggerEvent::Started, this, &ALRPlayerController::HandleUseSelectedQuickSlot);
-	enhancedInput->BindAction(InputConfig->PreviousQuickSlotAction, ETriggerEvent::Started, this, &ALRPlayerController::HandlePreviousQuickSlot);
-	enhancedInput->BindAction(InputConfig->NextQuickSlotAction, ETriggerEvent::Started, this, &ALRPlayerController::HandleNextQuickSlot);
+	enhancedInput->BindAction(InputConfig->AttackAction, ETriggerEvent::Started, this, &ALRPlayerController::HandleAttack);
 	enhancedInput->BindAction(InputConfig->ConfirmAction, ETriggerEvent::Started, this, &ALRPlayerController::HandleConfirm);
 	enhancedInput->BindAction(InputConfig->CancelAction, ETriggerEvent::Started, this, &ALRPlayerController::HandleCancel);
 	enhancedInput->BindAction(InputConfig->OpenJournalAction, ETriggerEvent::Started, this, &ALRPlayerController::HandleOpenJournal);
@@ -231,57 +226,25 @@ void ALRPlayerController::HandleInteract()
 {
 	if (const ALRCharacter* character = Cast<ALRCharacter>(GetPawn()))
 	{
-		character->GetInteractionComponent()->PerformPrimaryInteraction();
+		ULRInteractionComponent* interaction = character->GetInteractionComponent();
+		const FLRInteractionResult result = interaction->PerformPrimaryInteraction();
+		AActor* target = interaction->GetCurrentTarget();
+		if (result.FailureReason == LRGameplayTags::InteractionRejectItem && target
+			&& target->GetClass()->ImplementsInterface(ULRItemUseTarget::StaticClass()) && PlayerUI)
+		{
+			PlayerUI->OpenItemSelector(target);
+		}
 	}
 }
 
 /**
- * @brief 处理 Handle Quick Slot1 事件，将引擎回调转换为对应领域状态更新。
+ * @brief 处理 Handle Attack 事件，将引擎回调转换为对应领域状态更新。
  */
-void ALRPlayerController::HandleQuickSlot1() { UseQuickSlot(0); }
-/**
- * @brief 处理 Handle Quick Slot2 事件，将引擎回调转换为对应领域状态更新。
- */
-void ALRPlayerController::HandleQuickSlot2() { UseQuickSlot(1); }
-/**
- * @brief 处理 Handle Quick Slot3 事件，将引擎回调转换为对应领域状态更新。
- */
-void ALRPlayerController::HandleQuickSlot3() { UseQuickSlot(2); }
-/**
- * @brief 处理 Handle Quick Slot4 事件，将引擎回调转换为对应领域状态更新。
- */
-void ALRPlayerController::HandleQuickSlot4() { UseQuickSlot(3); }
-
-/**
- * @brief 处理 Handle Use Selected Quick Slot 事件，将引擎回调转换为对应领域状态更新。
- */
-void ALRPlayerController::HandleUseSelectedQuickSlot()
+void ALRPlayerController::HandleAttack()
 {
-	if (const ALRCharacter* character = Cast<ALRCharacter>(GetPawn()))
+	if (ALRCharacter* character = Cast<ALRCharacter>(GetPawn()))
 	{
-		UseQuickSlot(character->GetInventoryComponent()->GetSelectedQuickSlot());
-	}
-}
-
-/**
- * @brief 处理 Handle Previous Quick Slot 事件，将引擎回调转换为对应领域状态更新。
- */
-void ALRPlayerController::HandlePreviousQuickSlot()
-{
-	if (const ALRCharacter* character = Cast<ALRCharacter>(GetPawn()))
-	{
-		character->GetInventoryComponent()->SelectAdjacentQuickSlot(-1);
-	}
-}
-
-/**
- * @brief 处理 Handle Next Quick Slot 事件，将引擎回调转换为对应领域状态更新。
- */
-void ALRPlayerController::HandleNextQuickSlot()
-{
-	if (const ALRCharacter* character = Cast<ALRCharacter>(GetPawn()))
-	{
-		character->GetInventoryComponent()->SelectAdjacentQuickSlot(1);
+		character->RequestAttack();
 	}
 }
 

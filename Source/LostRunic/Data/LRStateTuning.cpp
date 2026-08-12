@@ -22,5 +22,7 @@ bool ULRStateTuning::Validate(FString& outError) const
 		&& LRValidation::RequireRange(TEXT("PresentationSafetyTimeoutSeconds"), PresentationSafetyTimeoutSeconds, 0.1f, 10.0f, outError)
 		&& LRValidation::RequireRange(TEXT("CourageAttackCooldownSeconds"), CourageAttackCooldownSeconds, 0.0f, 10.0f, outError)
 		&& LRValidation::RequireRange(TEXT("CourageKnockbackDurationSeconds"), CourageKnockbackDurationSeconds, 0.0f, 5.0f, outError)
-		&& LRValidation::RequireRange(TEXT("CourageKnockbackSpeed"), CourageKnockbackSpeed, 0.0f, 3000.0f, outError);
+		&& LRValidation::RequireRange(TEXT("CourageKnockbackSpeed"), CourageKnockbackSpeed, 0.0f, 3000.0f, outError)
+		&& LRValidation::RequireRange(TEXT("CourageAttackRangeCm"), CourageAttackRangeCm, 1.0f, 5000.0f, outError)
+		&& LRValidation::RequireRange(TEXT("CourageAttackFacingDegrees"), CourageAttackFacingDegrees, 1.0f, 360.0f, outError);
 }

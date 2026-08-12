@@ -1,6 +1,6 @@
 /**
  * @file LRItemUseTypes.h
- * @brief 实现 4 格快捷栏、背包、笔记、收藏品和统一物品使用事务；快捷栏与交互后选物共用解析入口，失败时回滚消耗并返回结构化原因。
+ * @brief 实现背包、笔记、收藏品和统一物品使用事务；Interaction 与 Attack 两个入口共用解析事务，目标效果成功后按 bConsumable 消费，失败不触碰库存。
  *
  * 关联文件：Items 目录内调用该公共契约的实现文件；所属领域：Items。
  * 设计依据：Docs/Design/01_GameDesignSummary.md 与 Docs/Technical/04_TechnicalDesign.md。
@@ -19,8 +19,8 @@ class AActor;
 UENUM(BlueprintType, meta = (DisplayName = "Lost Runic Item Use Entry Point"))
 enum class ELRItemUseEntryPoint : uint8
 {
-	QuickSlot UMETA(DisplayName = "Quick Slot"),
-	InteractionSelector UMETA(DisplayName = "Interaction Selector")
+	Interaction UMETA(DisplayName = "Interaction"),
+	Attack UMETA(DisplayName = "Attack")
 };
 
 /** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
@@ -29,13 +29,9 @@ struct LOSTRUNIC_API FLRItemUseRequest
 {
 	GENERATED_BODY()
 
-	/** Item Id 的稳定 FName/GUID 标识；用于定义查询和存档，不依赖显示名或临时 Actor 名称。 C++ 安全默认值为 `NAME_None`。 蓝图可读取但不可写入。 */
+	/** Item Id 的稳定 FName/GUID 标识；用于定义查询和存档，不依赖显示名或临时 Actor 名称。 C++ 安全默认值为 `NAME_None`（空手攻击时合法）。 蓝图可读取但不可写入。 */
 	UPROPERTY(BlueprintReadOnly, Category = "Item Use")
 	FName ItemId = NAME_None;
-
-	/** Source Slot 的领域数据，由所属类型负责维护和校验。 C++ 安全默认值为 `INDEX_NONE`。 蓝图可读取但不可写入。 */
-	UPROPERTY(BlueprintReadOnly, Category = "Item Use")
-	int32 SourceSlot = INDEX_NONE;
 
 	/** Target 的领域数据，由所属类型负责维护和校验。 蓝图可读取但不可写入。 */
 	UPROPERTY(BlueprintReadOnly, Category = "Item Use")
@@ -45,9 +41,9 @@ struct LOSTRUNIC_API FLRItemUseRequest
 	UPROPERTY(BlueprintReadOnly, Category = "Item Use")
 	TObjectPtr<AActor> Instigator;
 
-	/** Entry Point 的领域数据，由所属类型负责维护和校验。 C++ 安全默认值为 `ELRItemUseEntryPoint::QuickSlot`。 蓝图可读取但不可写入。 */
+	/** Entry Point 的领域数据，由所属类型负责维护和校验。 C++ 安全默认值为 `ELRItemUseEntryPoint::Interaction`。 蓝图可读取但不可写入。 */
 	UPROPERTY(BlueprintReadOnly, Category = "Item Use")
-	ELRItemUseEntryPoint EntryPoint = ELRItemUseEntryPoint::QuickSlot;
+	ELRItemUseEntryPoint EntryPoint = ELRItemUseEntryPoint::Interaction;
 
 	/** 当前已提交的心理状态；仅状态组件可修改，蓝图只能读取。 C++ 安全默认值为 `ELRPerceptionMode::Normal`。 蓝图可读取但不可写入。 */
 	UPROPERTY(BlueprintReadOnly, Category = "Item Use")

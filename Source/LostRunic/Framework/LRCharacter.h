@@ -15,6 +15,7 @@
 class UCameraComponent;
 class ULRInteractionComponent;
 class ULRInventoryComponent;
+class ULRItemActionComponent;
 class ULRHideComponent;
 class ULRLocomotionComponent;
 class ULRNoiseEmitterComponent;
@@ -70,11 +71,50 @@ public:
 	ULRInventoryComponent* GetInventoryComponent() const { return Inventory; }
 
 	/**
+	 * @brief 查询 Item Action Component；不修改领域状态。
+	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+	 */
+	UFUNCTION(BlueprintPure, Category = "Lost Runic|Items")
+	ULRItemActionComponent* GetItemActionComponent() const { return ItemAction; }
+
+	/**
+	 * @brief 稳定玩法动作入口：使用物品；语义合法性由 ItemActionComponent 与统一事务决定。
+	 * @param itemId 物品的稳定 FName ID，用于定义查询和存档，不依赖显示名。
+	 * @param target 本次规则检查或操作的目标对象。
+	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Lost Runic|Items")
+	FLRItemUseResult RequestUseItem(FName itemId, AActor* target);
+
+	/**
+	 * @brief 稳定玩法动作入口：发起攻击；语义合法性由 ItemActionComponent 与统一事务决定。
+	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Lost Runic|Items")
+	FLRItemUseResult RequestAttack();
+
+	/**
 	 * @brief 查询 Hide Component；不修改领域状态。
 	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
 	 */
 	UFUNCTION(BlueprintPure, Category = "Lost Runic|Stealth")
 	ULRHideComponent* GetHideComponent() const { return Hide; }
+
+	/** Returns the component that emits state-change presentation requests to Blueprint. */
+	UFUNCTION(BlueprintPure, Category = "Lost Runic|State|Presentation")
+	ULRStatePresentationComponent* GetStatePresentationComponent() const { return StatePresentation; }
+
+	/** Returns the component responsible for publishing gameplay noise events. */
+	UFUNCTION(BlueprintPure, Category = "Lost Runic|Stealth")
+	ULRNoiseEmitterComponent* GetNoiseEmitterComponent() const { return NoiseEmitter; }
+
+	/** Returns the designer-configurable top-down camera boom. */
+	UFUNCTION(BlueprintPure, Category = "Lost Runic|Camera")
+	USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
+
+	/** Returns the local player's top-down camera component. */
+	UFUNCTION(BlueprintPure, Category = "Lost Runic|Camera")
+	UCameraComponent* GetTopDownCamera() const { return Camera; }
 
 private:
 	/** Camera Boom 的领域数据，由所属类型负责维护和校验。 仅在蓝图或详情面板中查看，不可编辑。 */
@@ -100,6 +140,14 @@ private:
 	/** Inventory 的领域数据，由所属类型负责维护和校验。 仅在蓝图或详情面板中查看，不可编辑。 */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<ULRInventoryComponent> Inventory;
+
+	/** Item Action 的领域数据，由所属类型负责维护和校验。 仅在蓝图或详情面板中查看，不可编辑。 */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<ULRItemActionComponent> ItemAction;
+
+	/** Attack Target Resolver 的领域数据，由所属类型负责维护和校验。 仅在蓝图或详情面板中查看，不可编辑。 */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<class ULRAttackTargetResolver> AttackTargetResolver;
 
 	/** Interaction Enhanced Input Action 资产；C++ 绑定其语义，具体键位在 Mapping Context 中配置。 仅在蓝图或详情面板中查看，不可编辑。 */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))

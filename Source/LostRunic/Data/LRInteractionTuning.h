@@ -21,7 +21,7 @@ class LOSTRUNIC_API ULRInteractionTuning : public ULRTuningAsset
 public:
 	/** 远距离粒子提示的最大距离；设计基线默认 500 cm。 C++ 安全默认值为 `1000.0f`。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。编辑器约束：单位 `cm`，最小值 `1.0`，最大值 `5000.0`。 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Interaction|Distance", meta = (ClampMin = "1.0", ClampMax = "5000.0", Units = "cm"))
-	float FarHintDistance = 1000.0f;
+	float FarHintDistance = 2000.0f;
 
 	/** 白色描边提示的最大距离；设计基线默认 200 cm。 C++ 安全默认值为 `500.0f`。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。编辑器约束：单位 `cm`，最小值 `1.0`，最大值 `5000.0`。 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Interaction|Distance", meta = (ClampMin = "1.0", ClampMax = "5000.0", Units = "cm"))

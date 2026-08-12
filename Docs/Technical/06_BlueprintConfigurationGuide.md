@@ -83,14 +83,14 @@
 ### GameMode 与内容聚合
 
 - **代码入口**：`ALRGameMode`、`ULRGameContentSet`、`ULRGameInstanceSubsystem`
-- **蓝图资产**：项目使用的 GameMode 蓝图（当前 Home 体验为 `/Game/LostRunic/Blueprints/Framework/BP_LRGameMode`）
+- **蓝图资产**：项目使用的 GameMode 蓝图（当前默认资产为 `/Game/LostRunic/Blueprints/Character/BP_LRGameMode`）
 - **配置步骤**：
   1. 创建 `ALRGameMode` 的蓝图派生类。
-  2. 在默认值中指定玩家 Pawn、PlayerController、HUD 和内容聚合资产。
-  3. 在 `ULRGameContentSet` 中填写对白/阅读 DataTable、物品/收藏品/守卫定义和地图注册信息。
-  4. 在项目设置或关卡 World Settings 中指定该 GameMode；实例覆盖只用于关卡明确要求的差异。
-- **参数要求**：所有 DataTable 行 ID、定义资产 ID、Home/Memory 地图 ID 必须稳定且可解析；缺失引用应在校验或日志中暴露。
-- **验收**：进入 Home 和 Memory PIE，确认 GameMode、Pawn、Controller、HUD 和内容资产均已加载，Output Log 无项目级加载错误。
+  2. 在 **Project Settings > Game > Lost Runic** 的 `Content Set` 中指定 `/Game/LostRunic/Data/DA_LRGameContentSet`，并同时确认 `Tuning Set`、`Input Config` 已指定。内容聚合资产不在 GameMode 默认值中重复配置；`ALRGameMode` 运行时通过 `ULRGameInstanceSubsystem` 读取这三个项目级权威来源。
+  3. 打开 `ULRGameContentSet` 资产，填写对白/阅读 DataTable、物品/收藏品/守卫/关卡事件定义和地图注册信息。DataTable 行名必须与 `DialogueId`/`ReadingId` 一致，定义资产 ID 必须唯一，地图 `MapId` 必须唯一且有 World 引用。
+  4. 在项目设置或关卡 World Settings 中指定该 GameMode；实例覆盖只用于关卡明确要求的差异。GameMode 蓝图可通过 `GetContentSet`、`GetTuningSet` 和 `HasValidConfiguration` 查询运行时结果，但不应建立第二份配置。
+- **参数要求**：所有 DataTable 行 ID、定义资产 ID、Home/Memory 地图 ID 必须稳定且可解析；`ULRGameContentSet` 的 Data Validation 和 GameInstance 初始化会报告缺失、重复或错误类型引用。
+- **验收**：进入 Home 和 Memory PIE，确认 GameMode、Pawn、Controller、HUD 和内容资产均已加载；在 Output Log 中确认没有 `LogLostRunicTuning` 或 `LogLostRunicSave` 的项目级 Warning/Error。
 
 ### 玩家角色与功能组件
 
@@ -98,11 +98,12 @@
 - **蓝图资产**：项目使用的角色蓝图（由 `ALRCharacter` 派生）。
 - **配置步骤**：
   1. 创建角色蓝图并确认继承 `ALRCharacter`。
-  2. 检查 C++ 构造的组件是否存在；不要重复添加同职责组件。
+  2. 检查 C++ 构造的组件是否存在；不要重复添加同职责组件。可通过 `GetStatePresentationComponent`、`GetNoiseEmitterComponent`、`GetCameraBoom` 和 `GetTopDownCamera` 获取对应运行时组件。
   3. 在蓝图中仅配置网格、动画、摄像机挂点和表现资源；状态、库存、交互合法性由组件处理。
-  4. 将组件委托绑定到 HUD、状态提示、交互提示和特效表现。
+  4. 在角色蓝图的 `StatePresentation` 组件上绑定 `OnStatePresentationRequested`，驱动后处理、Niagara、材质或动画表现；表现动画完成后调用该组件的 `CompleteStatePresentation`，不要用 Tick 轮询。
+  5. 在 HUD Widget 的 `OnHUDWidgetControllerReady` 事件中接收注入的 `ULRHUDWidgetController`，绑定 `OnPerceptionModeChanged` 和 `OnInteractionPromptChanged`。不要在 `NativeOnInitialized` 中直接查询并缓存 Controller，也不要让 Widget 扫描世界或重新判断交互规则。
 - **参数要求**：移动速度、状态长按阈值、交互距离、噪声和动画安全超时来自对应 Tuning 资产；蓝图不写入运行时状态。
-- **验收**：PIE 中验证正常/感知/勇气状态、交互提示、库存使用和掩体行为；适用时分别使用键鼠和手柄。
+- **验收**：PIE 中验证正常/感知/勇气状态、状态表现完成后可再次切换、交互提示、库存使用和掩体行为；适用时分别使用键鼠和手柄，并确认 Widget 不会因初始化时序缺失 Controller。
 
 ### 世界交互 Actor
 
@@ -145,3 +146,156 @@
 | 日期 | 变更 |
 | --- | --- |
 | 2026-08-11 | 新建蓝图配置与代码功能登记文档，加入标准流程、参数规则和现有 Home 切片功能条目。 |
+
+## 交互系统重构（2026-08-11）
+
+- 状态：`待项目负责人配置蓝图并在 L_Home 验收`
+- 核心代码：`ULRInteractionComponent`、`ILRInteractable`、`ALRWorldInteractionActor`
+- 表现代码：`ULRInteractionPresentationComponent`、`ULRHUDWidgetController`
+- 简单交互：`ALRDoorInteractableActor`、`ALRPickupInteractableActor`
+- 查询通道：项目对象通道 `Interaction`（C++ 对应 `ECC_GameTraceChannel1`）
+- 权威参数：`ULRInteractionTuning`，默认执行 200 cm、描边 500 cm、远距提示上限 2000 cm、总朝向角 90 度、扫描间隔 0.1 秒
+- 验证记录：2026-08-11 `LostRunicEditor Win64 Development` 编译、UHT 和链接通过；`LostRunic.Interaction` 自动化测试 2/2 通过且无警告/错误；`L_Home` PIE 仍需在蓝图装配后执行。
+
+### 运行时数据流
+
+1. `ULRInteractionComponent` 每次定时扫描只对 `Interaction` 对象通道做球形重叠查询。
+2. 对候选生成临时 Evaluation，分别计算距离平方、模式/物品条件、朝向和表现状态。
+3. 远距 Niagara 与 5 米内描边不做遮挡检测，也不依赖玩家朝向。
+4. 只有 2 米执行距离内、左右各 45 度朝向内、条件满足的候选才进行 Visibility Line Trace。
+5. 未遮挡候选按距离平方选择唯一 Focus Target，并向 HUD 发布弱目标引用、Prompt、ActionTag 和可见性。
+6. 交互执行后立即刷新扫描，已完成的门或拾取物不会残留交互提示。
+
+### BP_LRHomeDoor
+
+- 推荐路径：`/Game/LostRunic/Blueprints/Interaction/BP_LRHomeDoor`
+- 父类：`ALRDoorInteractableActor`
+- C++ 已创建：`SceneRoot`、`DoorPivot`、`InteractionCollision`、`FarHintEffect`、`Presentation`
+
+配置步骤：
+
+1. 将现有门蓝图重设父类为 `ALRDoorInteractableActor`，不要在关卡蓝图中复制开门规则。
+2. 把门网格挂在 `DoorPivot` 下，并在蓝图组件视图中把 `DoorPivot` 移到真实铰链位置。
+3. 给需要白色描边的门网格组件添加 Component Tag：`InteractionOutline`。
+4. 给 `FarHintEffect` 指定统一的 Niagara System；该组件由 Presentation 状态自动启停。
+5. `InteractionCollision` 保持对象类型 `Interaction`、Query Only，并包住可代表该门的查询点；不要把门网格本身改成 Interaction 对象类型。
+6. 在 `Interaction Options[0]` 中设置 `ActionTag=Interaction.Action.Interact`，Prompt 设置为“互动”。
+7. `Open Yaw Degrees` 默认 90 度；若门应向另一侧开启，实例或蓝图默认值设置为 -90 度。
+
+验收：玩家进入 2 米、位于总计 90 度朝向范围内且无遮挡时显示交互提示；按 Interact 后 `DoorPivot` 只旋转一次，重复输入不能再次开门。
+
+### BP_LRHomePickup
+
+- 推荐路径：`/Game/LostRunic/Blueprints/Interaction/BP_LRHomePickup`
+- 父类：`ALRPickupInteractableActor`
+- C++ 已创建：`SceneRoot`、`InteractionCollision`、`FarHintEffect`、`Presentation`
+
+配置步骤：
+
+1. 新建 `ALRPickupInteractableActor` 的蓝图派生类并添加 `PickupMesh`。
+2. 给 `PickupMesh` 添加 Component Tag：`InteractionOutline`。
+3. 给 `FarHintEffect` 指定与门一致的 Niagara System。
+4. `InteractionCollision` 使用 `Interaction` 对象类型且保持 Query Only。
+5. 在 `Interaction Options[0]` 中设置 `ActionTag=Interaction.Action.Pickup`，Prompt 设置为“拾取”。
+
+验收：按 Interact 后 Actor 立即隐藏并关闭全部碰撞；本阶段不写入背包或快捷栏；重复输入不能再次拾取。
+
+### HUD 交互提示
+
+1. 在 HUD Widget 中取得 `ALRHUD.GetHUDWidgetController()`。
+2. 绑定 `OnInteractionPromptChanged`，不要在 Widget 中扫描 Actor 或重新判断距离、朝向和遮挡。
+3. `bVisible=false` 时隐藏提示；为 true 时显示 Prompt 和输入图标。
+4. 不要把 `[E]` 拼进 Prompt。Widget 应从当前输入映射/当前设备取得 Interact Action 的按键或手柄图标，Prompt 只显示“互动”“拾取”等动作文本。
+5. Prompt View 的目标引用为弱引用；UI 不得缓存强 Actor 引用。
+
+### L_Home PIE 验收清单
+
+1. 放置一个 `BP_LRHomeDoor` 和一个 `BP_LRHomePickup`，确认它们的查询碰撞对象类型都是 `Interaction`。
+2. 大于 5 米且小于等于远距上限时只显示 Niagara；2-5 米显示 Niagara 与白色描边；2 米内的唯一 Focus 同时显示 HUD 提示。
+3. 在 44.9 度、45.0 度、45.1 度左右边界检查 Focus；45.0 度包含在范围内。
+4. 在玩家和目标之间放置阻挡 Visibility 的墙：远距 Niagara/描边保留，但 2 米内不能 Focus。
+5. 同时放置多个 2 米内目标，确认仅选择朝向范围内最近且未遮挡者。
+6. 验证门只旋转一次，拾取物隐藏并关闭碰撞；检查 Output Log 无 `LogLostRunicInteraction` Warning/Error。
+
+## 物品系统重构（2026-08-12）
+
+- 状态：`待项目负责人配置蓝图并在 L_Home 验收`
+- 核心代码：`ULRItemActionComponent`、`ULRItemUseResolver`、`ULRInventoryComponent`、`ULRAttackTargetResolver`
+- 目标接口：`ILRItemUseTarget`（交互选物）、`ILRAttackTarget`（攻击）
+- 世界交互：`ALRPickupInteractableActor`、`ALRNoteInteractableActor`、`ALRCollectiblePickupActor`
+- 统一菜单：单 UMG 资产 `BP_LRMainMenu`（背包/笔记/收集品 Tab）
+- 权威参数：`ULRStateTuning`（Courage 攻击范围/朝向/冷却）、`ULRItemDefinition`（消费与堆叠规则）
+- 验证记录：2026-08-12 `LostRunicEditor Win64 Development` 编译通过；`Automation RunTests LostRunic` 41/42 通过（覆盖库存堆叠、武器回退、攻击事务、笔记/收藏品和菜单快照）。唯一失败为 `LostRunic.Input.ProjectConfigIsComplete`：`DA_LRInputConfig` 资产的 `AttackAction` 槽位尚未在编辑器中配置（见下方 PIE 验收步骤 0），属于资产迁移工作。
+
+### 物品定义规则（ULRItemDefinition）
+
+- `bConsumable=false`：无限使用，成功使用不扣数量，UI 不显示数量；`MaxStackSize` 必须为 1（数据校验拒绝 `bConsumable=false && MaxStackSize>1`）。
+- `bConsumable=true`：每次成功使用扣除一个，库存数量即剩余使用次数；`MaxStackSize` 允许大于 1。
+- `ItemTags` 添加 `Item.Category.Weapon` 标识武器；武器只是普通物品的附加标签，可同时声明 `Interaction.Action.Use` 和 `Interaction.Action.Attack`。
+- `AllowedActionTags` 只声明入口能力（Use/Attack）；不负责状态、距离、朝向、目标有效性或攻击结果判定。攻击入口除 Attack 外还必须带 `Item.Category.Weapon`，否则返回 `Item.Use.Reject.InvalidAttackItem`。
+- ID 对齐：`ItemId`、`ReadingId`、`CollectibleId` 必须与定义资产/DataTable 行名一致，不得使用显示名或 Actor 名称。
+
+### Attack Target 与 Item Use Target 的接口差异
+
+- `ILRItemUseTarget`（`GetItemUseTargetTags`/`ApplyItemUse`）：交互选物目标，如门、机关。
+- `ILRAttackTarget`（`GetAttackTargetTags`/`ApplyAttack`）：攻击目标，如守卫的 `ULRCourageResponseComponent`。
+- 门、笔记、拾取物即使实现 `ILRItemUseTarget`，也永远不会成为攻击目标；攻击只接受 `ILRAttackTarget` 候选。
+- 攻击距离（`CourageAttackRangeCm`）、朝向（`CourageAttackFacingDegrees`）和冷却（`CourageAttackCooldownSeconds`）全部来自 `ULRStateTuning`。
+
+### 三类验收蓝图
+
+#### BP_LRHomePickup（可使用物品拾取）
+
+- 推荐路径：`/Game/LostRunic/Blueprints/Interaction/BP_LRHomePickup`
+- 父类：`ALRPickupInteractableActor`
+- 必填字段：`ItemDefinition`（引用 `ULRItemDefinition` 资产）、`PickupQuantity`（正数且不超过定义的 `MaxStackSize`）、`Interaction Options[0].ActionTag=Interaction.Action.Pickup`
+- 规则：只有库存 `AddItem` 返回 `Success` 才隐藏 Actor、关闭碰撞并标记一次性完成；背包已满时 Actor 保持可见可交互，UI 显示“物品已满！”；蓝图不得直接销毁 Actor 或写库存。
+- 验收：拾取后 Output Log 无 Warning；背包满时重复拾取，Actor 不消失且 HUD/菜单提示物品已满。
+
+#### BP_LRHomeNote（可重复阅读笔记）
+
+- 推荐路径：`/Game/LostRunic/Blueprints/Interaction/BP_LRHomeNote`
+- 父类：`ALRNoteInteractableActor`
+- 必填字段：`ReadingId`（与 `ReadingTable` 行名一致，如 `Home_Note_Mother`）、`Interaction Options[0].ActionTag=Interaction.Action.Read`
+- 规则：阅读会话成功打开时立即记录笔记（`AddNoteId`），不等待玩家翻到末尾；重复打开仍可阅读但不产生重复记录；笔记非一次性，`bOneShot=false` 已由父类构造设置。
+- 验收：首次阅读后菜单笔记页出现该条目；再次阅读不重复添加；阅读中途退出仍已记录。
+
+#### BP_LRHomeCollectible（收藏品拾取）
+
+- 推荐路径：`/Game/LostRunic/Blueprints/Interaction/BP_LRHomeCollectible`
+- 父类：`ALRCollectiblePickupActor`
+- 必填字段：`CollectibleDefinition`（引用 `ULRCollectibleDefinition` 资产，`CollectibleId` 如 `Home_Doll`）、`Interaction Options[0].ActionTag=Interaction.Action.Pickup`
+- 规则：`AddCollectibleId` 返回 `Success` 才隐藏 Actor；重复拾取返回 `AlreadyOwned`，Actor 保持可见并记录 Warning 诊断；收藏品不可使用，不参与武器选择。
+
+### 统一菜单 UI（BP_LRMainMenu）
+
+- 一个 UMG 资产，通过 `OnMenuTabChanged(ELRScreenType)` 事件在背包/笔记/收集品 Tab 间切换；不显示快捷栏 HUD。
+- 背包页：图标、名称、描述；一次性物品显示数量，无限物品不显示；武器标签；玩家显式选择的武器标记；武器条目提供“设为当前武器”操作（调用 `ULRInventoryComponent.SetSelectedWeapon`）。自动回退武器不写入 `SelectedWeaponItemId`，详情区可用快照的 `EffectiveWeaponItemId` 展示“攻击时将使用”。
+- 交互选物模式：玩家与需要物品的目标交互后，`ULRPlayerUIComponent.OpenItemSelector` 打开统一菜单背包 Tab；快照（`ULRMenuWidgetController.BuildInventorySnapshot(inventory, target)`）只标记与目标兼容的物品，只允许提交兼容物品。
+- 内部 `FailureReason` Gameplay Tag 只用于规则、日志和测试；`ULRPlayerUIComponent.DescribeItemUseFailure` 映射为友好提示，普通玩家看不到内部 Tag：
+
+| 内部 Tag | 友好提示 |
+| --- | --- |
+| `Interaction.Reject.Item` / `Item.Use.Reject.InvalidAttackItem` | 无法在这里使用 |
+| `Item.Use.Reject.InventoryFull` | 物品已满！ |
+| `Item.Use.Reject.Target` | 目标已经失效 |
+| `Item.Use.Reject.AttackState` / `State.Reject.Blocked` | 当前无法攻击 |
+| `Collectible.Reject.AlreadyOwned` | 已拥有该收藏品 |
+| 其他 | 物品无法使用 |
+
+### 快捷栏废弃策略
+
+- 输入：`AttackAction` 沿用原 `UseQuickSlotAction` 键位；`ULRInputConfig` 中 `UseQuickSlotAction` 保留为 `Deprecated` 字段仅作资产迁移回退；删除 1-4、上一栏、下一栏绑定与 `QuickSlotActions` 数组。
+- UI：统一菜单无快捷栏 HUD；`FLRInventorySnapshot` 不再包含任何快捷栏字段。
+- 存档：`FLRSaveInventoryChunk.QuickSlots` 与 `SelectedQuickSlot` 暂时保留结构定义，捕获时不填充，恢复时完全忽略，不触发任何委托或选择恢复；后续存档重构再迁移物品获得顺序与选中武器。
+
+### L_Home 物品 PIE 验收步骤
+
+0. 编辑 `DA_LRInputConfig`：把 `IA_LRUseQuickSlot` 指到新的 `AttackAction` 槽位（键位沿用原 UseQuickSlot），从 `IMC_LRGameplay` 移除 1-4/上一栏/下一栏映射；`AttackAction` 配置完成后 `LostRunic.Input.ProjectConfigIsComplete` 自动恢复通过。
+1. 放置 `BP_LRHomePickup`（可使用物品，如钥匙）、`BP_LRHomeNote`（`Home_Note_Mother`）、`BP_LRHomeCollectible`（`Home_Doll`）各一。
+2. 键鼠与手柄分别验证：拾取物品、阅读笔记、拾取收藏品后 Output Log 无 Warning/Error。
+3. 验证背包页数量显示：无限物品不显示数字，一次性物品显示剩余次数。
+4. 验证交互选物：先用钥匙开 `BP_LRHomeDoor`（快捷路径 = 交互后从背包选钥匙），成功结算一致；错误物品被拒绝且显示“无法在这里使用”。
+5. 验证武器：Courage 状态下攻击守卫触发击退，非 Courage 状态返回“当前无法攻击”；消耗最后一把一次性武器后 `SelectedWeaponItemId` 清空，攻击自动回退到最早获得的武器。
+6. 验证背包已满：对 `MaxStackSize` 已满的物品重复拾取，Actor 不消失且显示“物品已满！”。
+7. 验证菜单 Tab：背包/笔记/收集品切换正确，`OnMenuTabChanged` 事件生效，关闭后恢复 Gameplay 输入且无幽灵输入。

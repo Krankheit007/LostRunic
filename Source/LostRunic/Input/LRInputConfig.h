@@ -71,21 +71,13 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Actions|UI")
 	TObjectPtr<UInputAction> CancelAction;
 
-	/** Quick Slot Actions 的领域数据，由所属类型负责维护和校验。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。 */
+	/** Attack Action Enhanced Input Action 资产；C++ 绑定其语义，具体键位在 Mapping Context 中配置（沿用原 UseQuickSlot 键位）。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Actions|Gameplay")
-	TArray<TObjectPtr<UInputAction>> QuickSlotActions;
+	TObjectPtr<UInputAction> AttackAction;
 
-	/** Use Quick Slot Action Enhanced Input Action 资产；C++ 绑定其语义，具体键位在 Mapping Context 中配置。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。 */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Actions|Gameplay")
+	/** 已废弃：旧 UseQuickSlot 输入引用，仅作为资产迁移回退保留，运行时不存在快捷栏语义。 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Actions|Gameplay|Deprecated", meta = (DeprecatedProperty, DisplayName = "Use Quick Slot Action (Deprecated)"))
 	TObjectPtr<UInputAction> UseQuickSlotAction;
-
-	/** Previous Quick Slot Action Enhanced Input Action 资产；C++ 绑定其语义，具体键位在 Mapping Context 中配置。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。 */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Actions|Gameplay")
-	TObjectPtr<UInputAction> PreviousQuickSlotAction;
-
-	/** Next Quick Slot Action Enhanced Input Action 资产；C++ 绑定其语义，具体键位在 Mapping Context 中配置。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。 */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Actions|Gameplay")
-	TObjectPtr<UInputAction> NextQuickSlotAction;
 
 	/** Toggle Crouch Action Enhanced Input Action 资产；C++ 绑定其语义，具体键位在 Mapping Context 中配置。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Actions|Gameplay")

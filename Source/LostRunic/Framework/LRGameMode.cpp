@@ -8,7 +8,9 @@
  */
 #include "Framework/LRGameMode.h"
 
+#include "Core/LRLog.h"
 #include "Framework/LRCharacter.h"
+#include "Framework/LRGameInstanceSubsystem.h"
 #include "Framework/LRGameState.h"
 #include "Framework/LRPlayerController.h"
 #include "Kismet/GameplayStatics.h"
@@ -32,11 +34,32 @@ ALRGameMode::ALRGameMode()
 void ALRGameMode::BeginPlay()
 {
 	Super::BeginPlay();
+
+	ULRGameInstanceSubsystem* dataSubsystem = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<ULRGameInstanceSubsystem>() : nullptr;
+	bConfigurationValid = dataSubsystem && dataSubsystem->HasValidConfiguration();
+	ContentSet = dataSubsystem ? dataSubsystem->GetContentSet() : nullptr;
+	TuningSet = dataSubsystem ? dataSubsystem->GetTuningSet() : nullptr;
+	if (!bConfigurationValid)
+	{
+		UE_LOG(LogLostRunicTuning, Error, TEXT("GameMode=%s started with invalid project configuration."), *GetNameSafe(this));
+		return;
+	}
+
 	if (UGameInstance* gameInstance = GetGameInstance())
 	{
 		if (ULRSaveSubsystem* saveSubsystem = gameInstance->GetSubsystem<ULRSaveSubsystem>())
 		{
-			saveSubsystem->HandleWorldReady(Cast<ALRCharacter>(UGameplayStatics::GetPlayerCharacter(this, 0)));
+			ALRCharacter* character = Cast<ALRCharacter>(UGameplayStatics::GetPlayerCharacter(this, 0));
+			if (character)
+			{
+				saveSubsystem->HandleWorldReady(character);
+			}
+			else
+			{
+				UE_LOG(LogLostRunicSave, Warning, TEXT("GameMode=%s could not find the player character when the world became ready."),
+					*GetNameSafe(this));
+			}
 		}
 	}
 }

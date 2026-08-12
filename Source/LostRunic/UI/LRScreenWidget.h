@@ -13,6 +13,8 @@
 
 #include "LRScreenWidget.generated.h"
 
+class ULRHUDWidgetController;
+
 /** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
 UCLASS(Abstract, Blueprintable, meta = (DisplayName = "Lost Runic Screen Widget"))
 class LOSTRUNIC_API ULRScreenWidget : public UUserWidget
@@ -56,6 +58,31 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, Category = "Lost Runic|UI")
 	void OnNarrativePresentationChanged(const FLRNarrativePresentation& presentation);
 
+	/**
+	 * @brief 统一菜单切换到指定 Tab 时触发；单个菜单 Widget 通过该事件切换背包/笔记/收集品页面。
+	 * @param tab 本次操作使用的 `tab` 枚举或模式值。
+	 */
+	UFUNCTION(BlueprintImplementableEvent, Category = "Lost Runic|UI")
+	void OnMenuTabChanged(ELRScreenType tab);
+
+	/**
+	 * @brief 菜单显示友好状态消息（如“物品已满！”）；内部失败原因标签已由 C++ 映射，不直接暴露给玩家。
+	 * @param message 调用方提供的 `message`，只在本次操作范围内使用。
+	 */
+	UFUNCTION(BlueprintImplementableEvent, Category = "Lost Runic|UI")
+	void OnMenuStatusMessage(const FText& message);
+
+	/** Called after ALRHUD injects the controller that owns HUD state and interaction events. */
+	UFUNCTION(BlueprintImplementableEvent, Category = "Lost Runic|UI")
+	void OnHUDWidgetControllerReady(ULRHUDWidgetController* controller);
+
+	/** Returns the controller injected by ALRHUD for this local player's screen. */
+	UFUNCTION(BlueprintPure, Category = "Lost Runic|UI")
+	ULRHUDWidgetController* GetHUDWidgetController() const { return HUDWidgetController; }
+
+	/** Injects the local HUD event source before the widget is exposed to gameplay. */
+	void SetHUDWidgetController(ULRHUDWidgetController* controller);
+
 protected:
 	/**
 	 * @brief 在 UMG 原生初始化阶段建立 Widget 自身状态；领域事件由外部控制器绑定。
@@ -65,6 +92,10 @@ protected:
 	/** Screen Type 的领域数据，由所属类型负责维护和校验。 C++ 安全默认值为 `ELRScreenType::None`。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Screen")
 	ELRScreenType ScreenType = ELRScreenType::None;
+
+	/** Runtime controller reference; the HUD owns the controller and the widget never owns gameplay state. */
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Screen", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<ULRHUDWidgetController> HUDWidgetController;
 
 private:
 	/** Screen Visible 的运行时状态；由所属类型维护，不在蓝图中配置。 */

@@ -10,6 +10,27 @@
 
 #include "Data/LRInteractionTuning.h"
 
+/** Maps the distance bands to world presentation before the unique Focus target is selected. */
+ELRInteractionPresentationState LRInteractionRules::GetPresentationState(const float distanceSquared,
+	const ULRInteractionTuning& tuning)
+{
+	if (distanceSquared > FMath::Square(tuning.FarHintDistance))
+	{
+		return ELRInteractionPresentationState::None;
+	}
+	if (distanceSquared > FMath::Square(tuning.OutlineDistance))
+	{
+		return ELRInteractionPresentationState::FarHint;
+	}
+	return ELRInteractionPresentationState::NearOutline;
+}
+
+/** Tests the per-option execution radius with squared distances. */
+bool LRInteractionRules::IsWithinExecutionDistance(const float distanceSquared, const float executeDistance)
+{
+	return distanceSquared <= FMath::Square(executeDistance);
+}
+
 /**
  * @brief 对已通过基础检查的交互候选排序，优先选择朝向范围内距离最近者。
  * @param candidates 本次领域操作的结构化数据 `candidates`；字段语义由对应 USTRUCT 定义。
@@ -20,17 +41,16 @@ int32 LRInteractionRules::SelectBestCandidate(const TArray<FLRInteractionCandida
 	const ULRInteractionTuning& tuning)
 {
 	int32 bestIndex = INDEX_NONE;
-	float bestDistance = TNumericLimits<float>::Max();
+	float bestDistanceSquared = TNumericLimits<float>::Max();
 	for (int32 index = 0; index < candidates.Num(); ++index)
 	{
 		const FLRInteractionCandidateScore& candidate = candidates[index];
-		const bool bValid = candidate.Distance <= tuning.FarHintDistance
-			&& IsFacingAllowed(candidate.ForwardDot, tuning)
+		const bool bValid = IsFacingAllowed(candidate.ForwardDot, tuning)
 			&& !candidate.bOccluded && candidate.bModeAllowed && candidate.bItemsAllowed;
-		if (bValid && candidate.Distance < bestDistance)
+		if (bValid && candidate.DistanceSquared < bestDistanceSquared)
 		{
 			bestIndex = index;
-			bestDistance = candidate.Distance;
+			bestDistanceSquared = candidate.DistanceSquared;
 		}
 	}
 	return bestIndex;
@@ -43,20 +63,6 @@ int32 LRInteractionRules::SelectBestCandidate(const TArray<FLRInteractionCandida
  * @param tuning 数据或调优来源 `tuning`；调用期间只读，并按稳定 ID 解析内容。
  * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
  */
-ELRInteractionRange LRInteractionRules::GetRange(const float distance, const float executeDistance,
-	const ULRInteractionTuning& tuning)
-{
-	if (distance <= executeDistance)
-	{
-		return ELRInteractionRange::Executable;
-	}
-	if (distance <= tuning.OutlineDistance)
-	{
-		return ELRInteractionRange::Outline;
-	}
-	return distance <= tuning.FarHintDistance ? ELRInteractionRange::FarHint : ELRInteractionRange::None;
-}
-
 /**
  * @brief 判断 Is Facing Allowed 对应条件；不产生玩法副作用。
  * @param forwardDot 调用方提供的 `forwardDot`，只在本次操作范围内使用。

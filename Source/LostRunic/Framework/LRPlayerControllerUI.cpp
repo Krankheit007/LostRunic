@@ -94,19 +94,6 @@ void ALRPlayerController::HandlePause()
 }
 
 /**
- * @brief 从指定快捷栏取得物品并通过统一物品事务作用于当前目标。
- * @param slotIndex 槽位下标；快捷栏为 0-3，手动存档槽按调优上限校验。
- */
-void ALRPlayerController::UseQuickSlot(const int32 slotIndex)
-{
-	if (const ALRCharacter* character = Cast<ALRCharacter>(GetPawn()))
-	{
-		character->GetInventoryComponent()->UseQuickSlot(slotIndex,
-			character->GetInteractionComponent()->GetCurrentTarget(), character->GetStateComponent()->GetCurrentMode());
-	}
-}
-
-/**
  * @brief 根据 Gameplay、Dialogue、Menu、Transition 模式设置鼠标、焦点和输入捕获。
  * @param newMode 本次操作使用的 `newMode` 枚举或模式值。
  */

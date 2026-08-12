@@ -9,6 +9,7 @@
 #include "UI/LRHUDWidgetController.h"
 
 #include "Framework/LRCharacter.h"
+#include "Interaction/LRInteractionComponent.h"
 #include "State/LRStateComponent.h"
 
 /**
@@ -26,6 +27,12 @@ void ULRHUDWidgetController::SetObservedCharacter(ALRCharacter* character)
 	}
 	CurrentMode = state->GetCurrentMode();
 	state->OnStateChanged.AddDynamic(this, &ULRHUDWidgetController::HandleStateChanged);
+	if (ULRInteractionComponent* interaction = character->GetInteractionComponent())
+	{
+		CurrentInteractionPrompt = interaction->GetFocusedPrompt();
+		interaction->OnFocusedInteractionChanged.AddDynamic(this, &ULRHUDWidgetController::HandleFocusedInteractionChanged);
+		OnInteractionPromptChanged.Broadcast(CurrentInteractionPrompt);
+	}
 }
 
 /**
@@ -36,9 +43,14 @@ void ULRHUDWidgetController::Deinitialize()
 	if (ALRCharacter* character = ObservedCharacter.Get())
 	{
 		character->GetStateComponent()->OnStateChanged.RemoveDynamic(this, &ULRHUDWidgetController::HandleStateChanged);
+		if (ULRInteractionComponent* interaction = character->GetInteractionComponent())
+		{
+			interaction->OnFocusedInteractionChanged.RemoveDynamic(this, &ULRHUDWidgetController::HandleFocusedInteractionChanged);
+		}
 	}
 	ObservedCharacter.Reset();
 	CurrentMode = ELRPerceptionMode::Normal;
+	CurrentInteractionPrompt = FLRInteractionPromptView();
 }
 
 /**
@@ -50,4 +62,11 @@ void ULRHUDWidgetController::HandleStateChanged(const ELRPerceptionMode currentM
 {
 	CurrentMode = currentMode;
 	OnPerceptionModeChanged.Broadcast(CurrentMode, reason);
+}
+
+/** Stores and forwards the Focus prompt produced by the interaction component. */
+void ULRHUDWidgetController::HandleFocusedInteractionChanged(const FLRInteractionPromptView promptView)
+{
+	CurrentInteractionPrompt = promptView;
+	OnInteractionPromptChanged.Broadcast(CurrentInteractionPrompt);
 }

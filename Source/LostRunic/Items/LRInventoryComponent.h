@@ -1,6 +1,6 @@
 /**
  * @file LRInventoryComponent.h
- * @brief 保存物品数量、4 格快捷栏、笔记及收藏品稳定 ID，并把快捷栏使用和背包选物统一提交给 LRItemUseResolver。
+ * @brief 按稳定物品 ID 保存堆叠条目（数量 + 单调获得顺序）、武器选择、笔记与收藏品 ID；只维护物品状态和武器选择，不理解攻击条件或使用入口。
  *
  * 关联文件：LRInventoryComponent.cpp；所属领域：Items。
  * 设计依据：Docs/Design/01_GameDesignSummary.md 与 Docs/Technical/04_TechnicalDesign.md。
@@ -10,18 +10,52 @@
 
 #include "Components/ActorComponent.h"
 #include "GameplayTagContainer.h"
-#include "Items/LRItemUseTypes.h"
 #include "Save/LRSaveTypes.h"
 
 #include "LRInventoryComponent.generated.h"
 
 class ULRGameContentSet;
 class ULRItemDefinition;
-class ULRItemUseResolver;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FLRInventoryChanged, FName, itemId, int32, newCount);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FLRQuickSlotChanged, int32, slotIndex, FName, itemId);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FLRItemUseResolved, FLRItemUseResult, result);
+
+/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
+UENUM(BlueprintType, meta = (DisplayName = "Lost Runic Add Item Result"))
+enum class ELRAddItemResult : uint8
+{
+	Success UMETA(DisplayName = "Success"),
+	InventoryFull UMETA(DisplayName = "Inventory Full"),
+	InvalidDefinition UMETA(DisplayName = "Invalid Definition"),
+	InvalidQuantity UMETA(DisplayName = "Invalid Quantity")
+};
+
+/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
+UENUM(BlueprintType, meta = (DisplayName = "Lost Runic Add Collectible Result"))
+enum class ELRAddCollectibleResult : uint8
+{
+	Success UMETA(DisplayName = "Success"),
+	AlreadyOwned UMETA(DisplayName = "Already Owned"),
+	InvalidDefinition UMETA(DisplayName = "Invalid Definition")
+};
+
+/** 按稳定物品 ID 保存的堆叠条目；Quantity 同时表示持有数量和剩余可使用次数。 */
+USTRUCT(BlueprintType, meta = (DisplayName = "Lost Runic Inventory Entry"))
+struct LOSTRUNIC_API FLRInventoryEntry
+{
+	GENERATED_BODY()
+
+	/** Item Id 的稳定 FName/GUID 标识；用于定义查询和存档，不依赖显示名或临时 Actor 名称。 */
+	UPROPERTY(BlueprintReadOnly, Category = "Inventory")
+	FName ItemId = NAME_None;
+
+	/** 持有数量；一次性物品同时表示剩余可使用次数，无限物品固定为 1。 */
+	UPROPERTY(BlueprintReadOnly, Category = "Inventory")
+	int32 Quantity = 0;
+
+	/** 首次从 0 增加到 1 时分配的单调获得顺序；堆叠增加保留原顺序，完全移除后重新获得分配新顺序。 */
+	UPROPERTY(BlueprintReadOnly, Category = "Inventory")
+	int64 AcquisitionSequence = 0;
+};
 
 /** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
 UCLASS(ClassGroup = "Lost Runic", BlueprintType, meta = (BlueprintSpawnableComponent, DisplayName = "Lost Runic Inventory"))
@@ -47,13 +81,13 @@ public:
 	void InitializeDefinitions(const TArray<ULRItemDefinition*>& definitions);
 
 	/**
-	 * @brief 按稳定物品 ID 增加库存数量；拒绝未知定义、非正数量和溢出结果。
+	 * @brief 按稳定物品 ID 增加库存数量；达到 MaxStackSize 时返回 InventoryFull 且不改变库存。
 	 * @param itemId 物品的稳定 FName ID，用于定义查询和存档，不依赖显示名。
 	 * @param count 本次操作使用的计数、增量或索引 `count`；由函数校验合法范围。
-	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+	 * @return Success、InventoryFull、InvalidDefinition 或 InvalidQuantity 的结构化结果。
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Lost Runic|Inventory")
-	bool AddItem(FName itemId, int32 count = 1);
+	ELRAddItemResult AddItem(FName itemId, int32 count = 1);
 
 	/**
 	 * @brief 查询 Item Count；不修改领域状态。
@@ -73,72 +107,40 @@ public:
 	bool HasItem(FName itemId, int32 count = 1) const;
 
 	/**
-	 * @brief 把已持有且允许快捷使用的物品 ID 分配到 0-3 快捷栏位。
-	 * @param slotIndex 槽位下标；快捷栏为 0-3，手动存档槽按调优上限校验。
+	 * @brief 查询当前库存堆叠条目；调用方只读，不依赖 TMap 迭代顺序判断“最早获得”。
+	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+	 */
+	UFUNCTION(BlueprintPure, Category = "Lost Runic|Inventory")
+	const TMap<FName, FLRInventoryEntry>& GetEntries() const { return Entries; }
+
+	/**
+	 * @brief 查询 Item Count；不修改领域状态。
 	 * @param itemId 物品的稳定 FName ID，用于定义查询和存档，不依赖显示名。
 	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
 	 */
-	UFUNCTION(BlueprintCallable, Category = "Lost Runic|Inventory|Quick Slots")
-	bool AssignQuickSlot(int32 slotIndex, FName itemId);
+	const FLRInventoryEntry* FindEntry(FName itemId) const;
 
 	/**
-	 * @brief 执行 Select Quick Slot 的纯规则或事务判定，失败时提供结构化原因。
-	 * @param slotIndex 槽位下标；快捷栏为 0-3，手动存档槽按调优上限校验。
-	 */
-	UFUNCTION(BlueprintCallable, Category = "Lost Runic|Inventory|Quick Slots")
-	void SelectQuickSlot(int32 slotIndex);
-
-	/**
-	 * @brief 执行 Select Adjacent Quick Slot 的纯规则或事务判定，失败时提供结构化原因。
-	 * @param direction 本次操作使用的计数、增量或索引 `direction`；由函数校验合法范围。
-	 */
-	UFUNCTION(BlueprintCallable, Category = "Lost Runic|Inventory|Quick Slots")
-	void SelectAdjacentQuickSlot(int32 direction);
-
-	/**
-	 * @brief 查询 Quick Slot Item；不修改领域状态。
-	 * @param slotIndex 槽位下标；快捷栏为 0-3，手动存档槽按调优上限校验。
-	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
-	 */
-	UFUNCTION(BlueprintPure, Category = "Lost Runic|Inventory|Quick Slots")
-	FName GetQuickSlotItem(int32 slotIndex) const;
-
-	/**
-	 * @brief 查询 Selected Quick Slot；不修改领域状态。
-	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
-	 */
-	UFUNCTION(BlueprintPure, Category = "Lost Runic|Inventory|Quick Slots")
-	int32 GetSelectedQuickSlot() const { return SelectedQuickSlot; }
-
-	/**
-	 * @brief 从指定快捷栏取得物品并通过统一物品事务作用于当前目标。
-	 * @param slotIndex 槽位下标；快捷栏为 0-3，手动存档槽按调优上限校验。
-	 * @param target 本次规则检查或操作的目标对象。
-	 * @param currentMode 本次操作使用的 `currentMode` 枚举或模式值。
-	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
-	 */
-	UFUNCTION(BlueprintCallable, Category = "Lost Runic|Inventory|Use")
-	FLRItemUseResult UseQuickSlot(int32 slotIndex, AActor* target, ELRPerceptionMode currentMode);
-
-	/**
-	 * @brief 执行 Use Item From Selector 的玩法动作；输入层只提供语义，合法性由对应领域组件决定。
+	 * @brief 把玩家明确选择的武器设置为指定已持有且带 Item.Category.Weapon 的物品；None 是合法状态。
 	 * @param itemId 物品的稳定 FName ID，用于定义查询和存档，不依赖显示名。
-	 * @param target 本次规则检查或操作的目标对象。
-	 * @param currentMode 本次操作使用的 `currentMode` 枚举或模式值。
 	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
 	 */
-	UFUNCTION(BlueprintCallable, Category = "Lost Runic|Inventory|Use")
-	FLRItemUseResult UseItemFromSelector(FName itemId, AActor* target, ELRPerceptionMode currentMode);
+	UFUNCTION(BlueprintCallable, Category = "Lost Runic|Inventory|Weapon")
+	bool SetSelectedWeapon(FName itemId);
 
-	FLRItemUseRequest BuildUseRequest(FName itemId, int32 sourceSlot, UObject* target,
-		ELRPerceptionMode currentMode, ELRItemUseEntryPoint entryPoint) const;
 	/**
-	 * @brief 执行 Resolve Use Request At Time 的纯规则或事务判定，失败时提供结构化原因。
-	 * @param request 不可变领域请求，包含本次操作所需的稳定 ID、来源、目标或原因。
-	 * @param currentTimeSeconds 时间值 `currentTimeSeconds`，单位为秒。
+	 * @brief 查询 Selected Weapon；未选择或选择已失效时返回 None。
 	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
 	 */
-	FLRItemUseResult ResolveUseRequestAtTime(const FLRItemUseRequest& request, double currentTimeSeconds);
+	UFUNCTION(BlueprintPure, Category = "Lost Runic|Inventory|Weapon")
+	FName GetSelectedWeapon() const;
+
+	/**
+	 * @brief 查询攻击实际使用的武器：显式选择仍有效时返回它，否则按 AcquisitionSequence 返回最早获得的现存武器，没有武器时返回 None。
+	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+	 */
+	UFUNCTION(BlueprintPure, Category = "Lost Runic|Inventory|Weapon")
+	FName GetEffectiveWeapon() const;
 
 	/**
 	 * @brief 把稳定笔记 ID 加入已读集合；集合语义保证重复阅读不会产生重复记录。
@@ -149,12 +151,12 @@ public:
 	bool AddNoteId(FName noteId);
 
 	/**
-	 * @brief 把稳定收藏品 ID 加入已收集集合；集合语义保证一次性拾取。
+	 * @brief 把稳定收藏品 ID 加入已收集集合；重复添加返回 AlreadyOwned 且不修改世界状态。
 	 * @param collectibleId 稳定标识 `collectibleId`；用于内容查询和存档，不依赖显示名或数组序号。
-	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+	 * @return Success、AlreadyOwned 或 InvalidDefinition 的结构化结果。
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Lost Runic|Inventory|Journal")
-	bool AddCollectibleId(FName collectibleId);
+	ELRAddCollectibleResult AddCollectibleId(FName collectibleId);
 
 	/**
 	 * @brief 查询 Owned Item Tags；不修改领域状态。
@@ -192,12 +194,12 @@ public:
 	ULRItemDefinition* FindDefinition(FName itemId) const;
 
 	/**
-	 * @brief 把运行时库存、笔记、收藏品或剧情状态复制到存档分块。
+	 * @brief 把运行时库存、笔记或收藏品状态复制到存档分块；不填充已废弃的快捷栏字段。
 	 * @param outInventory 参与本次操作的运行时对象 `outInventory`；函数会检查空值和所需接口。
 	 */
 	void CaptureSaveState(FLRSaveInventoryChunk& outInventory) const;
 	/**
-	 * @brief 从存档分块恢复运行时状态，并通过领域 API 保持不变量。
+	 * @brief 从存档分块恢复运行时状态；完全忽略已废弃的快捷栏字段。
 	 * @param savedInventory 参与本次操作的运行时对象 `savedInventory`；函数会检查空值和所需接口。
 	 */
 	void RestoreSaveState(const FLRSaveInventoryChunk& savedInventory);
@@ -206,47 +208,37 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Lost Runic|Inventory")
 	FLRInventoryChanged OnInventoryChanged;
 
-	/** 当 Quick Slot Changed 发生时广播；蓝图可绑定该委托以更新表现，不应在回调中改写核心规则。  */
-	UPROPERTY(BlueprintAssignable, Category = "Lost Runic|Inventory")
-	FLRQuickSlotChanged OnQuickSlotChanged;
-
-	/** 当 Item Use Resolved 发生时广播；蓝图可绑定该委托以更新表现，不应在回调中改写核心规则。  */
-	UPROPERTY(BlueprintAssignable, Category = "Lost Runic|Inventory|Use")
-	FLRItemUseResolved OnItemUseResolved;
-
 private:
-	/** class 的内部运行时数据；不参与蓝图配置。 */
+	/** 数量为 0 时删除条目，并在被删除条目是当前显式武器时清空 SelectedWeaponItemId。 */
 	friend class ULRItemUseResolver;
 
 	/**
-	 * @brief 执行 Use Item 的玩法动作；输入层只提供语义，合法性由对应领域组件决定。
-	 * @param request 不可变领域请求，包含本次操作所需的稳定 ID、来源、目标或原因。
-	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
-	 */
-	FLRItemUseResult UseItem(const FLRItemUseRequest& request);
-	/**
-	 * @brief 在事务执行前尝试扣除一个物品；目标执行失败时由调用方恢复。
+	 * @brief 在事务成功后扣除一个一次性物品；扣为 0 时删除条目并清理显式武器选择。
 	 * @param itemId 物品的稳定 FName ID，用于定义查询和存档，不依赖显示名。
 	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
 	 */
 	bool TryConsumeItem(FName itemId);
+
 	/**
-	 * @brief 把 Restore Item 数据应用到运行时对象，并显式处理缺失依赖。
+	 * @brief 从库存删除条目；若该条目是当前显式武器则清空选择。
 	 * @param itemId 物品的稳定 FName ID，用于定义查询和存档，不依赖显示名。
 	 */
-	void RestoreItem(FName itemId);
+	void RemoveEntry(FName itemId);
+
+	/**
+	 * @brief 判断 Is Weapon 对应条件；不产生玩法副作用。
+	 * @param itemId 物品的稳定 FName ID，用于定义查询和存档，不依赖显示名。
+	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+	 */
+	bool IsWeapon(FName itemId) const;
 
 	/** Definitions 定义资产集合；运行时按各资产稳定 ID 建立索引。 该字段仅为运行时缓存，不进入存档。 */
 	UPROPERTY(Transient)
 	TMap<FName, TObjectPtr<ULRItemDefinition>> Definitions;
 
-	/** 按稳定物品 ID 保存的持有数量。 仅在蓝图或详情面板中查看，不可编辑。 */
+	/** 按稳定物品 ID 保存的堆叠条目；数量为 0 时删除条目。 仅在蓝图或详情面板中查看，不可编辑。 */
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Inventory", meta = (AllowPrivateAccess = "true"))
-	TMap<FName, int32> ItemCounts;
-
-	/** 四个快捷栏保存的物品稳定 ID，空槽使用 NAME_None。 仅在蓝图或详情面板中查看，不可编辑。 */
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Inventory", meta = (AllowPrivateAccess = "true"))
-	TArray<FName> QuickSlots;
+	TMap<FName, FLRInventoryEntry> Entries;
 
 	/** 已阅读笔记的稳定 ID 集合。 仅在蓝图或详情面板中查看，不可编辑。 */
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Inventory", meta = (AllowPrivateAccess = "true"))
@@ -256,10 +248,9 @@ private:
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Inventory", meta = (AllowPrivateAccess = "true"))
 	TSet<FName> CollectibleIds;
 
-	/** Resolver 的领域数据，由所属类型负责维护和校验。 该字段仅为运行时缓存，不进入存档。 */
-	UPROPERTY(Transient)
-	TObjectPtr<ULRItemUseResolver> Resolver;
+	/** 玩家明确选择的武器稳定 ID；None 是合法状态，回退只在 GetEffectiveWeapon 时惰性计算。 */
+	FName SelectedWeaponItemId = NAME_None;
 
-	/** Selected Quick Slot 的运行时状态；由所属类型维护，不在蓝图中配置。 */
-	int32 SelectedQuickSlot = 0;
+	/** 下一条获得的物品将使用的单调递增获得顺序；不进入存档。 */
+	int64 NextAcquisitionSequence = 1;
 };

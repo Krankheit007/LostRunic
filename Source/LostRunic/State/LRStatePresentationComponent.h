@@ -16,6 +16,9 @@
 
 class ULRStateComponent;
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FLRStatePresentationRequested,
+	ELRPerceptionMode, previousMode, ELRPerceptionMode, nextMode, FGameplayTag, reason);
+
 /** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
 UCLASS(ClassGroup = "Lost Runic", BlueprintType, meta = (BlueprintSpawnableComponent, DisplayName = "Lost Runic State Presentation"))
 class LOSTRUNIC_API ULRStatePresentationComponent : public UActorComponent
@@ -43,6 +46,10 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Lost Runic|State|Presentation")
 	void CompleteStatePresentation();
+
+	/** Broadcast when Blueprint should play the visual transition, then report completion. */
+	UPROPERTY(BlueprintAssignable, Category = "Lost Runic|State|Presentation")
+	FLRStatePresentationRequested OnStatePresentationRequested;
 
 protected:
 	/**

@@ -1,6 +1,6 @@
 /**
  * @file LRItemUseResolver.cpp
- * @brief 执行物品使用事务的目标匹配、标签/状态检查、预消耗、目标执行和失败回滚，保证钥匙门两种入口结算一致。
+ * @brief 统一物品事务：校验、目标检查、执行、成功消费与结构化结果；Interaction 与 Attack 各自拥有独立目标接口和筛选语义。
  *
  * 关联文件：LRItemUseResolver.h；所属领域：Items。
  * 设计依据：Docs/Design/01_GameDesignSummary.md 与 Docs/Technical/04_TechnicalDesign.md。
@@ -18,11 +18,12 @@
 #include "Framework/LRGameInstanceSubsystem.h"
 #include "GameFramework/Actor.h"
 #include "Components/ActorComponent.h"
+#include "Items/LRAttackTarget.h"
 #include "Items/LRInventoryComponent.h"
 #include "Items/LRItemUseTarget.h"
 
 /**
- * @brief 初始化子系统拥有的长期状态与事件绑定。
+ * @brief 初始化事务依赖：库存是定义、持有和消费的唯一权威来源。
  * @param inventory 参与本次操作的运行时对象 `inventory`；函数会检查空值和所需接口。
  */
 void ULRItemUseResolver::Initialize(ULRInventoryComponent* inventory)
@@ -31,83 +32,112 @@ void ULRItemUseResolver::Initialize(ULRInventoryComponent* inventory)
 }
 
 /**
- * @brief 执行 Resolve At Time 的纯规则或事务判定，失败时提供结构化原因。
- * @param request 不可变领域请求，包含本次操作所需的稳定 ID、来源、目标或原因。
+ * @brief 执行统一物品事务；Interaction 与 Attack 各自使用独立目标接口，只有目标成功后消费一次性物品。
+ * @param request 不可变领域请求，包含本次操作所需的稳定 ID、目标或原因。
  * @param currentTimeSeconds 时间值 `currentTimeSeconds`，单位为秒。
  * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
  */
-FLRItemUseResult ULRItemUseResolver::ResolveAtTime(const FLRItemUseRequest& request, const double currentTimeSeconds)
+FLRItemUseResult ULRItemUseResolver::ResolveAtTime(const FLRItemUseRequest& request,
+	const double currentTimeSeconds)
 {
-	ULRItemDefinition* definition = Inventory ? Inventory->FindDefinition(request.ItemId) : nullptr;
-	if (!Inventory || !definition || !Inventory->HasItem(request.ItemId))
+	const bool bAttackEntry = request.EntryPoint == ELRItemUseEntryPoint::Attack;
+	const bool bEmptyHanded = bAttackEntry && request.ItemId.IsNone();
+
+	ULRItemDefinition* definition = nullptr;
+	bool bConsumable = false;
+	if (!bEmptyHanded)
 	{
-		return Reject(request, LRGameplayTags::ItemUseRejectNotOwned);
+		if (!Inventory)
+		{
+			return Reject(request, LRGameplayTags::ItemUseRejectNotOwned);
+		}
+		definition = Inventory->FindDefinition(request.ItemId);
+		if (!definition || !Inventory->HasItem(request.ItemId))
+		{
+			return Reject(request, LRGameplayTags::ItemUseRejectNotOwned);
+		}
+		bConsumable = definition->bConsumable;
+		if (!definition->AllowedActionTags.HasTag(request.ActionTag))
+		{
+			return Reject(request, bAttackEntry ? LRGameplayTags::ItemUseRejectInvalidAttackItem
+				: LRGameplayTags::InteractionRejectItem);
+		}
+		if (bAttackEntry && !definition->ItemTags.HasTag(LRGameplayTags::ItemCategoryWeapon))
+		{
+			return Reject(request, LRGameplayTags::ItemUseRejectInvalidAttackItem);
+		}
 	}
-	if (request.EntryPoint == ELRItemUseEntryPoint::QuickSlot
-		&& Inventory->GetQuickSlotItem(request.SourceSlot) != request.ItemId)
-	{
-		return Reject(request, LRGameplayTags::ItemUseRejectInvalidSlot);
-	}
-	UObject* targetObject = FindTargetObject(request.Target);
+
+	UObject* targetObject = bAttackEntry ? FindAttackTargetObject(request.Target) : FindItemUseTargetObject(request.Target);
 	if (!targetObject)
 	{
 		return Reject(request, LRGameplayTags::ItemUseRejectTarget);
 	}
-
-	const FGameplayTagContainer targetTags = ILRItemUseTarget::Execute_GetItemUseTargetTags(targetObject);
-	if (!definition->AllowedActionTags.HasTag(request.ActionTag)
-		|| !targetTags.HasAny(definition->AllowedTargetTags))
+	if (!bAttackEntry && request.ActionTag == LRGameplayTags::InteractionActionUse)
 	{
-		return Reject(request, LRGameplayTags::InteractionRejectItem);
+		const FGameplayTagContainer targetTags = ILRItemUseTarget::Execute_GetItemUseTargetTags(targetObject);
+		if (!targetTags.HasAny(definition->AllowedTargetTags))
+		{
+			return Reject(request, LRGameplayTags::InteractionRejectItem);
+		}
 	}
 
-	const bool bCourageItem = definition->ItemTags.HasTag(LRGameplayTags::ItemCategoryCourageWeapon);
-	const UGameInstance* gameInstance = Inventory->GetWorld() ? Inventory->GetWorld()->GetGameInstance() : nullptr;
-	const ULRGameInstanceSubsystem* subsystem = gameInstance ? gameInstance->GetSubsystem<ULRGameInstanceSubsystem>() : nullptr;
-	const ULRStateTuning* stateTuning = subsystem && subsystem->GetTuningSet()
-		? subsystem->GetTuningSet()->State : GetDefault<ULRStateTuning>();
-	if (bCourageItem && request.CurrentMode != ELRPerceptionMode::Courage)
+	if (bAttackEntry)
 	{
-		return Reject(request, LRGameplayTags::InteractionRejectState);
-	}
-	if (bCourageItem && currentTimeSeconds < LastCourageUseSeconds + stateTuning->CourageAttackCooldownSeconds)
-	{
-		return Reject(request, LRGameplayTags::ItemUseRejectCooldown);
-	}
-	if (bCourageItem && targetTags.HasTag(LRGameplayTags::TargetGuardCourageImmune))
-	{
-		return Reject(request, LRGameplayTags::ItemUseRejectImmune);
+		const ULRStateTuning& stateTuning = GetEffectiveStateTuning();
+		if (request.CurrentMode != ELRPerceptionMode::Courage)
+		{
+			return Reject(request, LRGameplayTags::ItemUseRejectAttackState);
+		}
+		if (currentTimeSeconds < LastAttackSeconds + stateTuning.CourageAttackCooldownSeconds)
+		{
+			return Reject(request, LRGameplayTags::ItemUseRejectCooldown);
+		}
+		const FGameplayTagContainer targetTags = ILRAttackTarget::Execute_GetAttackTargetTags(targetObject);
+		if (targetTags.HasTag(LRGameplayTags::TargetGuardCourageImmune))
+		{
+			return Reject(request, LRGameplayTags::ItemUseRejectImmune);
+		}
 	}
 
-	const bool bConsumed = !definition->bConsumable || Inventory->TryConsumeItem(request.ItemId);
-	if (!bConsumed)
+	FLRItemUseResult result;
+	if (bAttackEntry)
 	{
-		return Reject(request, LRGameplayTags::ItemUseRejectNotOwned);
+		result = ILRAttackTarget::Execute_ApplyAttack(targetObject, request, definition);
 	}
-	FLRItemUseResult result = ILRItemUseTarget::Execute_ApplyItemUse(targetObject, request, definition);
+	else
+	{
+		result = ILRItemUseTarget::Execute_ApplyItemUse(targetObject, request, definition);
+	}
 	result.ItemId = request.ItemId;
-	result.bConsumed = result.bSuccess && definition->bConsumable;
-	if (!result.bSuccess && definition->bConsumable)
+	result.bConsumed = result.bSuccess && bConsumable;
+	if (result.bSuccess)
 	{
-		Inventory->RestoreItem(request.ItemId);
+		if (bConsumable && !Inventory->TryConsumeItem(request.ItemId))
+		{
+			result.bSuccess = false;
+			result.bConsumed = false;
+			result.FailureReason = LRGameplayTags::ItemUseRejectNotOwned;
+		}
+		else if (bAttackEntry)
+		{
+			LastAttackSeconds = currentTimeSeconds;
+		}
 	}
 	if (!result.bSuccess && !result.FailureReason.IsValid())
 	{
 		result.FailureReason = LRGameplayTags::ItemUseRejectExecution;
 	}
-	else if (result.bSuccess && bCourageItem)
-	{
-		LastCourageUseSeconds = currentTimeSeconds;
-	}
+	OnItemUseResolved.Broadcast(result);
 	return result;
 }
 
 /**
- * @brief 按稳定 ID 或运行时条件查找 Target Object，未找到时返回明确失败值。
+ * @brief 按接口或组件查找 Interaction 目标；只接受 ILRItemUseTarget。
  * @param target 本次规则检查或操作的目标对象。
  * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
  */
-UObject* ULRItemUseResolver::FindTargetObject(UObject* target) const
+UObject* ULRItemUseResolver::FindItemUseTargetObject(UObject* target) const
 {
 	if (!target)
 	{
@@ -133,8 +163,38 @@ UObject* ULRItemUseResolver::FindTargetObject(UObject* target) const
 }
 
 /**
+ * @brief 按接口或组件查找攻击目标；只接受 ILRAttackTarget。
+ * @param target 本次规则检查或操作的目标对象。
+ * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+ */
+UObject* ULRItemUseResolver::FindAttackTargetObject(UObject* target) const
+{
+	if (!target)
+	{
+		return nullptr;
+	}
+	if (target->GetClass()->ImplementsInterface(ULRAttackTarget::StaticClass()))
+	{
+		return target;
+	}
+	const AActor* targetActor = Cast<AActor>(target);
+	if (!targetActor)
+	{
+		return nullptr;
+	}
+	for (UActorComponent* component : targetActor->GetComponents())
+	{
+		if (component && component->GetClass()->ImplementsInterface(ULRAttackTarget::StaticClass()))
+		{
+			return component;
+		}
+	}
+	return nullptr;
+}
+
+/**
  * @brief 创建带原因 Gameplay Tag 的结构化失败结果，并保留事务不变量。
- * @param request 不可变领域请求，包含本次操作所需的稳定 ID、来源、目标或原因。
+ * @param request 不可变领域请求，包含本次操作所需的稳定 ID、目标或原因。
  * @param reason Gameplay Tag 原因，用于状态转换、日志和自动化测试追踪。
  * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
  */
@@ -143,7 +203,22 @@ FLRItemUseResult ULRItemUseResolver::Reject(const FLRItemUseRequest& request, co
 	FLRItemUseResult result;
 	result.ItemId = request.ItemId;
 	result.FailureReason = reason;
-	UE_LOG(LogLostRunicInteraction, Verbose, TEXT("Item=%s target=%s rejected reason=%s"),
-		*request.ItemId.ToString(), *GetNameSafe(request.Target), *reason.ToString());
+	UE_LOG(LogLostRunicInteraction, Verbose, TEXT("Item=%s entry=%d target=%s rejected reason=%s"),
+		*request.ItemId.ToString(), static_cast<int32>(request.EntryPoint), *GetNameSafe(request.Target),
+		*reason.ToString());
 	return result;
+}
+
+/**
+ * @brief 查询 Effective State Tuning；不修改领域状态。
+ * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+ */
+const ULRStateTuning& ULRItemUseResolver::GetEffectiveStateTuning() const
+{
+	const UGameInstance* gameInstance = Inventory && Inventory->GetWorld()
+		? Inventory->GetWorld()->GetGameInstance() : nullptr;
+	const ULRGameInstanceSubsystem* subsystem = gameInstance ? gameInstance->GetSubsystem<ULRGameInstanceSubsystem>() : nullptr;
+	const ULRStateTuning* tuning = subsystem && subsystem->GetTuningSet()
+		? subsystem->GetTuningSet()->State : nullptr;
+	return tuning ? *tuning : *GetDefault<ULRStateTuning>();
 }

@@ -44,6 +44,8 @@ bool FLRTuningBoundariesTest::RunTest(const FString& parameters)
 	state->ExitHoldSeconds = 5.0f;
 	state->CourageAttackCooldownSeconds = 0.0f;
 	state->CourageKnockbackSpeed = 3000.0f;
+	state->CourageAttackRangeCm = 1.0f;
+	state->CourageAttackFacingDegrees = 360.0f;
 	FString error;
 	TestTrue(TEXT("Declared state boundaries"), state->Validate(error));
 
@@ -73,6 +75,13 @@ bool FLRTuningInvalidTest::RunTest(const FString& parameters)
 	ULRGuardTuning* guard = NewObject<ULRGuardTuning>();
 	guard->SightConeDegrees = 181.0f;
 	TestFalse(TEXT("Sight cone above declared maximum"), guard->Validate(error));
+
+	ULRStateTuning* state = NewObject<ULRStateTuning>();
+	state->CourageAttackRangeCm = 0.0f;
+	TestFalse(TEXT("Attack range below declared minimum"), state->Validate(error));
+	state->CourageAttackRangeCm = 1.0f;
+	state->CourageAttackFacingDegrees = 0.0f;
+	TestFalse(TEXT("Attack facing below declared minimum"), state->Validate(error));
 
 	ULRUITuning* ui = NewObject<ULRUITuning>();
 	ui->TypewriterCharactersPerSecond = 0.0f;

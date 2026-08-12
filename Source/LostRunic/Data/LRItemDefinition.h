@@ -39,21 +39,26 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
 	TSoftObjectPtr<UTexture2D> Icon;
 
+	/** 一次性物品的每次成功使用消耗一个库存数量；false 表示无限使用且唯一持有。 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Rules")
+	bool bConsumable = false;
+
+	/** 最大持有数量。一次性物品允许大于 1（库存数量即剩余使用次数）；无限使用物品必须为 1，数据校验拒绝其他值。 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Rules",
+		meta = (ClampMin = "1", ClampMax = "999", UIMin = "1", UIMax = "99"))
+	int32 MaxStackSize = 1;
+
 	/** Item Tags 的 Gameplay Tag 条件或分类，用于数据驱动规则与诊断。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Rules")
 	FGameplayTagContainer ItemTags;
 
-	/** Allowed Action Tags 的 Gameplay Tag 条件或分类，用于数据驱动规则与诊断。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。 */
+	/** Allowed Action Tags 只声明入口能力：`Interaction.Action.Use` 或 `Interaction.Action.Attack`；不负责状态、距离、朝向、目标有效性或攻击结果判定。 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Rules")
 	FGameplayTagContainer AllowedActionTags;
 
-	/** Allowed Target Tags 的 Gameplay Tag 条件或分类，用于数据驱动规则与诊断。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。 */
+	/** Allowed Target Tags 的 Gameplay Tag 条件或分类，用于 Use 入口的目标兼容检查；攻击入口由 ILRAttackTarget 独立筛选。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Rules")
 	FGameplayTagContainer AllowedTargetTags;
-
-	/** Consumable 的开关；true 表示启用，false 表示禁用。 C++ 安全默认值为 `false`。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。 */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Rules")
-	bool bConsumable = false;
 
 	/**
 	 * @brief 查询 Primary Asset Id；不修改领域状态。

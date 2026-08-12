@@ -8,6 +8,8 @@
  */
 #include "UI/LRScreenWidget.h"
 
+#include "UI/LRHUDWidgetController.h"
+
 /**
  * @brief 在 UMG 原生初始化阶段建立 Widget 自身状态；领域事件由外部控制器绑定。
  */
@@ -27,6 +29,12 @@ void ULRScreenWidget::SetScreenVisible(const bool bVisible)
 	bScreenVisible = bVisible;
 	SetVisibility(bVisible ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
 	OnScreenVisibilityChanged(bVisible);
+}
+
+void ULRScreenWidget::SetHUDWidgetController(ULRHUDWidgetController* controller)
+{
+	HUDWidgetController = controller;
+	OnHUDWidgetControllerReady(HUDWidgetController);
 }
 
 /**

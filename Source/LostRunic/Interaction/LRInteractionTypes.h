@@ -13,6 +13,8 @@
 
 #include "LRInteractionTypes.generated.h"
 
+class UInputAction;
+
 /** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
 UENUM(BlueprintType, meta = (DisplayName = "Lost Runic Interaction Range"))
 enum class ELRInteractionRange : uint8
@@ -21,6 +23,16 @@ enum class ELRInteractionRange : uint8
 	FarHint UMETA(DisplayName = "Far Hint"),
 	Outline UMETA(DisplayName = "Outline"),
 	Executable UMETA(DisplayName = "Executable")
+};
+
+/** World-facing presentation state computed by the player interaction component. */
+UENUM(BlueprintType, meta = (DisplayName = "Lost Runic Interaction Presentation State"))
+enum class ELRInteractionPresentationState : uint8
+{
+	None UMETA(DisplayName = "None"),
+	FarHint UMETA(DisplayName = "Far Hint"),
+	NearOutline UMETA(DisplayName = "Near Outline"),
+	Focused UMETA(DisplayName = "Focused")
 };
 
 /** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
@@ -68,16 +80,37 @@ struct LOSTRUNIC_API FLRInteractionResult
 	UPROPERTY(BlueprintReadOnly, Category = "Interaction")
 	FGameplayTag FailureReason;
 
-	/** Event Id 的稳定 FName/GUID 标识；用于定义查询和存档，不依赖显示名或临时 Actor 名称。 C++ 安全默认值为 `NAME_None`。 蓝图可读取但不可写入。 */
+};
+
+/** HUD-owned copy of the focused interaction. The weak target never extends actor lifetime. */
+USTRUCT(BlueprintType, meta = (DisplayName = "Lost Runic Interaction Prompt"))
+struct LOSTRUNIC_API FLRInteractionPromptView
+{
+	GENERATED_BODY()
+
+	/** Weak world target used for diagnostics; the HUD never extends actor lifetime. */
 	UPROPERTY(BlueprintReadOnly, Category = "Interaction")
-	FName EventId = NAME_None;
+	TWeakObjectPtr<AActor> Target;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Interaction")
+	FText Prompt;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Interaction")
+	FGameplayTag ActionTag;
+
+	/** Semantic Enhanced Input action used by the widget to resolve the current device icon. */
+	UPROPERTY(BlueprintReadOnly, Category = "Interaction")
+	TObjectPtr<UInputAction> InputAction;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Interaction")
+	bool bVisible = false;
 };
 
 /** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
 struct LOSTRUNIC_API FLRInteractionCandidateScore
 {
 	/** Distance 的内部运行时数据；不参与蓝图配置。 */
-	float Distance = 0.0f;
+	float DistanceSquared = 0.0f;
 	/** Forward Dot 的内部运行时数据；不参与蓝图配置。 */
 	float ForwardDot = 1.0f;
 	/** Occluded 的运行时状态；由所属类型维护，不在蓝图中配置。 */

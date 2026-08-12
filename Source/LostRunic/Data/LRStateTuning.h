@@ -43,6 +43,14 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "State|Courage", meta = (ClampMin = "0.0", ClampMax = "3000.0", UIMin = "100.0", UIMax = "1200.0", Units = "cm/s"))
 	float CourageKnockbackSpeed = 600.0f;
 
+	/** Courage Attack Range 的圆形攻击查询最大距离，默认使用 Unreal 厘米单位。 C++ 安全默认值为 `250.0f`。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。编辑器约束：单位 `cm`，最小值 `1.0`，最大值 `5000.0`。 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "State|Courage", meta = (ClampMin = "1.0", ClampMax = "5000.0", UIMin = "100.0", UIMax = "500.0", Units = "cm"))
+	float CourageAttackRangeCm = 250.0f;
+
+	/** Courage Attack Facing 的攻击目标完整朝向角；设计基线默认 90 度。 C++ 安全默认值为 `90.0f`。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。编辑器约束：单位 `deg`，最小值 `1.0`，最大值 `360.0`。 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "State|Courage", meta = (ClampMin = "1.0", ClampMax = "360.0", UIMin = "30.0", UIMax = "180.0", Units = "deg"))
+	float CourageAttackFacingDegrees = 90.0f;
+
 	/**
 	 * @brief 校验当前资产的必填引用、数值边界及跨字段关系，并输出可诊断错误。
 	 * @param outError 输出校验失败原因；成功时保持为空。

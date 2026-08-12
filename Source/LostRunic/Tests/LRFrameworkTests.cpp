@@ -12,6 +12,9 @@
 
 #include "Data/LRProjectSettings.h"
 #include "Framework/LRCharacter.h"
+#include "Framework/LRGameMode.h"
+#include "Framework/LRPlayerController.h"
+#include "UI/LRHUD.h"
 #include "Gameplay/LRLocomotionComponent.h"
 #include "Input/LRInputConfig.h"
 
@@ -22,6 +25,11 @@ bool FLRFrameworkDefaultsTest::RunTest(const FString& parameters)
 {
 	const ALRCharacter* character = GetDefault<ALRCharacter>();
 	TestFalse(TEXT("LR character Tick is disabled"), character->PrimaryActorTick.bCanEverTick);
+
+	const ALRGameMode* gameMode = GetDefault<ALRGameMode>();
+	TestTrue(TEXT("GameMode uses the LR character"), gameMode->DefaultPawnClass == ALRCharacter::StaticClass());
+	TestTrue(TEXT("GameMode uses the LR player controller"), gameMode->PlayerControllerClass == ALRPlayerController::StaticClass());
+	TestTrue(TEXT("GameMode uses the LR HUD"), gameMode->HUDClass == ALRHUD::StaticClass());
 	return true;
 }
 
@@ -37,6 +45,7 @@ bool FLRInputConfigTest::RunTest(const FString& parameters)
 		FString error;
 		TestTrue(TEXT("Required contexts and actions are assigned"), inputConfig->Validate(error));
 	}
+	TestTrue(TEXT("Project HUD screen class is configured"), !GetDefault<ULRProjectSettings>()->HUDScreenClass.IsNull());
 	return true;
 }
 

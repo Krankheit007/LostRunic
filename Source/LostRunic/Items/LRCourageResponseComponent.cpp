@@ -1,6 +1,6 @@
 /**
  * @file LRCourageResponseComponent.cpp
- * @brief 实现 4 格快捷栏、背包、笔记、收藏品和统一物品使用事务；快捷栏与交互后选物共用解析入口，失败时回滚消耗并返回结构化原因。
+ * @brief 攻击目标响应：实现 ILRAttackTarget，按调优参数执行非致死击退；免疫、状态、冷却和消费由统一物品事务管理。
  *
  * 关联文件：LRCourageResponseComponent.h；所属领域：Items。
  * 设计依据：Docs/Design/01_GameDesignSummary.md 与 Docs/Technical/04_TechnicalDesign.md。
@@ -28,10 +28,10 @@ ULRCourageResponseComponent::ULRCourageResponseComponent()
 }
 
 /**
- * @brief 查询 Item Use Target Tags_Implementation；不修改领域状态。
+ * @brief 查询 Attack Target Tags_Implementation；不修改领域状态。
  * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
  */
-FGameplayTagContainer ULRCourageResponseComponent::GetItemUseTargetTags_Implementation()
+FGameplayTagContainer ULRCourageResponseComponent::GetAttackTargetTags_Implementation()
 {
 	FGameplayTagContainer tags;
 	tags.AddTag(bImmune ? LRGameplayTags::TargetGuardCourageImmune : LRGameplayTags::TargetGuardCourageVulnerable);
@@ -39,12 +39,12 @@ FGameplayTagContainer ULRCourageResponseComponent::GetItemUseTargetTags_Implemen
 }
 
 /**
- * @brief 把 Apply Item Use_Implementation 数据应用到运行时对象，并显式处理缺失依赖。
- * @param request 不可变领域请求，包含本次操作所需的稳定 ID、来源、目标或原因。
+ * @brief 把 Apply Attack_Implementation 数据应用到运行时对象，并显式处理缺失依赖。
+ * @param request 不可变领域请求，包含本次操作所需的稳定 ID、目标或原因。
  * @param definition 数据或调优来源 `definition`；调用期间只读，并按稳定 ID 解析内容。
  * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
  */
-FLRItemUseResult ULRCourageResponseComponent::ApplyItemUse_Implementation(const FLRItemUseRequest& request,
+FLRItemUseResult ULRCourageResponseComponent::ApplyAttack_Implementation(const FLRItemUseRequest& request,
 	ULRItemDefinition* definition)
 {
 	FLRItemUseResult result;

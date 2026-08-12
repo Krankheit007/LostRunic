@@ -31,6 +31,7 @@ namespace LRGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(InteractionActionRead, "Interaction.Action.Read", "Reading interaction.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(InteractionActionTalk, "Interaction.Action.Talk", "Dialogue interaction.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(InteractionActionUse, "Interaction.Action.Use", "Item-use interaction.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(InteractionActionAttack, "Interaction.Action.Attack", "Attack entry point; items declaring it must also carry Item.Category.Weapon.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(InteractionActionHide, "Interaction.Action.Hide", "Enter or exit a hide spot.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(InteractionRejectNoTarget, "Interaction.Reject.NoTarget", "No valid target exists.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(InteractionRejectTooFar, "Interaction.Reject.TooFar", "The target is outside execution distance.");
@@ -41,13 +42,18 @@ namespace LRGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(InteractionRejectCompleted, "Interaction.Reject.Completed", "The one-shot interaction already completed.");
 
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(ItemCategoryKey, "Item.Category.Key", "Key item category.");
-	UE_DEFINE_GAMEPLAY_TAG_COMMENT(ItemCategoryCourageWeapon, "Item.Category.CourageWeapon", "Non-lethal Courage weapon category.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(ItemCategoryWeapon, "Item.Category.Weapon", "Weapon category; items may declare both Use and Attack.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(ItemUseRejectNotOwned, "Item.Use.Reject.NotOwned", "The inventory does not own the requested item.");
-	UE_DEFINE_GAMEPLAY_TAG_COMMENT(ItemUseRejectInvalidSlot, "Item.Use.Reject.InvalidSlot", "The source quick slot is invalid or empty.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(ItemUseRejectCooldown, "Item.Use.Reject.Cooldown", "The item use is on cooldown.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(ItemUseRejectImmune, "Item.Use.Reject.Immune", "The target is immune to this item.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(ItemUseRejectTarget, "Item.Use.Reject.Target", "The target cannot receive item use.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(ItemUseRejectExecution, "Item.Use.Reject.Execution", "The target rejected item execution.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(ItemUseRejectAttackState, "Item.Use.Reject.AttackState", "Attacks are only allowed in the Courage state.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(ItemUseRejectInvalidAttackItem, "Item.Use.Reject.InvalidAttackItem", "A non-weapon item declared the Attack entry point.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(ItemUseRejectInventoryFull, "Item.Use.Reject.InventoryFull", "The item stack is at its maximum size.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(ItemUseRejectInvalidDefinition, "Item.Use.Reject.InvalidDefinition", "The item definition is missing or has an empty stable ID.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(ItemUseRejectInvalidQuantity, "Item.Use.Reject.InvalidQuantity", "The requested quantity is not positive.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(CollectibleRejectAlreadyOwned, "Collectible.Reject.AlreadyOwned", "The collectible is already owned; the world actor stays visible.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(NoiseFootstepWalk, "Noise.Footstep.Walk", "Walking footstep stimulus.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(NoiseFootstepRun, "Noise.Footstep.Run", "Running footstep stimulus.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(NoiseInteraction, "Noise.Interaction", "Interaction-created noise stimulus.");

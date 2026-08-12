@@ -1,6 +1,6 @@
 /**
  * @file LRInventoryComponent.cpp
- * @brief 保存物品数量、4 格快捷栏、笔记及收藏品稳定 ID，并把快捷栏使用和背包选物统一提交给 LRItemUseResolver。
+ * @brief 按稳定物品 ID 保存堆叠条目（数量 + 单调获得顺序）、武器选择、笔记与收藏品 ID；只维护物品状态和武器选择，不理解攻击条件或使用入口。
  *
  * 关联文件：LRInventoryComponent.h；所属领域：Items。
  * 设计依据：Docs/Design/01_GameDesignSummary.md 与 Docs/Technical/04_TechnicalDesign.md。
@@ -9,17 +9,12 @@
 #include "Items/LRInventoryComponent.h"
 
 #include "Core/LRGameplayTags.h"
+#include "Core/LRLog.h"
 #include "Data/LRGameContentSet.h"
 #include "Data/LRItemDefinition.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
 #include "Framework/LRGameInstanceSubsystem.h"
-#include "Items/LRItemUseResolver.h"
-
-namespace
-{
-	constexpr int32 QuickSlotCount = 4;
-}
 
 /**
  * @brief 创建对象并设置默认子对象、能力开关和安全初值；需要 World、资产或玩家的依赖延迟到初始化阶段解析。
@@ -27,7 +22,6 @@ namespace
 ULRInventoryComponent::ULRInventoryComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
-	QuickSlots.SetNum(QuickSlotCount);
 }
 
 /**
@@ -48,8 +42,6 @@ void ULRInventoryComponent::BeginPlay()
 		}
 	}
 	InitializeDefinitions(definitions);
-	Resolver = NewObject<ULRItemUseResolver>(this);
-	Resolver->Initialize(this);
 }
 
 /**
@@ -66,29 +58,42 @@ void ULRInventoryComponent::InitializeDefinitions(const TArray<ULRItemDefinition
 			Definitions.Add(definition->ItemId, definition);
 		}
 	}
-	if (!Resolver)
-	{
-		Resolver = NewObject<ULRItemUseResolver>(this);
-		Resolver->Initialize(this);
-	}
 }
 
 /**
- * @brief 按稳定物品 ID 增加库存数量；拒绝未知定义、非正数量和溢出结果。
+ * @brief 按稳定物品 ID 增加库存数量；达到 MaxStackSize 时返回 InventoryFull 且不改变库存。
  * @param itemId 物品的稳定 FName ID，用于定义查询和存档，不依赖显示名。
  * @param count 本次操作使用的计数、增量或索引 `count`；由函数校验合法范围。
- * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+ * @return Success、InventoryFull、InvalidDefinition 或 InvalidQuantity 的结构化结果。
  */
-bool ULRInventoryComponent::AddItem(const FName itemId, const int32 count)
+ELRAddItemResult ULRInventoryComponent::AddItem(const FName itemId, const int32 count)
 {
-	if (itemId.IsNone() || count <= 0 || !Definitions.Contains(itemId))
+	if (itemId.IsNone() || !Definitions.Contains(itemId))
 	{
-		return false;
+		return ELRAddItemResult::InvalidDefinition;
 	}
-	int32& currentCount = ItemCounts.FindOrAdd(itemId);
-	currentCount += count;
-	OnInventoryChanged.Broadcast(itemId, currentCount);
-	return true;
+	if (count <= 0)
+	{
+		return ELRAddItemResult::InvalidQuantity;
+	}
+	const ULRItemDefinition* definition = FindDefinition(itemId);
+	const int32 currentQuantity = GetItemCount(itemId);
+	if (currentQuantity + count > definition->MaxStackSize)
+	{
+		UE_LOG(LogLostRunicInteraction, Warning, TEXT("Inventory=%s cannot add item=%s count=%d; current=%d max=%d."),
+			*GetNameSafe(GetOwner()), *itemId.ToString(), count, currentQuantity, definition->MaxStackSize);
+		return ELRAddItemResult::InventoryFull;
+	}
+
+	FLRInventoryEntry& entry = Entries.FindOrAdd(itemId);
+	entry.ItemId = itemId;
+	if (entry.Quantity == 0)
+	{
+		entry.AcquisitionSequence = NextAcquisitionSequence++;
+	}
+	entry.Quantity += count;
+	OnInventoryChanged.Broadcast(itemId, entry.Quantity);
+	return ELRAddItemResult::Success;
 }
 
 /**
@@ -98,8 +103,8 @@ bool ULRInventoryComponent::AddItem(const FName itemId, const int32 count)
  */
 int32 ULRInventoryComponent::GetItemCount(const FName itemId) const
 {
-	const int32* count = ItemCounts.Find(itemId);
-	return count ? *count : 0;
+	const FLRInventoryEntry* entry = FindEntry(itemId);
+	return entry ? entry->Quantity : 0;
 }
 
 /**
@@ -114,113 +119,74 @@ bool ULRInventoryComponent::HasItem(const FName itemId, const int32 count) const
 }
 
 /**
- * @brief 把已持有且允许快捷使用的物品 ID 分配到 0-3 快捷栏位。
- * @param slotIndex 槽位下标；快捷栏为 0-3，手动存档槽按调优上限校验。
+ * @brief 查询 Item Count；不修改领域状态。
  * @param itemId 物品的稳定 FName ID，用于定义查询和存档，不依赖显示名。
  * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
  */
-bool ULRInventoryComponent::AssignQuickSlot(const int32 slotIndex, const FName itemId)
+const FLRInventoryEntry* ULRInventoryComponent::FindEntry(const FName itemId) const
 {
-	if (!QuickSlots.IsValidIndex(slotIndex) || (!itemId.IsNone() && !HasItem(itemId)))
+	const FLRInventoryEntry* entry = Entries.Find(itemId);
+	return entry && entry->Quantity > 0 ? entry : nullptr;
+}
+
+/**
+ * @brief 把玩家明确选择的武器设置为指定已持有且带 Item.Category.Weapon 的物品；None 是合法状态。
+ * @param itemId 物品的稳定 FName ID，用于定义查询和存档，不依赖显示名。
+ * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+ */
+bool ULRInventoryComponent::SetSelectedWeapon(const FName itemId)
+{
+	if (itemId.IsNone())
+	{
+		SelectedWeaponItemId = NAME_None;
+		return true;
+	}
+	if (!IsWeapon(itemId))
 	{
 		return false;
 	}
-	QuickSlots[slotIndex] = itemId;
-	OnQuickSlotChanged.Broadcast(slotIndex, itemId);
+	SelectedWeaponItemId = itemId;
 	return true;
 }
 
 /**
- * @brief 执行 Select Quick Slot 的纯规则或事务判定，失败时提供结构化原因。
- * @param slotIndex 槽位下标；快捷栏为 0-3，手动存档槽按调优上限校验。
+ * @brief 查询 Selected Weapon；未选择或选择已失效时返回 None。
+ * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
  */
-void ULRInventoryComponent::SelectQuickSlot(const int32 slotIndex)
+FName ULRInventoryComponent::GetSelectedWeapon() const
 {
-	if (QuickSlots.IsValidIndex(slotIndex))
+	if (SelectedWeaponItemId.IsNone() || !IsWeapon(SelectedWeaponItemId))
 	{
-		SelectedQuickSlot = slotIndex;
+		return NAME_None;
 	}
+	return SelectedWeaponItemId;
 }
 
 /**
- * @brief 执行 Select Adjacent Quick Slot 的纯规则或事务判定，失败时提供结构化原因。
- * @param direction 本次操作使用的计数、增量或索引 `direction`；由函数校验合法范围。
- */
-void ULRInventoryComponent::SelectAdjacentQuickSlot(const int32 direction)
-{
-	SelectedQuickSlot = (SelectedQuickSlot + FMath::Sign(direction) + QuickSlotCount) % QuickSlotCount;
-}
-
-/**
- * @brief 查询 Quick Slot Item；不修改领域状态。
- * @param slotIndex 槽位下标；快捷栏为 0-3，手动存档槽按调优上限校验。
+ * @brief 查询攻击实际使用的武器：显式选择仍有效时返回它，否则按 AcquisitionSequence 返回最早获得的现存武器，没有武器时返回 None。
  * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
  */
-FName ULRInventoryComponent::GetQuickSlotItem(const int32 slotIndex) const
+FName ULRInventoryComponent::GetEffectiveWeapon() const
 {
-	return QuickSlots.IsValidIndex(slotIndex) ? QuickSlots[slotIndex] : NAME_None;
-}
-
-/**
- * @brief 从指定快捷栏取得物品并通过统一物品事务作用于当前目标。
- * @param slotIndex 槽位下标；快捷栏为 0-3，手动存档槽按调优上限校验。
- * @param target 本次规则检查或操作的目标对象。
- * @param currentMode 本次操作使用的 `currentMode` 枚举或模式值。
- * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
- */
-FLRItemUseResult ULRInventoryComponent::UseQuickSlot(const int32 slotIndex, AActor* target,
-	const ELRPerceptionMode currentMode)
-{
-	const FName itemId = GetQuickSlotItem(slotIndex);
-	return UseItem(BuildUseRequest(itemId, slotIndex, target, currentMode, ELRItemUseEntryPoint::QuickSlot));
-}
-
-/**
- * @brief 执行 Use Item From Selector 的玩法动作；输入层只提供语义，合法性由对应领域组件决定。
- * @param itemId 物品的稳定 FName ID，用于定义查询和存档，不依赖显示名。
- * @param target 本次规则检查或操作的目标对象。
- * @param currentMode 本次操作使用的 `currentMode` 枚举或模式值。
- * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
- */
-FLRItemUseResult ULRInventoryComponent::UseItemFromSelector(const FName itemId, AActor* target,
-	const ELRPerceptionMode currentMode)
-{
-	return UseItem(BuildUseRequest(itemId, INDEX_NONE, target, currentMode, ELRItemUseEntryPoint::InteractionSelector));
-}
-
-/**
- * @brief 根据当前领域状态构建 Build Use Request 所需的数据，不把临时对象作为长期存档标识。
- * @param itemId 物品的稳定 FName ID，用于定义查询和存档，不依赖显示名。
- * @param sourceSlot 本次操作使用的计数、增量或索引 `sourceSlot`；由函数校验合法范围。
- * @param target 本次规则检查或操作的目标对象。
- * @param currentMode 本次操作使用的 `currentMode` 枚举或模式值。
- * @param entryPoint 本次操作使用的 `entryPoint` 枚举或模式值。
- * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
- */
-FLRItemUseRequest ULRInventoryComponent::BuildUseRequest(const FName itemId, const int32 sourceSlot, UObject* target,
-	const ELRPerceptionMode currentMode, const ELRItemUseEntryPoint entryPoint) const
-{
-	FLRItemUseRequest request;
-	request.ItemId = itemId;
-	request.SourceSlot = sourceSlot;
-	request.Target = target;
-	request.Instigator = GetOwner();
-	request.EntryPoint = entryPoint;
-	request.CurrentMode = currentMode;
-	request.ActionTag = LRGameplayTags::InteractionActionUse;
-	return request;
-}
-
-/**
- * @brief 执行 Resolve Use Request At Time 的纯规则或事务判定，失败时提供结构化原因。
- * @param request 不可变领域请求，包含本次操作所需的稳定 ID、来源、目标或原因。
- * @param currentTimeSeconds 时间值 `currentTimeSeconds`，单位为秒。
- * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
- */
-FLRItemUseResult ULRInventoryComponent::ResolveUseRequestAtTime(const FLRItemUseRequest& request,
-	const double currentTimeSeconds)
-{
-	return Resolver ? Resolver->ResolveAtTime(request, currentTimeSeconds) : FLRItemUseResult();
+	if (const FName selected = GetSelectedWeapon(); !selected.IsNone())
+	{
+		return selected;
+	}
+	FName earliestWeapon = NAME_None;
+	int64 earliestSequence = MAX_int64;
+	for (const TPair<FName, FLRInventoryEntry>& item : Entries)
+	{
+		if (item.Value.Quantity <= 0 || !IsWeapon(item.Key))
+		{
+			continue;
+		}
+		if (item.Value.AcquisitionSequence < earliestSequence)
+		{
+			earliestSequence = item.Value.AcquisitionSequence;
+			earliestWeapon = item.Key;
+		}
+	}
+	return earliestWeapon;
 }
 
 /**
@@ -230,17 +196,31 @@ FLRItemUseResult ULRInventoryComponent::ResolveUseRequestAtTime(const FLRItemUse
  */
 bool ULRInventoryComponent::AddNoteId(const FName noteId)
 {
-	return !noteId.IsNone() && NoteIds.Add(noteId).IsValidId();
+	if (noteId.IsNone() || NoteIds.Contains(noteId))
+	{
+		return false;
+	}
+	NoteIds.Add(noteId);
+	return true;
 }
 
 /**
- * @brief 把稳定收藏品 ID 加入已收集集合；集合语义保证一次性拾取。
+ * @brief 把稳定收藏品 ID 加入已收集集合；重复添加返回 AlreadyOwned 且不修改世界状态。
  * @param collectibleId 稳定标识 `collectibleId`；用于内容查询和存档，不依赖显示名或数组序号。
- * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+ * @return Success、AlreadyOwned 或 InvalidDefinition 的结构化结果。
  */
-bool ULRInventoryComponent::AddCollectibleId(const FName collectibleId)
+ELRAddCollectibleResult ULRInventoryComponent::AddCollectibleId(const FName collectibleId)
 {
-	return !collectibleId.IsNone() && CollectibleIds.Add(collectibleId).IsValidId();
+	if (collectibleId.IsNone())
+	{
+		return ELRAddCollectibleResult::InvalidDefinition;
+	}
+	if (CollectibleIds.Contains(collectibleId))
+	{
+		return ELRAddCollectibleResult::AlreadyOwned;
+	}
+	CollectibleIds.Add(collectibleId);
+	return ELRAddCollectibleResult::Success;
 }
 
 /**
@@ -250,9 +230,9 @@ bool ULRInventoryComponent::AddCollectibleId(const FName collectibleId)
 FGameplayTagContainer ULRInventoryComponent::GetOwnedItemTags() const
 {
 	FGameplayTagContainer tags;
-	for (const TPair<FName, int32>& item : ItemCounts)
+	for (const TPair<FName, FLRInventoryEntry>& item : Entries)
 	{
-		if (item.Value > 0)
+		if (item.Value.Quantity > 0)
 		{
 			const ULRItemDefinition* definition = FindDefinition(item.Key);
 			if (definition)
@@ -271,9 +251,9 @@ FGameplayTagContainer ULRInventoryComponent::GetOwnedItemTags() const
 TArray<FName> ULRInventoryComponent::GetOwnedItemIds() const
 {
 	TArray<FName> itemIds;
-	for (const TPair<FName, int32>& item : ItemCounts)
+	for (const TPair<FName, FLRInventoryEntry>& item : Entries)
 	{
-		if (item.Value > 0)
+		if (item.Value.Quantity > 0)
 		{
 			itemIds.Add(item.Key);
 		}
@@ -316,85 +296,95 @@ ULRItemDefinition* ULRInventoryComponent::FindDefinition(const FName itemId) con
 }
 
 /**
- * @brief 把运行时库存、笔记、收藏品或剧情状态复制到存档分块。
+ * @brief 把运行时库存、笔记或收藏品状态复制到存档分块；不填充已废弃的快捷栏字段。
  * @param outInventory 参与本次操作的运行时对象 `outInventory`；函数会检查空值和所需接口。
  */
 void ULRInventoryComponent::CaptureSaveState(FLRSaveInventoryChunk& outInventory) const
 {
-	outInventory.ItemCounts = ItemCounts;
-	outInventory.QuickSlots = QuickSlots;
-	outInventory.SelectedQuickSlot = SelectedQuickSlot;
+	outInventory.ItemCounts.Reset();
+	for (const TPair<FName, FLRInventoryEntry>& item : Entries)
+	{
+		if (item.Value.Quantity > 0)
+		{
+			outInventory.ItemCounts.Add(item.Key, item.Value.Quantity);
+		}
+	}
 	outInventory.NoteIds = NoteIds;
 	outInventory.CollectibleIds = CollectibleIds;
 }
 
 /**
- * @brief 从存档分块恢复运行时状态，并通过领域 API 保持不变量。
+ * @brief 从存档分块恢复运行时状态；完全忽略已废弃的快捷栏字段。
  * @param savedInventory 参与本次操作的运行时对象 `savedInventory`；函数会检查空值和所需接口。
  */
 void ULRInventoryComponent::RestoreSaveState(const FLRSaveInventoryChunk& savedInventory)
 {
-	ItemCounts.Reset();
+	Entries.Reset();
+	SelectedWeaponItemId = NAME_None;
 	for (const TPair<FName, int32>& item : savedInventory.ItemCounts)
 	{
 		if (item.Value > 0 && Definitions.Contains(item.Key))
 		{
-			ItemCounts.Add(item.Key, item.Value);
+			FLRInventoryEntry& entry = Entries.Add(item.Key);
+			entry.ItemId = item.Key;
+			entry.Quantity = item.Value;
+			entry.AcquisitionSequence = NextAcquisitionSequence++;
 		}
 	}
-	QuickSlots = savedInventory.QuickSlots;
-	QuickSlots.SetNum(QuickSlotCount);
-	SelectedQuickSlot = FMath::Clamp(savedInventory.SelectedQuickSlot, 0, QuickSlotCount - 1);
 	NoteIds = savedInventory.NoteIds;
 	CollectibleIds = savedInventory.CollectibleIds;
 
-	for (const TPair<FName, int32>& item : ItemCounts)
+	for (const TPair<FName, FLRInventoryEntry>& item : Entries)
 	{
-		OnInventoryChanged.Broadcast(item.Key, item.Value);
-	}
-	for (int32 slotIndex = 0; slotIndex < QuickSlotCount; ++slotIndex)
-	{
-		OnQuickSlotChanged.Broadcast(slotIndex, QuickSlots[slotIndex]);
+		OnInventoryChanged.Broadcast(item.Key, item.Value.Quantity);
 	}
 }
 
 /**
- * @brief 执行 Use Item 的玩法动作；输入层只提供语义，合法性由对应领域组件决定。
- * @param request 不可变领域请求，包含本次操作所需的稳定 ID、来源、目标或原因。
- * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
- */
-FLRItemUseResult ULRInventoryComponent::UseItem(const FLRItemUseRequest& request)
-{
-	const double currentTime = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0;
-	FLRItemUseResult result = ResolveUseRequestAtTime(request, currentTime);
-	OnItemUseResolved.Broadcast(result);
-	return result;
-}
-
-/**
- * @brief 在事务执行前尝试扣除一个物品；目标执行失败时由调用方恢复。
+ * @brief 在事务成功后扣除一个一次性物品；扣为 0 时删除条目并清理显式武器选择。
  * @param itemId 物品的稳定 FName ID，用于定义查询和存档，不依赖显示名。
  * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
  */
 bool ULRInventoryComponent::TryConsumeItem(const FName itemId)
 {
-	int32* count = ItemCounts.Find(itemId);
-	if (!count || *count <= 0)
+	FLRInventoryEntry* entry = Entries.Find(itemId);
+	if (!entry || entry->Quantity <= 0)
 	{
 		return false;
 	}
-	--(*count);
-	OnInventoryChanged.Broadcast(itemId, *count);
+	--entry->Quantity;
+	if (entry->Quantity <= 0)
+	{
+		RemoveEntry(itemId);
+		return true;
+	}
+	OnInventoryChanged.Broadcast(itemId, entry->Quantity);
 	return true;
 }
 
 /**
- * @brief 把 Restore Item 数据应用到运行时对象，并显式处理缺失依赖。
+ * @brief 从库存删除条目；若该条目是当前显式武器则清空选择。
  * @param itemId 物品的稳定 FName ID，用于定义查询和存档，不依赖显示名。
  */
-void ULRInventoryComponent::RestoreItem(const FName itemId)
+void ULRInventoryComponent::RemoveEntry(const FName itemId)
 {
-	int32& count = ItemCounts.FindOrAdd(itemId);
-	++count;
-	OnInventoryChanged.Broadcast(itemId, count);
+	if (Entries.Remove(itemId) > 0)
+	{
+		if (SelectedWeaponItemId == itemId)
+		{
+			SelectedWeaponItemId = NAME_None;
+		}
+		OnInventoryChanged.Broadcast(itemId, 0);
+	}
+}
+
+/**
+ * @brief 判断 Is Weapon 对应条件；不产生玩法副作用。
+ * @param itemId 物品的稳定 FName ID，用于定义查询和存档，不依赖显示名。
+ * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+ */
+bool ULRInventoryComponent::IsWeapon(const FName itemId) const
+{
+	const ULRItemDefinition* definition = FindDefinition(itemId);
+	return HasItem(itemId) && definition && definition->ItemTags.HasTag(LRGameplayTags::ItemCategoryWeapon);
 }

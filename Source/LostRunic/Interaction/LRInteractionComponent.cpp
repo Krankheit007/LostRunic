@@ -1,6 +1,6 @@
 /**
  * @file LRInteractionComponent.cpp
- * @brief 以可调计时器扫描交互候选，按照提示 500 cm、描边 200 cm、总计 90 度朝向、遮挡和状态选择唯一目标，并向 HUD 广播提示。
+ * @brief 扫描 Interaction 通道，分离计算世界表现与执行资格，并向 HUD 发布唯一焦点。
  *
  * 关联文件：LRInteractionComponent.h；所属领域：Interaction。
  * 设计依据：Docs/Design/01_GameDesignSummary.md 与 Docs/Technical/04_TechnicalDesign.md。
@@ -13,13 +13,18 @@
 #include "Data/LRGameTuningSet.h"
 #include "Data/LRInteractionTuning.h"
 #include "Engine/GameInstance.h"
+#include "Engine/OverlapResult.h"
 #include "Engine/World.h"
 #include "Framework/LRGameInstanceSubsystem.h"
+#include "Framework/LRPlayerController.h"
+#include "Input/LRInputConfig.h"
 #include "Interaction/LRInteractable.h"
+#include "Interaction/LRInteractionPresentationComponent.h"
 #include "Interaction/LRInteractionRules.h"
 #include "Items/LRInventoryComponent.h"
 #include "State/LRStateComponent.h"
-#include "EngineUtils.h"
+#include "CollisionQueryParams.h"
+#include "CollisionShape.h"
 #include "TimerManager.h"
 
 /**
@@ -84,7 +89,14 @@ FLRInteractionResult ULRInteractionComponent::PerformPrimaryInteraction()
 		result = ILRInteractable::Execute_ExecuteInteraction(CurrentTarget.Get(), GetOwner(), CurrentOption.ActionTag);
 	}
 	OnInteractionExecuted.Broadcast(result);
+	RefreshInteractionState();
 	return result;
+}
+
+/** Forces an immediate scan after interaction success so stale Focus prompts never linger. */
+void ULRInteractionComponent::RefreshInteractionState()
+{
+	ScanCandidates();
 }
 
 /**
@@ -106,37 +118,121 @@ void ULRInteractionComponent::ScanCandidates()
 		return;
 	}
 
-	TArray<FCandidate> candidates;
-	TArray<FLRInteractionCandidateScore> scores;
+	TArray<FEvaluation> evaluations;
+	BuildEvaluations(evaluations);
+	const int32 focusedIndex = SelectFocusedEvaluation(evaluations);
+	ApplyPresentationStates(evaluations, focusedIndex);
+	ApplySelection(evaluations, focusedIndex);
+}
+
+/** Queries only the configured Interaction object channel and derives side-effect-free evaluations. */
+void ULRInteractionComponent::BuildEvaluations(TArray<FEvaluation>& outEvaluations) const
+{
+	const ULRInteractionTuning& tuning = GetEffectiveTuning();
 	const FVector ownerLocation = GetOwner()->GetActorLocation();
 	const FVector ownerForward = GetOwner()->GetActorForwardVector().GetSafeNormal2D();
 	const FGameplayTagContainer ownedTags = Inventory->GetOwnedItemTags();
-	for (TActorIterator<AActor> actorIt(GetWorld()); actorIt; ++actorIt)
+	TArray<FOverlapResult> overlaps;
+	FCollisionQueryParams queryParams(SCENE_QUERY_STAT(LRInteractionQuery), false, GetOwner());
+	const FCollisionObjectQueryParams objectParams(ECC_GameTraceChannel1);
+	GetWorld()->OverlapMultiByObjectType(overlaps, ownerLocation, FQuat::Identity, objectParams,
+		FCollisionShape::MakeSphere(tuning.FarHintDistance), queryParams);
+
+	TSet<TWeakObjectPtr<AActor>> processedActors;
+	for (const FOverlapResult& overlap : overlaps)
 	{
-		AActor* actor = *actorIt;
-		if (!actor || actor == GetOwner() || !actor->GetClass()->ImplementsInterface(ULRInteractable::StaticClass()))
+		AActor* actor = overlap.GetActor();
+		if (!actor || actor == GetOwner() || processedActors.Contains(actor)
+			|| !actor->GetClass()->ImplementsInterface(ULRInteractable::StaticClass()))
 		{
 			continue;
 		}
+		processedActors.Add(actor);
 		const FVector targetLocation = ILRInteractable::Execute_GetInteractionLocation(actor);
 		const FVector toTarget = targetLocation - ownerLocation;
+		const float distanceSquared = FVector::DistSquared(ownerLocation, targetLocation);
+		const ELRInteractionPresentationState presentationState = LRInteractionRules::GetPresentationState(distanceSquared, tuning);
 		for (const FLRInteractionOption& option : ILRInteractable::Execute_GetInteractionOptions(actor, GetOwner()))
 		{
-			FCandidate candidate;
-			candidate.Actor = actor;
-			candidate.Option = option;
-			candidate.Score.Distance = toTarget.Size2D();
-			candidate.Score.ForwardDot = FVector::DotProduct(ownerForward, toTarget.GetSafeNormal2D());
-			candidate.Score.bOccluded = IsOccluded(actor, targetLocation);
-			candidate.Score.bModeAllowed = option.RequiredMode == State->GetCurrentMode();
-			candidate.Score.bItemsAllowed = option.RequiredItemTags.IsEmpty() || option.RequiredItemTags.Matches(ownedTags);
-			candidate.ExecuteDistance = option.MaxDistanceOverride > 0.0f
-				? option.MaxDistanceOverride : GetEffectiveTuning().ExecuteDistance;
-			candidates.Add(candidate);
-			scores.Add(candidate.Score);
+			FEvaluation& evaluation = outEvaluations.AddDefaulted_GetRef();
+			evaluation.Actor = actor;
+			evaluation.Option = option;
+			evaluation.Score.DistanceSquared = distanceSquared;
+			evaluation.Score.ForwardDot = FVector::DotProduct(ownerForward, toTarget.GetSafeNormal2D());
+			evaluation.Score.bModeAllowed = option.RequiredMode == State->GetCurrentMode();
+			evaluation.Score.bItemsAllowed = option.RequiredItemTags.IsEmpty() || option.RequiredItemTags.Matches(ownedTags);
+			evaluation.ExecuteDistance = option.MaxDistanceOverride > 0.0f ? option.MaxDistanceOverride : tuning.ExecuteDistance;
+			evaluation.bShowHint = presentationState != ELRInteractionPresentationState::None;
+			evaluation.bCanExecute = evaluation.Score.bModeAllowed && evaluation.Score.bItemsAllowed
+				&& LRInteractionRules::IsWithinExecutionDistance(distanceSquared, evaluation.ExecuteDistance);
+			evaluation.PresentationState = presentationState;
 		}
 	}
-	ApplySelection(candidates, LRInteractionRules::SelectBestCandidate(scores, GetEffectiveTuning()));
+}
+
+/** Tests only executable, facing candidates for occlusion and returns the nearest remaining target. */
+int32 ULRInteractionComponent::SelectFocusedEvaluation(TArray<FEvaluation>& evaluations) const
+{
+	TArray<int32> candidateIndices;
+	for (int32 index = 0; index < evaluations.Num(); ++index)
+	{
+		const FEvaluation& evaluation = evaluations[index];
+		if (evaluation.bCanExecute && LRInteractionRules::IsFacingAllowed(evaluation.Score.ForwardDot, GetEffectiveTuning()))
+		{
+			candidateIndices.Add(index);
+		}
+	}
+	candidateIndices.Sort([&evaluations](const int32 left, const int32 right)
+	{
+		return evaluations[left].Score.DistanceSquared < evaluations[right].Score.DistanceSquared;
+	});
+	for (const int32 index : candidateIndices)
+	{
+		FEvaluation& evaluation = evaluations[index];
+		AActor* actor = evaluation.Actor.Get();
+		evaluation.Score.bOccluded = !actor || IsOccluded(actor, ILRInteractable::Execute_GetInteractionLocation(actor));
+		if (!evaluation.Score.bOccluded)
+		{
+			return index;
+		}
+	}
+	return INDEX_NONE;
+}
+
+/** Resets prior world feedback, then applies independent presentation states and Focus highlighting. */
+void ULRInteractionComponent::ApplyPresentationStates(const TArray<FEvaluation>& evaluations, const int32 focusedIndex)
+{
+	for (const TWeakObjectPtr<ULRInteractionPresentationComponent>& component : PresentedComponents)
+	{
+		if (component.IsValid())
+		{
+			component->SetPresentationState(ELRInteractionPresentationState::None);
+		}
+	}
+	PresentedComponents.Reset();
+	TMap<TWeakObjectPtr<AActor>, ELRInteractionPresentationState> states;
+	for (int32 index = 0; index < evaluations.Num(); ++index)
+	{
+		const FEvaluation& evaluation = evaluations[index];
+		if (!evaluation.bShowHint || !evaluation.Actor.IsValid())
+		{
+			continue;
+		}
+		ELRInteractionPresentationState& state = states.FindOrAdd(evaluation.Actor);
+		state = static_cast<ELRInteractionPresentationState>(FMath::Max(static_cast<uint8>(state),
+			static_cast<uint8>(index == focusedIndex ? ELRInteractionPresentationState::Focused : evaluation.PresentationState)));
+	}
+	for (const TPair<TWeakObjectPtr<AActor>, ELRInteractionPresentationState>& pair : states)
+	{
+		if (AActor* actor = pair.Key.Get())
+		{
+			if (ULRInteractionPresentationComponent* component = actor->FindComponentByClass<ULRInteractionPresentationComponent>())
+			{
+				component->SetPresentationState(pair.Value);
+				PresentedComponents.Add(component);
+			}
+		}
+	}
 }
 
 /**
@@ -159,13 +255,11 @@ bool ULRInteractionComponent::IsOccluded(AActor* target, const FVector& targetLo
  * @param candidates 本次领域操作的结构化数据 `candidates`；字段语义由对应 USTRUCT 定义。
  * @param selectedIndex 本次操作使用的计数、增量或索引 `selectedIndex`；由函数校验合法范围。
  */
-void ULRInteractionComponent::ApplySelection(const TArray<FCandidate>& candidates, const int32 selectedIndex)
+void ULRInteractionComponent::ApplySelection(const TArray<FEvaluation>& evaluations, const int32 selectedIndex)
 {
-	AActor* selectedTarget = candidates.IsValidIndex(selectedIndex) ? candidates[selectedIndex].Actor.Get() : nullptr;
-	const FLRInteractionOption selectedOption = selectedTarget ? candidates[selectedIndex].Option : FLRInteractionOption();
-	const ELRInteractionRange selectedRange = selectedTarget
-		? LRInteractionRules::GetRange(candidates[selectedIndex].Score.Distance,
-			candidates[selectedIndex].ExecuteDistance, GetEffectiveTuning()) : ELRInteractionRange::None;
+	AActor* selectedTarget = evaluations.IsValidIndex(selectedIndex) ? evaluations[selectedIndex].Actor.Get() : nullptr;
+	const FLRInteractionOption selectedOption = selectedTarget ? evaluations[selectedIndex].Option : FLRInteractionOption();
+	const ELRInteractionRange selectedRange = selectedTarget ? ELRInteractionRange::Executable : ELRInteractionRange::None;
 	const bool bChanged = CurrentTarget.Get() != selectedTarget || CurrentOption.ActionTag != selectedOption.ActionTag
 		|| CurrentRange != selectedRange;
 	CurrentTarget = selectedTarget;
@@ -174,6 +268,15 @@ void ULRInteractionComponent::ApplySelection(const TArray<FCandidate>& candidate
 	if (bChanged)
 	{
 		OnTargetChanged.Broadcast(selectedTarget, CurrentOption, CurrentRange);
+		CurrentPrompt.Target = selectedTarget;
+		CurrentPrompt.Prompt = selectedOption.Prompt;
+		CurrentPrompt.ActionTag = selectedOption.ActionTag;
+		const APawn* ownerPawn = Cast<APawn>(GetOwner());
+		const ALRPlayerController* controller = ownerPawn ? Cast<ALRPlayerController>(ownerPawn->GetController()) : nullptr;
+		ULRInputConfig* inputConfig = controller ? controller->GetInputConfig() : nullptr;
+		CurrentPrompt.InputAction = inputConfig ? inputConfig->InteractAction : nullptr;
+		CurrentPrompt.bVisible = selectedTarget != nullptr;
+		OnFocusedInteractionChanged.Broadcast(CurrentPrompt);
 	}
 }
 

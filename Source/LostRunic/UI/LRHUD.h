@@ -78,6 +78,9 @@ public:
 	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
 	 */
 	ULRDialogueWidgetController* GetDialogueController() const { return DialogueController; }
+	/** Exposes the HUD event source used by the interaction prompt widget. */
+	UFUNCTION(BlueprintPure, Category = "Lost Runic|UI")
+	ULRHUDWidgetController* GetHUDWidgetController() const { return HUDController; }
 	/**
 	 * @brief 查询 Menu Controller；不修改领域状态。
 	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
@@ -102,17 +105,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Widgets")
 	TSubclassOf<ULRScreenWidget> NarrativeScreenClass;
 
-	/** Journal Screen Class 的软类或类默认引用，用于创建对应蓝图实例。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。 */
+	/** Menu Screen Class 的软类或类默认引用：背包/笔记/收集品共用一个 UMG 菜单资产，通过顶部 Tab 切换。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。 */
 	UPROPERTY(EditDefaultsOnly, Category = "Widgets")
-	TSubclassOf<ULRScreenWidget> JournalScreenClass;
-
-	/** Inventory Screen Class 的软类或类默认引用，用于创建对应蓝图实例。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。 */
-	UPROPERTY(EditDefaultsOnly, Category = "Widgets")
-	TSubclassOf<ULRScreenWidget> InventoryScreenClass;
-
-	/** Collectibles Screen Class 的软类或类默认引用，用于创建对应蓝图实例。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。 */
-	UPROPERTY(EditDefaultsOnly, Category = "Widgets")
-	TSubclassOf<ULRScreenWidget> CollectiblesScreenClass;
+	TSubclassOf<ULRScreenWidget> MenuScreenClass;
 
 	/** Pause Screen Class 的软类或类默认引用，用于创建对应蓝图实例。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。 */
 	UPROPERTY(EditDefaultsOnly, Category = "Widgets")
@@ -149,6 +144,12 @@ private:
 	 * @brief 隐藏所有互斥菜单页面，确保同一时刻只有一个焦点目标。
 	 */
 	void HideMenuScreens();
+
+	/**
+	 * @brief 处理统一菜单 Tab 切换：显示单个菜单 Widget 并触发 OnMenuTabChanged。
+	 * @param tab 本次操作使用的 `tab` 枚举或模式值。
+	 */
+	void ShowMenuTab(ELRScreenType tab);
 
 	/**
 	 * @brief 处理 Handle Narrative Presentation Changed 事件，将引擎回调转换为对应领域状态更新。

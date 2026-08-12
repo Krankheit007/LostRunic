@@ -64,5 +64,6 @@ void ULRStatePresentationComponent::CompleteStatePresentation()
 void ULRStatePresentationComponent::HandleStateChanging(const ELRPerceptionMode previousMode,
 	const ELRPerceptionMode nextMode, const FGameplayTag reason)
 {
+	OnStatePresentationRequested.Broadcast(previousMode, nextMode, reason);
 	PresentStateChange(previousMode, nextMode, reason);
 }

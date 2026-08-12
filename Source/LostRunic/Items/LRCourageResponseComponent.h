@@ -1,6 +1,6 @@
 /**
  * @file LRCourageResponseComponent.h
- * @brief 实现 4 格快捷栏、背包、笔记、收藏品和统一物品使用事务；快捷栏与交互后选物共用解析入口，失败时回滚消耗并返回结构化原因。
+ * @brief 攻击目标响应：实现 ILRAttackTarget，按调优参数执行非致死击退；免疫、状态、冷却和消费由统一物品事务管理。
  *
  * 关联文件：LRCourageResponseComponent.cpp；所属领域：Items。
  * 设计依据：Docs/Design/01_GameDesignSummary.md 与 Docs/Technical/04_TechnicalDesign.md。
@@ -9,7 +9,7 @@
 #pragma once
 
 #include "Components/ActorComponent.h"
-#include "Items/LRItemUseTarget.h"
+#include "Items/LRAttackTarget.h"
 
 #include "LRCourageResponseComponent.generated.h"
 
@@ -17,7 +17,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FLRCourageKnockbackApplied, FVector,
 
 /** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
 UCLASS(ClassGroup = "Lost Runic", BlueprintType, meta = (BlueprintSpawnableComponent, DisplayName = "Lost Runic Courage Response"))
-class LOSTRUNIC_API ULRCourageResponseComponent : public UActorComponent, public ILRItemUseTarget
+class LOSTRUNIC_API ULRCourageResponseComponent : public UActorComponent, public ILRAttackTarget
 {
 	GENERATED_BODY()
 
@@ -28,17 +28,17 @@ public:
 	ULRCourageResponseComponent();
 
 	/**
-	 * @brief 查询 Item Use Target Tags_Implementation；不修改领域状态。
+	 * @brief 查询 Attack Target Tags_Implementation；不修改领域状态。
 	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
 	 */
-	virtual FGameplayTagContainer GetItemUseTargetTags_Implementation() override;
+	virtual FGameplayTagContainer GetAttackTargetTags_Implementation() override;
 	/**
-	 * @brief 校验 Courage 状态、目标免疫标签和冷却后执行非致死击退，并返回统一物品事务结果。
+	 * @brief 对攻击目标执行非致死击退；状态、冷却、免疫和消费由统一物品事务判定。
 	 * @param request 物品 ID、入口、玩家状态与目标组成的统一使用请求。
-	 * @param definition Courage 武器定义，提供允许的动作和目标标签。
+	 * @param definition 已通过武器标签检查的物品定义；空手攻击时为 nullptr。
 	 * @return 成功时返回击退结果；失败时返回可供 UI 显示的结构化原因标签。
 	 */
-	virtual FLRItemUseResult ApplyItemUse_Implementation(const FLRItemUseRequest& request,
+	virtual FLRItemUseResult ApplyAttack_Implementation(const FLRItemUseRequest& request,
 		ULRItemDefinition* definition) override;
 
 	/** Immune 的开关；true 表示启用，false 表示禁用。 C++ 安全默认值为 `false`。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。 */

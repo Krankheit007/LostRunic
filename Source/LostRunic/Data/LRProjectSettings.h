@@ -16,6 +16,7 @@
 class ULRGameContentSet;
 class ULRGameTuningSet;
 class ULRInputConfig;
+class ULRScreenWidget;
 
 /** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
 UCLASS(Config = Game, DefaultConfig, meta = (DisplayName = "Lost Runic"))
@@ -35,6 +36,10 @@ public:
 	/** Input Config 的领域数据，由所属类型负责维护和校验。 可在对应资产、DataTable 行或蓝图实例中配置。 */
 	UPROPERTY(Config, EditAnywhere, BlueprintReadOnly, Category = "Input")
 	TSoftObjectPtr<ULRInputConfig> InputConfig;
+
+	/** Default HUD screen class used when the active ALRHUD Blueprint does not override it. */
+	UPROPERTY(Config, EditAnywhere, BlueprintReadOnly, Category = "UI")
+	TSoftClassPtr<ULRScreenWidget> HUDScreenClass;
 
 	/**
 	 * @brief 查询 Category Name；不修改领域状态。

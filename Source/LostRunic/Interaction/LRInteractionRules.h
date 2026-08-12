@@ -14,9 +14,12 @@ class ULRInteractionTuning;
 
 namespace LRInteractionRules
 {
-	LOSTRUNIC_API int32 SelectBestCandidate(const TArray<FLRInteractionCandidateScore>& candidates,
+	/** Maps a visible target's squared distance to its world presentation state. */
+	LOSTRUNIC_API ELRInteractionPresentationState GetPresentationState(float distanceSquared,
 		const ULRInteractionTuning& tuning);
-	LOSTRUNIC_API ELRInteractionRange GetRange(float distance, float executeDistance,
+	/** Tests execution radius without introducing a square-root operation. */
+	LOSTRUNIC_API bool IsWithinExecutionDistance(float distanceSquared, float executeDistance);
+	LOSTRUNIC_API int32 SelectBestCandidate(const TArray<FLRInteractionCandidateScore>& candidates,
 		const ULRInteractionTuning& tuning);
 	/**
 	 * @brief 判断 Is Facing Allowed 对应条件；不产生玩法副作用。

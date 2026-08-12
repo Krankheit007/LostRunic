@@ -12,6 +12,9 @@
 
 #include "LRGameMode.generated.h"
 
+class ULRGameContentSet;
+class ULRGameTuningSet;
+
 /** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
 UCLASS(BlueprintType, meta = (DisplayName = "Lost Runic Game Mode"))
 class LOSTRUNIC_API ALRGameMode : public AGameModeBase
@@ -28,4 +31,28 @@ public:
 	 * @brief 在进入世界后解析运行时依赖、绑定事件并启动所需计时器；构造阶段不访问 World 或玩家对象。
 	 */
 	virtual void BeginPlay() override;
+
+	/** Returns the validated content registry loaded by the GameInstance subsystem. */
+	UFUNCTION(BlueprintPure, Category = "Lost Runic|Configuration")
+	ULRGameContentSet* GetContentSet() const { return ContentSet; }
+
+	/** Returns the validated tuning aggregate loaded by the GameInstance subsystem. */
+	UFUNCTION(BlueprintPure, Category = "Lost Runic|Configuration")
+	ULRGameTuningSet* GetTuningSet() const { return TuningSet; }
+
+	/** True when the project-level content and tuning roots passed validation. */
+	UFUNCTION(BlueprintPure, Category = "Lost Runic|Configuration")
+	bool HasValidConfiguration() const { return bConfigurationValid; }
+
+private:
+	/** Runtime cache of the single project-level content authority. */
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Configuration", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<ULRGameContentSet> ContentSet;
+
+	/** Runtime cache of the single project-level tuning authority. */
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Configuration", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<ULRGameTuningSet> TuningSet;
+
+	/** Configuration validation result captured when this world starts. */
+	bool bConfigurationValid = false;
 };
