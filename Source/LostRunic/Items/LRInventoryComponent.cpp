@@ -10,6 +10,7 @@
 
 #include "Core/LRGameplayTags.h"
 #include "Core/LRLog.h"
+#include "Data/LRCollectibleDefinition.h"
 #include "Data/LRGameContentSet.h"
 #include "Data/LRItemDefinition.h"
 #include "Engine/GameInstance.h"
@@ -34,14 +35,20 @@ void ULRInventoryComponent::BeginPlay()
 	const ULRGameInstanceSubsystem* subsystem = gameInstance ? gameInstance->GetSubsystem<ULRGameInstanceSubsystem>() : nullptr;
 	const ULRGameContentSet* contentSet = subsystem ? subsystem->GetContentSet() : nullptr;
 	TArray<ULRItemDefinition*> definitions;
+	TArray<ULRCollectibleDefinition*> collectibles;
 	if (contentSet)
 	{
 		for (ULRItemDefinition* definition : contentSet->Items)
 		{
 			definitions.Add(definition);
 		}
+		for (ULRCollectibleDefinition* collectible : contentSet->Collectibles)
+		{
+			collectibles.Add(collectible);
+		}
 	}
 	InitializeDefinitions(definitions);
+	InitializeCollectibleDefinitions(collectibles);
 }
 
 /**
@@ -56,6 +63,22 @@ void ULRInventoryComponent::InitializeDefinitions(const TArray<ULRItemDefinition
 		if (definition && !definition->ItemId.IsNone())
 		{
 			Definitions.Add(definition->ItemId, definition);
+		}
+	}
+}
+
+/**
+ * @brief 按稳定收藏品 ID 建立定义索引；未注册的收藏品 ID 会被 AddCollectibleId 拒绝为 InvalidDefinition。
+ * @param collectibles 数据或调优来源 `collectibles`；调用期间只读，并按稳定 ID 解析内容。
+ */
+void ULRInventoryComponent::InitializeCollectibleDefinitions(const TArray<ULRCollectibleDefinition*>& collectibles)
+{
+	CollectibleDefinitions.Reset();
+	for (ULRCollectibleDefinition* collectible : collectibles)
+	{
+		if (collectible && !collectible->CollectibleId.IsNone())
+		{
+			CollectibleDefinitions.Add(collectible->CollectibleId, collectible);
 		}
 	}
 }
@@ -211,8 +234,10 @@ bool ULRInventoryComponent::AddNoteId(const FName noteId)
  */
 ELRAddCollectibleResult ULRInventoryComponent::AddCollectibleId(const FName collectibleId)
 {
-	if (collectibleId.IsNone())
+	if (collectibleId.IsNone() || !CollectibleDefinitions.Contains(collectibleId))
 	{
+		UE_LOG(LogLostRunicInteraction, Warning, TEXT("Inventory=%s cannot record unregistered collectible=%s."),
+			*GetNameSafe(GetOwner()), *collectibleId.ToString());
 		return ELRAddCollectibleResult::InvalidDefinition;
 	}
 	if (CollectibleIds.Contains(collectibleId))

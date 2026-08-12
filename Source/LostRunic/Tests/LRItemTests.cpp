@@ -11,6 +11,7 @@
 #include "Misc/AutomationTest.h"
 
 #include "Core/LRGameplayTags.h"
+#include "Data/LRCollectibleDefinition.h"
 #include "Data/LRItemDefinition.h"
 #include "Data/LRStateTuning.h"
 #include "Framework/LRCharacter.h"
@@ -495,10 +496,15 @@ bool FLRNotesAndCollectiblesTest::RunTest(const FString& parameters)
 	TestEqual(TEXT("Note set holds one stable id"), inventory->GetNoteIds().Num(), 1);
 	TestFalse(TEXT("Empty note id is rejected"), inventory->AddNoteId(NAME_None));
 
-	TestEqual(TEXT("First collectible record succeeds"),
+	ULRCollectibleDefinition* doll = NewObject<ULRCollectibleDefinition>();
+	doll->CollectibleId = TEXT("Test.Doll");
+	inventory->InitializeCollectibleDefinitions({ doll });
+	TestEqual(TEXT("First registered collectible record succeeds"),
 		inventory->AddCollectibleId(TEXT("Test.Doll")), ELRAddCollectibleResult::Success);
 	TestEqual(TEXT("Repeated collectible returns AlreadyOwned"),
 		inventory->AddCollectibleId(TEXT("Test.Doll")), ELRAddCollectibleResult::AlreadyOwned);
+	TestEqual(TEXT("Unregistered collectible id is rejected"),
+		inventory->AddCollectibleId(TEXT("Test.FakeDoll")), ELRAddCollectibleResult::InvalidDefinition);
 	TestEqual(TEXT("Empty collectible id is rejected"),
 		inventory->AddCollectibleId(NAME_None), ELRAddCollectibleResult::InvalidDefinition);
 	return true;

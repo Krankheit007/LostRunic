@@ -14,6 +14,7 @@
 
 #include "LRInventoryComponent.generated.h"
 
+class ULRCollectibleDefinition;
 class ULRGameContentSet;
 class ULRItemDefinition;
 
@@ -79,6 +80,12 @@ public:
 	 * @param definitions 数据或调优来源 `definitions`；调用期间只读，并按稳定 ID 解析内容。
 	 */
 	void InitializeDefinitions(const TArray<ULRItemDefinition*>& definitions);
+
+	/**
+	 * @brief 按稳定收藏品 ID 建立定义索引；未注册的收藏品 ID 会被 AddCollectibleId 拒绝为 InvalidDefinition。
+	 * @param collectibles 数据或调优来源 `collectibles`；调用期间只读，并按稳定 ID 解析内容。
+	 */
+	void InitializeCollectibleDefinitions(const TArray<ULRCollectibleDefinition*>& collectibles);
 
 	/**
 	 * @brief 按稳定物品 ID 增加库存数量；达到 MaxStackSize 时返回 InventoryFull 且不改变库存。
@@ -235,6 +242,10 @@ private:
 	/** Definitions 定义资产集合；运行时按各资产稳定 ID 建立索引。 该字段仅为运行时缓存，不进入存档。 */
 	UPROPERTY(Transient)
 	TMap<FName, TObjectPtr<ULRItemDefinition>> Definitions;
+
+	/** Collectible Definitions 定义资产集合；运行时按各资产稳定 ID 建立索引。 该字段仅为运行时缓存，不进入存档。 */
+	UPROPERTY(Transient)
+	TMap<FName, TObjectPtr<ULRCollectibleDefinition>> CollectibleDefinitions;
 
 	/** 按稳定物品 ID 保存的堆叠条目；数量为 0 时删除条目。 仅在蓝图或详情面板中查看，不可编辑。 */
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Inventory", meta = (AllowPrivateAccess = "true"))

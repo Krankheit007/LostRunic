@@ -17,6 +17,7 @@
 #include "GameFramework/Actor.h"
 #include "Items/LRAttackTarget.h"
 #include "CollisionQueryParams.h"
+#include "EngineUtils.h"
 #include "Kismet/GameplayStatics.h"
 
 /**
@@ -92,8 +93,20 @@ bool ULRAttackTargetResolver::FindAttackTarget(AActor* instigator, AActor*& outT
 	}
 	const ULRStateTuning& tuning = GetEffectiveTuning();
 
-	TArray<AActor*> candidates;
-	UGameplayStatics::GetAllActorsWithInterface(this, ULRAttackTarget::StaticClass(), candidates);
+	// Actor 自身实现接口的候选，加上通过组件实现接口的 Actor（如守卫的 ULRCourageResponseComponent）。
+	TSet<AActor*> candidateSet;
+	TArray<AActor*> directCandidates;
+	UGameplayStatics::GetAllActorsWithInterface(this, ULRAttackTarget::StaticClass(), directCandidates);
+	candidateSet.Append(directCandidates);
+	for (TActorIterator<AActor> actorIt(GetWorld()); actorIt; ++actorIt)
+	{
+		AActor* actor = *actorIt;
+		if (actor && actor->GetComponentsByInterface(ULRAttackTarget::StaticClass()).Num() > 0)
+		{
+			candidateSet.Add(actor);
+		}
+	}
+	TArray<AActor*> candidates = candidateSet.Array();
 
 	TArray<FLRAttackCandidateScore> scores;
 	const FVector origin = instigator->GetActorLocation();

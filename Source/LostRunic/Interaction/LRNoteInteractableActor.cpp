@@ -57,9 +57,10 @@ FLRInteractionResult ALRNoteInteractableActor::ExecuteInteractionInternal(AActor
 			? narrative.FailureReason : LRGameplayTags::ItemUseRejectExecution;
 		return result;
 	}
+	// AddNoteId 返回 false 表示笔记已存在：重复阅读是正常行为，交互仍整体成功，不产生 Warning。
 	if (!inventory->AddNoteId(ReadingId))
 	{
-		UE_LOG(LogLostRunicInteraction, Warning, TEXT("Note=%s reading=%s could not record note id."),
+		UE_LOG(LogLostRunicInteraction, Verbose, TEXT("Note=%s reading=%s already recorded; repeat reading stays successful."),
 			*GetNameSafe(this), *ReadingId.ToString());
 	}
 	result.bSuccess = true;
