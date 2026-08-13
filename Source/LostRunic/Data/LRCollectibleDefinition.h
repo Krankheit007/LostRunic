@@ -43,6 +43,10 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Collectible")
 	TSoftObjectPtr<UTexture2D> Icon;
 
+	/** Locked Icon 的领域数据，由所属类型负责维护和校验；未解锁时展示的剪影图，缺失时回退到 ULRUITuning 共享剪影。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Collectible")
+	TSoftObjectPtr<UTexture2D> LockedIcon;
+
 	/** Display Order 的领域数据，由所属类型负责维护和校验。 C++ 安全默认值为 `0`。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。编辑器约束：最小值 `0`。 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Collectible", meta = (ClampMin = "0"))
 	int32 DisplayOrder = 0;

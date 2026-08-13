@@ -63,6 +63,20 @@ public:
 	bool Validate(FString& outError) const;
 
 	/**
+	 * @brief 共享命名容量契约：ReadingTable 行数（笔记）不超过 12；供编辑器校验与测试直接断言规则。
+	 * @param readingRowCount 本次操作使用的计数、增量或索引 `readingRowCount`；由函数校验合法范围。
+	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+	 */
+	static bool IsReadingCapacityWithinLimits(int32 readingRowCount);
+
+	/**
+	 * @brief 共享命名容量契约：收藏品定义数不超过 12；供编辑器校验与测试直接断言规则。
+	 * @param collectibleCount 本次操作使用的计数、增量或索引 `collectibleCount`；由函数校验合法范围。
+	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+	 */
+	static bool IsCollectibleCapacityWithinLimits(int32 collectibleCount);
+
+	/**
 	 * @brief 按稳定 ID 或运行时条件查找 Map，未找到时返回明确失败值。
 	 * @param mapId 稳定标识 `mapId`；用于内容查询和存档，不依赖显示名或数组序号。
 	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。

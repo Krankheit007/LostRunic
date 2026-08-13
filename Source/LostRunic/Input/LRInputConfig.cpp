@@ -30,9 +30,14 @@ bool ULRInputConfig::Validate(FString& outError) const
 		return false;
 	}
 	if (!ConfirmAction || !CancelAction || !AttackAction
-		|| !ToggleCrouchAction || !OpenJournalAction || !PauseAction)
+		|| !ToggleCrouchAction || !OpenInventoryAction || !PauseAction)
 	{
 		outError = TEXT("UI, gameplay, and attack actions are required.");
+		return false;
+	}
+	if (!NavigateAction || !PreviousTabAction || !NextTabAction || !UIPrimaryAction)
+	{
+		outError = TEXT("UI navigation actions (Navigate, PreviousTab, NextTab, UIPrimary) are required.");
 		return false;
 	}
 	return true;

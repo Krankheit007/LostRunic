@@ -19,6 +19,7 @@
 #include "Save/LRSaveRules.h"
 #include "State/LRStateComponent.h"
 #include "UI/LRHUD.h"
+#include "UI/LRPlayerUIComponent.h"
 
 /**
  * @brief 开始 Begin Death Memory Transaction 流程，建立本次操作拥有的状态、委托或计时器。
@@ -204,7 +205,11 @@ void ULRSaveSubsystem::SetTransitionInput(const bool bVisible) const
 	{
 		hud->ShowTransition(bVisible);
 	}
-	controller->SetLRInputMode(bVisible ? ELRInputMode::Transition : ELRInputMode::Gameplay);
+	// Transition 输入层由 PlayerUIComponent 仲裁：关闭后恢复仍然有效的下层，而不是无条件回 Gameplay。
+	if (ULRPlayerUIComponent* playerUI = controller->GetPlayerUI())
+	{
+		playerUI->SetTransitionLayer(bVisible);
+	}
 }
 
 /**

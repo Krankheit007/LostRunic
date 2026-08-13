@@ -96,8 +96,14 @@ void ALRPlayerController::SetupInputComponent()
 	enhancedInput->BindAction(InputConfig->AttackAction, ETriggerEvent::Started, this, &ALRPlayerController::HandleAttack);
 	enhancedInput->BindAction(InputConfig->ConfirmAction, ETriggerEvent::Started, this, &ALRPlayerController::HandleConfirm);
 	enhancedInput->BindAction(InputConfig->CancelAction, ETriggerEvent::Started, this, &ALRPlayerController::HandleCancel);
-	enhancedInput->BindAction(InputConfig->OpenJournalAction, ETriggerEvent::Started, this, &ALRPlayerController::HandleOpenJournal);
+	enhancedInput->BindAction(InputConfig->OpenInventoryAction, ETriggerEvent::Started, this, &ALRPlayerController::HandleOpenInventory);
 	enhancedInput->BindAction(InputConfig->PauseAction, ETriggerEvent::Started, this, &ALRPlayerController::HandlePause);
+	enhancedInput->BindAction(InputConfig->NavigateAction, ETriggerEvent::Triggered, this, &ALRPlayerController::HandleNavigate);
+	enhancedInput->BindAction(InputConfig->NavigateAction, ETriggerEvent::Completed, this, &ALRPlayerController::HandleNavigate);
+	enhancedInput->BindAction(InputConfig->NavigateAction, ETriggerEvent::Canceled, this, &ALRPlayerController::HandleNavigate);
+	enhancedInput->BindAction(InputConfig->PreviousTabAction, ETriggerEvent::Started, this, &ALRPlayerController::HandlePreviousTab);
+	enhancedInput->BindAction(InputConfig->NextTabAction, ETriggerEvent::Started, this, &ALRPlayerController::HandleNextTab);
+	enhancedInput->BindAction(InputConfig->UIPrimaryAction, ETriggerEvent::Started, this, &ALRPlayerController::HandleUIPrimaryAction);
 }
 
 /**
@@ -136,6 +142,10 @@ void ALRPlayerController::SetLRInputMode(const ELRInputMode newMode)
  */
 void ALRPlayerController::HandleMove(const FInputActionValue& value)
 {
+	if (GetLRInputMode() != ELRInputMode::Gameplay)
+	{
+		return;
+	}
 	if (ALRCharacter* character = Cast<ALRCharacter>(GetPawn()))
 	{
 		character->ApplyMoveInput(value.Get<FVector2D>());
@@ -147,6 +157,10 @@ void ALRPlayerController::HandleMove(const FInputActionValue& value)
  */
 void ALRPlayerController::HandleSneakToggle()
 {
+	if (GetLRInputMode() != ELRInputMode::Gameplay)
+	{
+		return;
+	}
 	if (ALRCharacter* character = Cast<ALRCharacter>(GetPawn()))
 	{
 		character->GetLocomotionComponent()->ToggleSneak();
@@ -158,6 +172,10 @@ void ALRPlayerController::HandleSneakToggle()
  */
 void ALRPlayerController::HandleRunStarted()
 {
+	if (GetLRInputMode() != ELRInputMode::Gameplay)
+	{
+		return;
+	}
 	if (ALRCharacter* character = Cast<ALRCharacter>(GetPawn()))
 	{
 		character->GetLocomotionComponent()->StartRun();
@@ -169,6 +187,10 @@ void ALRPlayerController::HandleRunStarted()
  */
 void ALRPlayerController::HandleRunStopped()
 {
+	if (GetLRInputMode() != ELRInputMode::Gameplay)
+	{
+		return;
+	}
 	if (ALRCharacter* character = Cast<ALRCharacter>(GetPawn()))
 	{
 		character->GetLocomotionComponent()->StopRun();
@@ -180,6 +202,10 @@ void ALRPlayerController::HandleRunStopped()
  */
 void ALRPlayerController::HandleCloseEyesStarted()
 {
+	if (GetLRInputMode() != ELRInputMode::Gameplay)
+	{
+		return;
+	}
 	if (const ALRCharacter* character = Cast<ALRCharacter>(GetPawn()))
 	{
 		character->GetStateComponent()->BeginEyeInput(ELRStateRequestType::CloseEyes);
@@ -191,6 +217,10 @@ void ALRPlayerController::HandleCloseEyesStarted()
  */
 void ALRPlayerController::HandleCloseEyesStopped()
 {
+	if (GetLRInputMode() != ELRInputMode::Gameplay)
+	{
+		return;
+	}
 	if (const ALRCharacter* character = Cast<ALRCharacter>(GetPawn()))
 	{
 		character->GetStateComponent()->EndEyeInput(ELRStateRequestType::CloseEyes);
@@ -202,6 +232,10 @@ void ALRPlayerController::HandleCloseEyesStopped()
  */
 void ALRPlayerController::HandleOpenEyesStarted()
 {
+	if (GetLRInputMode() != ELRInputMode::Gameplay)
+	{
+		return;
+	}
 	if (const ALRCharacter* character = Cast<ALRCharacter>(GetPawn()))
 	{
 		character->GetStateComponent()->BeginEyeInput(ELRStateRequestType::OpenEyes);
@@ -213,6 +247,10 @@ void ALRPlayerController::HandleOpenEyesStarted()
  */
 void ALRPlayerController::HandleOpenEyesStopped()
 {
+	if (GetLRInputMode() != ELRInputMode::Gameplay)
+	{
+		return;
+	}
 	if (const ALRCharacter* character = Cast<ALRCharacter>(GetPawn()))
 	{
 		character->GetStateComponent()->EndEyeInput(ELRStateRequestType::OpenEyes);
@@ -224,6 +262,10 @@ void ALRPlayerController::HandleOpenEyesStopped()
  */
 void ALRPlayerController::HandleInteract()
 {
+	if (GetLRInputMode() != ELRInputMode::Gameplay)
+	{
+		return;
+	}
 	if (const ALRCharacter* character = Cast<ALRCharacter>(GetPawn()))
 	{
 		ULRInteractionComponent* interaction = character->GetInteractionComponent();
@@ -242,6 +284,10 @@ void ALRPlayerController::HandleInteract()
  */
 void ALRPlayerController::HandleAttack()
 {
+	if (GetLRInputMode() != ELRInputMode::Gameplay)
+	{
+		return;
+	}
 	if (ALRCharacter* character = Cast<ALRCharacter>(GetPawn()))
 	{
 		character->RequestAttack();

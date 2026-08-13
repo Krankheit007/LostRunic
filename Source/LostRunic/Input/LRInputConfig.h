@@ -71,6 +71,22 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Actions|UI")
 	TObjectPtr<UInputAction> CancelAction;
 
+	/** Navigate Action（Axis2D）菜单方向导航动作；C++ 绑定其语义，具体键位在 Mapping Context 中配置。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Actions|UI")
+	TObjectPtr<UInputAction> NavigateAction;
+
+	/** Previous Tab Action（Bool）菜单上一页动作；C++ 绑定其语义，具体键位在 Mapping Context 中配置。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Actions|UI")
+	TObjectPtr<UInputAction> PreviousTabAction;
+
+	/** Next Tab Action（Bool）菜单下一页动作；C++ 绑定其语义，具体键位在 Mapping Context 中配置。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Actions|UI")
+	TObjectPtr<UInputAction> NextTabAction;
+
+	/** UI Primary Action（Bool）对当前 UI 条目执行主要业务动作（本界面为装备焦点武器）；C++ 绑定其语义，具体键位在 Mapping Context 中配置。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Actions|UI")
+	TObjectPtr<UInputAction> UIPrimaryAction;
+
 	/** Attack Action Enhanced Input Action 资产；C++ 绑定其语义，具体键位在 Mapping Context 中配置（沿用原 UseQuickSlot 键位）。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Actions|Gameplay")
 	TObjectPtr<UInputAction> AttackAction;
@@ -83,8 +99,12 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Actions|Gameplay")
 	TObjectPtr<UInputAction> ToggleCrouchAction;
 
-	/** Open Journal Action Enhanced Input Action 资产；C++ 绑定其语义，具体键位在 Mapping Context 中配置。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。 */
+	/** Open Inventory Action Enhanced Input Action 资产；C++ 绑定其语义，具体键位在 Mapping Context 中配置。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Actions|UI")
+	TObjectPtr<UInputAction> OpenInventoryAction;
+
+	/** 已废弃：旧 OpenJournal 输入引用，仅作为资产迁移回退保留，运行时不存在打开日志页语义。 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Actions|UI|Deprecated", meta = (DeprecatedProperty, DisplayName = "Open Journal Action (Deprecated)"))
 	TObjectPtr<UInputAction> OpenJournalAction;
 
 	/** Pause Action Enhanced Input Action 资产；C++ 绑定其语义，具体键位在 Mapping Context 中配置。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。 */

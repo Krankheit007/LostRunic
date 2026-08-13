@@ -19,6 +19,17 @@ class ULRGameContentSet;
 class ULRItemDefinition;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FLRInventoryChanged, FName, itemId, int32, newCount);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FLRInventoryNotesChanged);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FLRInventoryCollectiblesChanged);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FLRInventorySelectedWeaponChanged);
+
+/** 统一菜单的共享命名容量：Bag 8 / Note 12 / Collectible 12。容量是开发期契约，不是正常截断策略；ContentSet 编辑器校验与快照越界检查同时兜底。 */
+namespace LRMenuCapacity
+{
+	constexpr int32 Bag = 8;
+	constexpr int32 Notes = 12;
+	constexpr int32 Collectibles = 12;
+}
 
 /** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
 UENUM(BlueprintType, meta = (DisplayName = "Lost Runic Add Item Result"))
@@ -36,7 +47,8 @@ enum class ELRAddCollectibleResult : uint8
 {
 	Success UMETA(DisplayName = "Success"),
 	AlreadyOwned UMETA(DisplayName = "Already Owned"),
-	InvalidDefinition UMETA(DisplayName = "Invalid Definition")
+	InvalidDefinition UMETA(DisplayName = "Invalid Definition"),
+	AtCapacity UMETA(DisplayName = "At Capacity")
 };
 
 /** 按稳定物品 ID 保存的堆叠条目；Quantity 同时表示持有数量和剩余可使用次数。 */
@@ -180,6 +192,12 @@ public:
 	TArray<FName> GetOwnedItemIds() const;
 
 	/**
+	 * @brief 按获得顺序（AcquisitionSequence）再按 ItemId 返回持有条目，供统一菜单快照固定排序。
+	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+	 */
+	TArray<FLRInventoryEntry> GetOwnedEntriesOrdered() const;
+
+	/**
 	 * @brief 查询 Note Ids；不修改领域状态。
 	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
 	 */
@@ -214,6 +232,18 @@ public:
 	/** 当 Inventory Changed 发生时广播；蓝图可绑定该委托以更新表现，不应在回调中改写核心规则。  */
 	UPROPERTY(BlueprintAssignable, Category = "Lost Runic|Inventory")
 	FLRInventoryChanged OnInventoryChanged;
+
+	/** 当已读笔记集合变化时广播（增加、存档恢复）。  */
+	UPROPERTY(BlueprintAssignable, Category = "Lost Runic|Inventory|Journal")
+	FLRInventoryNotesChanged OnNotesChanged;
+
+	/** 当已收集收藏品集合变化时广播（增加、存档恢复）。  */
+	UPROPERTY(BlueprintAssignable, Category = "Lost Runic|Inventory|Journal")
+	FLRInventoryCollectiblesChanged OnCollectiblesChanged;
+
+	/** 当显式武器选择变化时广播（装备、清空、移除、存档恢复）。  */
+	UPROPERTY(BlueprintAssignable, Category = "Lost Runic|Inventory|Weapon")
+	FLRInventorySelectedWeaponChanged OnSelectedWeaponChanged;
 
 private:
 	/** 数量为 0 时删除条目，并在被删除条目是当前显式武器时清空 SelectedWeaponItemId。 */

@@ -11,6 +11,7 @@
 #include "Core/LRGameplayTags.h"
 #include "Framework/LRCharacter.h"
 #include "Framework/LRPlayerController.h"
+#include "Interaction/LRInteractionComponent.h"
 #include "Items/LRItemActionComponent.h"
 #include "Narrative/LRDialogueSubsystem.h"
 #include "UI/LRDialogueWidgetController.h"
@@ -34,6 +35,9 @@ void ULRPlayerUIComponent::EndPlay(const EEndPlayReason::Type endPlayReason)
 	UnbindNarrative();
 	ItemSelectorTarget.Reset();
 	OwnerController.Reset();
+	bTransitionActive = false;
+	bDialogueActive = false;
+	bMenuActive = false;
 	Super::EndPlay(endPlayReason);
 }
 
@@ -93,6 +97,13 @@ void ULRPlayerUIComponent::HandleConfirm()
 			}
 		}
 	}
+	else if (controller->GetLRInputMode() == ELRInputMode::Menu)
+	{
+		if (ULRScreenWidget* screen = GetFocusableScreen())
+		{
+			screen->HandleUICommand(ELRUICommand::Confirm);
+		}
+	}
 }
 
 /**
@@ -117,25 +128,26 @@ void ULRPlayerUIComponent::HandleCancel()
 	}
 	else if (controller->GetLRInputMode() == ELRInputMode::Menu)
 	{
-		CloseMenuScreen();
+		ULRScreenWidget* screen = GetFocusableScreen();
+		if (!screen || !screen->HandleUICommand(ELRUICommand::Cancel))
+		{
+			CloseMenuScreen();
+		}
 	}
 }
 
 /**
- * @brief 处理 Handle Open Journal 事件，将引擎回调转换为对应领域状态更新。
+ * @brief 处理 Handle Open Inventory 事件：仅在 Gameplay 模式打开统一菜单背包页；菜单已打开时不处理（不关闭菜单）。
  */
-void ULRPlayerUIComponent::HandleOpenJournal()
+void ULRPlayerUIComponent::HandleOpenInventory()
 {
 	if (const ALRPlayerController* controller = OwnerController.Get())
 	{
 		if (controller->GetLRInputMode() == ELRInputMode::Gameplay)
 		{
-			OpenMenuScreen(ELRScreenType::Journal);
+			OpenMenuScreen(ELRScreenType::Inventory);
 		}
-		else if (controller->GetLRInputMode() == ELRInputMode::Menu)
-		{
-			CloseMenuScreen();
-		}
+		// 菜单已打开或其他输入层激活时不处理；I 不加入 Menu Context，因此不能用于关闭菜单。
 	}
 }
 
@@ -158,21 +170,87 @@ void ULRPlayerUIComponent::HandlePause()
 }
 
 /**
+ * @brief 处理 Handle Navigate 事件：方向导航交给当前可聚焦 Screen（Slate Navigation 元数据）。
+ * @param direction 本次输入、状态更新或测试使用的值；二维输入只取绝对值较大的轴。
+ */
+void ULRPlayerUIComponent::HandleNavigate(const FVector2D& direction)
+{
+	const ALRPlayerController* controller = OwnerController.Get();
+	if (!controller || controller->GetLRInputMode() != ELRInputMode::Menu)
+	{
+		return;
+	}
+	if (ULRScreenWidget* screen = GetFocusableScreen())
+	{
+		screen->HandleNavigate(direction);
+	}
+}
+
+/**
+ * @brief 处理 Handle Previous Tab 事件：切换统一菜单上一页。
+ */
+void ULRPlayerUIComponent::HandlePreviousTab()
+{
+	const ALRPlayerController* controller = OwnerController.Get();
+	if (!controller || controller->GetLRInputMode() != ELRInputMode::Menu)
+	{
+		return;
+	}
+	if (ULRScreenWidget* screen = GetFocusableScreen())
+	{
+		screen->HandleUICommand(ELRUICommand::PreviousTab);
+	}
+}
+
+/**
+ * @brief 处理 Handle Next Tab 事件：切换统一菜单下一页。
+ */
+void ULRPlayerUIComponent::HandleNextTab()
+{
+	const ALRPlayerController* controller = OwnerController.Get();
+	if (!controller || controller->GetLRInputMode() != ELRInputMode::Menu)
+	{
+		return;
+	}
+	if (ULRScreenWidget* screen = GetFocusableScreen())
+	{
+		screen->HandleUICommand(ELRUICommand::NextTab);
+	}
+}
+
+/**
+ * @brief 处理 Handle UI Primary Action 事件：对当前 UI 条目执行主要业务动作（本界面为装备焦点武器）。
+ */
+void ULRPlayerUIComponent::HandleUIPrimaryAction()
+{
+	const ALRPlayerController* controller = OwnerController.Get();
+	if (!controller || controller->GetLRInputMode() != ELRInputMode::Menu)
+	{
+		return;
+	}
+	if (ULRScreenWidget* screen = GetFocusableScreen())
+	{
+		screen->HandleUICommand(ELRUICommand::PrimaryAction);
+	}
+}
+
+/**
  * @brief 打开指定背包、笔记、收藏、暂停或存档页面，并切换到 Menu 输入上下文。
  * @param screen 本次操作使用的 `screen` 枚举或模式值。
  */
 void ULRPlayerUIComponent::OpenMenuScreen(const ELRScreenType screen)
 {
 	ALRPlayerController* controller = OwnerController.Get();
-	if (!controller || controller->GetLRInputMode() == ELRInputMode::Dialogue || screen == ELRScreenType::None)
+	if (!controller || screen == ELRScreenType::None || GetComputedInputMode() != ELRInputMode::Gameplay)
 	{
 		return;
 	}
 	if (ALRHUD* hud = GetLRHUD())
 	{
 		hud->ShowMenu(screen, true);
-		controller->SetLRInputMode(ELRInputMode::Menu);
 	}
+	bMenuActive = true;
+	ApplyArbitratedInputMode();
 }
 
 /**
@@ -182,7 +260,7 @@ void ULRPlayerUIComponent::OpenMenuScreen(const ELRScreenType screen)
 void ULRPlayerUIComponent::OpenItemSelector(AActor* target)
 {
 	ALRPlayerController* controller = OwnerController.Get();
-	if (!controller || !target || controller->GetLRInputMode() != ELRInputMode::Gameplay)
+	if (!controller || !target || GetComputedInputMode() != ELRInputMode::Gameplay)
 	{
 		return;
 	}
@@ -191,12 +269,11 @@ void ULRPlayerUIComponent::OpenItemSelector(AActor* target)
 }
 
 /**
- * @brief 关闭当前菜单层并恢复 Gameplay 输入上下文，同时抑制切换时仍按住的按键。
+ * @brief 关闭当前菜单层并恢复仍然有效的下层输入上下文，同时抑制切换时仍按住的按键。
  */
 void ULRPlayerUIComponent::CloseMenuScreen()
 {
-	ALRPlayerController* controller = OwnerController.Get();
-	if (!controller || controller->GetLRInputMode() != ELRInputMode::Menu)
+	if (!bMenuActive)
 	{
 		return;
 	}
@@ -205,7 +282,8 @@ void ULRPlayerUIComponent::CloseMenuScreen()
 		hud->ShowMenu(ELRScreenType::None, false);
 	}
 	ItemSelectorTarget.Reset();
-	controller->SetLRInputMode(ELRInputMode::Gameplay);
+	bMenuActive = false;
+	ApplyArbitratedInputMode();
 }
 
 /**
@@ -224,6 +302,98 @@ FLRItemUseResult ULRPlayerUIComponent::UseInventoryItem(const FName itemId) cons
 	AActor* target = ItemSelectorTarget.IsValid() ? ItemSelectorTarget.Get()
 		: character->GetInteractionComponent()->GetCurrentTarget();
 	return character->GetItemActionComponent()->RequestUseItem(itemId, target);
+}
+
+/**
+ * @brief 启用或关闭 Transition 输入层；关闭后恢复仍然有效的下层（Dialogue > Menu > Gameplay）。
+ * @param bActive 布尔开关 `bActive`；true 表示启用或条件成立，false 表示禁用或条件不成立。
+ */
+void ULRPlayerUIComponent::SetTransitionLayer(const bool bActive)
+{
+	if (bTransitionActive == bActive)
+	{
+		return;
+	}
+	bTransitionActive = bActive;
+	ApplyArbitratedInputMode();
+}
+
+/**
+ * @brief 启用或关闭 Dialogue 输入层；关闭后恢复仍然有效的下层（Menu > Gameplay）。
+ * @param bActive 布尔开关 `bActive`；true 表示启用或条件成立，false 表示禁用或条件不成立。
+ */
+void ULRPlayerUIComponent::SetDialogueLayer(const bool bActive)
+{
+	if (bDialogueActive == bActive)
+	{
+		return;
+	}
+	bDialogueActive = bActive;
+	ApplyArbitratedInputMode();
+}
+
+/**
+ * @brief 启用或关闭 Menu 输入层；关闭后恢复仍然有效的下层（Gameplay）。
+ * @param bActive 布尔开关 `bActive`；true 表示启用或条件成立，false 表示禁用或条件不成立。
+ */
+void ULRPlayerUIComponent::SetMenuLayer(const bool bActive)
+{
+	if (bMenuActive == bActive)
+	{
+		return;
+	}
+	bMenuActive = bActive;
+	ApplyArbitratedInputMode();
+}
+
+/**
+ * @brief 按 Transition > Dialogue > Menu > Gameplay 计算唯一有效输入层。
+ * @param bTransitionActive 布尔开关 `bTransitionActive`；true 表示启用或条件成立，false 表示禁用或条件不成立。
+ * @param bDialogueActive 布尔开关 `bDialogueActive`；true 表示启用或条件成立，false 表示禁用或条件不成立。
+ * @param bMenuActive 布尔开关 `bMenuActive`；true 表示启用或条件成立，false 表示禁用或条件不成立。
+ * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+ */
+ELRInputMode ULRPlayerUIComponent::ComputeEffectiveInputMode(const bool bTransitionActive, const bool bDialogueActive, const bool bMenuActive)
+{
+	if (bTransitionActive)
+	{
+		return ELRInputMode::Transition;
+	}
+	if (bDialogueActive)
+	{
+		return ELRInputMode::Dialogue;
+	}
+	if (bMenuActive)
+	{
+		return ELRInputMode::Menu;
+	}
+	return ELRInputMode::Gameplay;
+}
+
+/**
+ * @brief 查询当前仲裁结果；不修改领域状态。
+ * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+ */
+ELRInputMode ULRPlayerUIComponent::GetComputedInputMode() const
+{
+	return ComputeEffectiveInputMode(bTransitionActive, bDialogueActive, bMenuActive);
+}
+
+/**
+ * @brief 把仲裁出的唯一输入层应用到 Controller；只在值变化时调用 SetLRInputMode。
+ */
+void ULRPlayerUIComponent::ApplyArbitratedInputMode()
+{
+	ALRPlayerController* controller = OwnerController.Get();
+	if (!controller)
+	{
+		return;
+	}
+	const ELRInputMode effective = GetComputedInputMode();
+	if (controller->GetLRInputMode() != effective)
+	{
+		controller->SetLRInputMode(effective);
+	}
 }
 
 /**
@@ -267,10 +437,8 @@ void ULRPlayerUIComponent::HandleNarrativePageChanged(const FLRNarrativePage pag
 	{
 		hud->ShowNarrative(true);
 	}
-	if (ALRPlayerController* controller = OwnerController.Get())
-	{
-		controller->SetLRInputMode(ELRInputMode::Dialogue);
-	}
+	bDialogueActive = true;
+	ApplyArbitratedInputMode();
 }
 
 /**
@@ -284,10 +452,8 @@ void ULRPlayerUIComponent::HandleNarrativeSessionEnded(const ELRNarrativeSession
 	{
 		hud->ShowNarrative(false);
 	}
-	if (ALRPlayerController* controller = OwnerController.Get(); controller && controller->GetLRInputMode() == ELRInputMode::Dialogue)
-	{
-		controller->SetLRInputMode(ELRInputMode::Gameplay);
-	}
+	bDialogueActive = false;
+	ApplyArbitratedInputMode();
 }
 
 /**
@@ -298,6 +464,17 @@ ALRHUD* ULRPlayerUIComponent::GetLRHUD() const
 {
 	const ALRPlayerController* controller = OwnerController.Get();
 	return controller ? controller->GetHUD<ALRHUD>() : nullptr;
+}
+
+/**
+ * @brief 查询当前输入层对应的可聚焦 Screen；不修改领域状态。
+ * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+ */
+ULRScreenWidget* ULRPlayerUIComponent::GetFocusableScreen() const
+{
+	const ALRHUD* hud = GetLRHUD();
+	const ALRPlayerController* controller = OwnerController.Get();
+	return hud && controller ? hud->GetFocusableScreen(controller->GetLRInputMode()) : nullptr;
 }
 
 /**

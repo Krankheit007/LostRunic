@@ -17,6 +17,7 @@
 #include "Narrative/LRDialogueSubsystem.h"
 #include "UI/LRDialogueWidgetController.h"
 #include "UI/LRHUDWidgetController.h"
+#include "UI/LRInventoryScreenWidget.h"
 #include "UI/LRMenuWidgetController.h"
 #include "UI/LRScreenWidget.h"
 #include "UI/LRTransitionWidgetController.h"
@@ -72,6 +73,8 @@ void ALRHUD::InitializeForController(ALRPlayerController* playerController)
 		TransitionController = NewObject<ULRTransitionWidgetController>(this);
 		TransitionController->OnTransitionVisibilityChanged.AddDynamic(this, &ALRHUD::HandleTransitionVisibilityChanged);
 	}
+	// 菜单控制器绑定库存与内容定义；Possess 尚未发生时在此尽力绑定，SetObservedCharacter 会兜底。
+	BindMenuControllerToCharacter(playerController);
 	if (!HUDScreenClass)
 	{
 		HUDScreenClass = GetDefault<ULRProjectSettings>()->HUDScreenClass.LoadSynchronous();
@@ -81,6 +84,11 @@ void ALRHUD::InitializeForController(ALRPlayerController* playerController)
 		UE_LOG(LogLostRunicUI, Warning, TEXT("HUD=%s has no HUDScreenClass; no HUD screen will be created."), *GetNameSafe(this));
 	}
 	CreateScreens(playerController);
+	// 统一菜单 Screen 注入菜单控制器：页面变化与快照变化直接由 Widget 消费。
+	if (ULRInventoryScreenWidget* inventoryScreen = Cast<ULRInventoryScreenWidget>(GetScreen(ELRScreenType::Inventory)))
+	{
+		inventoryScreen->SetMenuWidgetController(MenuController);
+	}
 	SetObservedCharacter(Cast<ALRCharacter>(playerController->GetPawn()));
 	SetScreenVisible(ELRScreenType::HUD, true);
 	SetScreenVisible(ELRScreenType::StateOverlay, true);
@@ -96,6 +104,49 @@ void ALRHUD::SetObservedCharacter(ALRCharacter* character)
 	{
 		HUDController->SetObservedCharacter(character);
 	}
+	if (MenuController && character && !MenuController->GetInventory())
+	{
+		MenuController->Initialize(character->GetInventoryComponent(), GetContentSet(), GetUITuning());
+	}
+}
+
+/**
+ * @brief 尽力把菜单控制器绑定到角色库存；Possess 未发生时 Inventory 为空，SetObservedCharacter 会兜底完成绑定。
+ * @param playerController 参与本次操作的运行时对象 `playerController`；函数会检查空值和所需接口。
+ */
+void ALRHUD::BindMenuControllerToCharacter(ALRPlayerController* playerController)
+{
+	if (!MenuController || MenuController->GetInventory())
+	{
+		return;
+	}
+	if (ALRCharacter* character = Cast<ALRCharacter>(playerController ? playerController->GetPawn() : nullptr))
+	{
+		MenuController->Initialize(character->GetInventoryComponent(), GetContentSet(), GetUITuning());
+	}
+}
+
+/**
+ * @brief 查询当前内容集；不修改领域状态。
+ * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+ */
+ULRGameContentSet* ALRHUD::GetContentSet() const
+{
+	const ULRGameInstanceSubsystem* dataSubsystem = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<ULRGameInstanceSubsystem>() : nullptr;
+	return dataSubsystem ? dataSubsystem->GetContentSet() : nullptr;
+}
+
+/**
+ * @brief 查询当前 UI 调优；不修改领域状态。
+ * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+ */
+ULRUITuning* ALRHUD::GetUITuning() const
+{
+	const ULRGameInstanceSubsystem* dataSubsystem = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<ULRGameInstanceSubsystem>() : nullptr;
+	const ULRGameTuningSet* tuningSet = dataSubsystem ? dataSubsystem->GetTuningSet() : nullptr;
+	return tuningSet ? tuningSet->UI : nullptr;
 }
 
 /**
@@ -244,15 +295,15 @@ void ALRHUD::HideMenuScreens()
 }
 
 /**
- * @brief 处理统一菜单 Tab 切换：显示单个菜单 Widget 并触发 OnMenuTabChanged。
+ * @brief 处理统一菜单 Tab 切换：显示统一菜单 Widget 并调用 Inventory Screen 的 SetActiveTab。
  * @param tab 本次操作使用的 `tab` 枚举或模式值。
  */
 void ALRHUD::ShowMenuTab(const ELRScreenType tab)
 {
-	if (ULRScreenWidget* menuWidget = GetScreen(ELRScreenType::Inventory))
+	if (ULRInventoryScreenWidget* inventoryScreen = Cast<ULRInventoryScreenWidget>(GetScreen(ELRScreenType::Inventory)))
 	{
-		menuWidget->SetScreenVisible(true);
-		menuWidget->OnMenuTabChanged(tab);
+		inventoryScreen->SetScreenVisible(true);
+		inventoryScreen->SetActiveTab(tab);
 	}
 }
 

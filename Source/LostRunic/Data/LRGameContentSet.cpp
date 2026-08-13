@@ -13,6 +13,7 @@
 #include "Data/LRItemDefinition.h"
 #include "Data/LRLevelEventDefinition.h"
 #include "Engine/DataTable.h"
+#include "Items/LRInventoryComponent.h"
 #if WITH_EDITOR
 #include "Misc/DataValidation.h"
 #endif
@@ -72,7 +73,14 @@ namespace
 	 */
 	bool ValidateReadingTable(const UDataTable* readingTable, FString& outError)
 	{
-		for (const FName rowName : readingTable->GetRowNames())
+		const TArray<FName> rowNames = readingTable->GetRowNames();
+		if (!ULRGameContentSet::IsReadingCapacityWithinLimits(rowNames.Num()))
+		{
+			outError = FString::Printf(TEXT("ReadingTable has %d rows; menu supports at most %d notes."),
+				rowNames.Num(), LRMenuCapacity::Notes);
+			return false;
+		}
+		for (const FName rowName : rowNames)
 		{
 			const FLRReadingRow* row = readingTable->FindRow<FLRReadingRow>(rowName, TEXT("Validate reading"));
 			if (!row || row->ReadingId.IsNone() || row->ReadingId != rowName)
@@ -80,6 +88,23 @@ namespace
 				outError = FString::Printf(TEXT("Reading row '%s' must have a matching, non-empty ReadingId."), *rowName.ToString());
 				return false;
 			}
+		}
+		return true;
+	}
+
+	/**
+	 * @brief 校验收藏品定义数量不超过菜单容量；共享命名限制为 12 件。
+	 * @param collectibles 数据或调优来源 `collectibles`；调用期间只读，并按稳定 ID 解析内容。
+	 * @param outError 输出校验失败原因；成功时保持为空。
+	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+	 */
+	bool ValidateCollectibleCapacity(const TArray<TObjectPtr<ULRCollectibleDefinition>>& collectibles, FString& outError)
+	{
+		if (!ULRGameContentSet::IsCollectibleCapacityWithinLimits(collectibles.Num()))
+		{
+			outError = FString::Printf(TEXT("Collectibles has %d definitions; menu supports at most %d."),
+				collectibles.Num(), LRMenuCapacity::Collectibles);
+			return false;
 		}
 		return true;
 	}
@@ -147,6 +172,7 @@ bool ULRGameContentSet::Validate(FString& outError) const
 		|| !ValidateDefinitionIds(Items, [](const ULRItemDefinition& definition) -> FName { return definition.ItemId; }, TEXT("Items"), outError)
 		|| !ValidateDefinitionIds(Collectibles,
 			[](const ULRCollectibleDefinition& definition) -> FName { return definition.CollectibleId; }, TEXT("Collectibles"), outError)
+		|| !ValidateCollectibleCapacity(Collectibles, outError)
 		|| !ValidateDefinitionIds(Guards, [](const ULRGuardDefinition& definition) -> FName { return definition.GuardId; }, TEXT("Guards"), outError))
 	{
 		return false;
@@ -164,6 +190,26 @@ bool ULRGameContentSet::Validate(FString& outError) const
 	}
 
 	return true;
+}
+
+/**
+ * @brief 共享命名容量契约：ReadingTable 行数（笔记）不超过 12；供编辑器校验与测试直接断言规则。
+ * @param readingRowCount 本次操作使用的计数、增量或索引 `readingRowCount`；由函数校验合法范围。
+ * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+ */
+bool ULRGameContentSet::IsReadingCapacityWithinLimits(const int32 readingRowCount)
+{
+	return readingRowCount <= LRMenuCapacity::Notes;
+}
+
+/**
+ * @brief 共享命名容量契约：收藏品定义数不超过 12；供编辑器校验与测试直接断言规则。
+ * @param collectibleCount 本次操作使用的计数、增量或索引 `collectibleCount`；由函数校验合法范围。
+ * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+ */
+bool ULRGameContentSet::IsCollectibleCapacityWithinLimits(const int32 collectibleCount)
+{
+	return collectibleCount <= LRMenuCapacity::Collectibles;
 }
 
 /**

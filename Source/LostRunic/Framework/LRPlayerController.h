@@ -91,6 +91,10 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Lost Runic|Input")
 	FLRInputModeChanged OnInputModeChanged;
 
+	/** Returns the PlayerUI component; the sole owner of UI input layer arbitration. */
+	UFUNCTION(BlueprintPure, Category = "Lost Runic|UI")
+	ULRPlayerUIComponent* GetPlayerUI() const { return PlayerUI; }
+
 protected:
 	/** Input Config 的领域数据，由所属类型负责维护和校验。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
@@ -147,13 +151,30 @@ private:
 	 */
 	void HandleCancel();
 	/**
-	 * @brief 处理 Handle Open Journal 事件，将引擎回调转换为对应领域状态更新。
+	 * @brief 处理 Handle Open Inventory 事件：仅在 Gameplay 模式打开统一菜单背包页；菜单已打开时不处理。
 	 */
-	void HandleOpenJournal();
+	void HandleOpenInventory();
 	/**
 	 * @brief 处理 Handle Pause 事件，将引擎回调转换为对应领域状态更新。
 	 */
 	void HandlePause();
+	/**
+	 * @brief 处理 Handle Navigate 事件：方向导航交给 PlayerUIComponent 路由到当前可聚焦 Screen。
+	 * @param value 本次输入、状态更新或测试使用的值。
+	 */
+	void HandleNavigate(const FInputActionValue& value);
+	/**
+	 * @brief 处理 Handle Previous Tab 事件：切换统一菜单上一页。
+	 */
+	void HandlePreviousTab();
+	/**
+	 * @brief 处理 Handle Next Tab 事件：切换统一菜单下一页。
+	 */
+	void HandleNextTab();
+	/**
+	 * @brief 处理 Handle UI Primary Action 事件：对当前 UI 条目执行主要业务动作（本界面为装备焦点武器）。
+	 */
+	void HandleUIPrimaryAction();
 	/**
 	 * @brief 执行 Resolve Context 的纯规则或事务判定，失败时提供结构化原因。
 	 * @param mode 本次操作使用的 `mode` 枚举或模式值。

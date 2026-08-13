@@ -299,3 +299,91 @@
 5. 验证武器：Courage 状态下攻击守卫触发击退，非 Courage 状态返回“当前无法攻击”；消耗最后一把一次性武器后 `SelectedWeaponItemId` 清空，攻击自动回退到最早获得的武器。
 6. 验证背包已满：对 `MaxStackSize` 已满的物品重复拾取，Actor 不消失且显示“物品已满！”。
 7. 验证菜单 Tab：背包/笔记/收集品切换正确，`OnMenuTabChanged` 事件生效，关闭后恢复 Gameplay 输入且无幽灵输入。
+
+## 背包、笔记、收藏品 UI 与通用 UI 输入（2026-08-13）
+
+- 状态：`C++ 已编译、自动化测试通过；蓝图主体已装配，剩余 3 项手工 Designer/编辑器步骤见下方`
+- 核心代码：`ULRScreenWidget`、`ULRInventoryScreenWidget`、`ULRMenuWidgetController`、`ULRPlayerUIComponent`、`ALRPlayerController`、`ULRInputConfig`
+- 统一菜单资产：`/Game/LostRunic/UI/WBP_Inventory`（**已重设父类为 `ULRInventoryScreenWidget`**）
+- 输入资产：`IA_LRNavigate`（Axis2D）、`IA_LRPreviousTab`、`IA_LRNextTab`、`IA_LRUIPrimary`（Bool），映射写入 `IMC_LRMenu`；`DA_LRInputConfig` 已分配四个新槽位并修复 `AttackAction`（指向 `IA_LRUseQuickSlot`）
+- 验证记录：2026-08-13 `LostRunicEditor Win64 Development` 编译通过；`Automation RunTests LostRunic` 除 `LostRunic.Input.ProjectConfigIsComplete` 外全部通过（该测试随 `DA_LRInputConfig` 配置完成已恢复）
+
+### 输入链路与资产
+
+1. 输入链路：Enhanced Input → `ALRPlayerController` → `ULRPlayerUIComponent` → `ALRHUD.GetFocusableScreen()` → `ULRScreenWidget` → 具体 Screen。Controller、PlayerUIComponent 和 Screen 基类不出现 Inventory 类型判断。
+2. 输入层仲裁：`ULRPlayerUIComponent` 维护 Transition/Dialogue/Menu 三层开关，按 Transition > Dialogue > Menu > Gameplay 计算唯一有效模式；Save 子系统经 `SetTransitionLayer`、叙事经 `SetDialogueLayer`、菜单经 `SetMenuLayer` 请求，关闭高层后恢复仍然有效的下层。`ALRPlayerController.SetLRInputMode` 只执行仲裁结果（先清空 Mapping Context 再添加唯一目标 Context，并设置 `bIgnoreAllPressedKeysUntilRelease`）。
+3. `IMC_LRMenu` 映射（已配置）：`IA_LRNavigate` ← W/A/S/D、方向键、DPad×4、`Gamepad_Left2D`；`IA_LRConfirm` ← E、`Gamepad_FaceButton_Bottom`；`IA_LRCancel` ← Escape、`Gamepad_FaceButton_Right`；`IA_LRPreviousTab`/`IA_LRNextTab` ← `Gamepad_Shoulder_Left`/`Right`；`IA_LRUIPrimary` ← `Gamepad_FaceButton_Top`（与 Gameplay 攻击键一致，菜单中 Y 只装备不攻击）。
+4. `DA_LRInputConfig` 新增必填校验：`NavigateAction`、`PreviousTabAction`、`NextTabAction`、`UIPrimaryAction` 缺失时 `Validate` 失败。
+
+### 统一菜单（WBP_Inventory）蓝图配置
+
+1. **父类**：`ULRInventoryScreenWidget`（重设父类时 UMG 自动匹配 63 个 BindWidget，无需改名）。
+2. **Tab 按钮**：`Bag`/`Note`/`Col` 的 `OnClicked` 已绑定 `SetActiveTab`（分别传 `Inventory`/`Journal`/`Collectibles` 枚举）；旧的 `Content.SetActiveWidgetIndex` 自定义事件实现已删除。不再使用基类 `OnMenuTabChanged`。
+3. **详情文本**：`Bag_Item_Name`、`Bag_Item_Info`、`Note_Name_T`、`Note_Info_T`、`Col_Name_T`、`Col_Info_T` 由 C++ 在快照刷新/选择变化时直接 `SetText`（缓存 getter `GetCachedBagName` 等仍保留）。**手工步骤 A（必做）**：在 WBP_Inventory 编辑器中清除这 6 个 TextBlock 的 Text 绑定（Text 属性旁绑定图标 → 清除绑定），否则蓝图编译报 `TextDelegate 绑定 'None'` 错误；UMG 的绑定记录（`UWidgetBlueprint.Bindings`）无法经 MCP 脚本化修改。
+4. **运行时槽位状态**：空槽清空 Brush 并 Disabled、武器标识（`Bag_Weapon_1~8`）只显示 `SelectedWeaponItemId` 槽位、`Choose_Weapon_BTN` 仅在选中武器时显示并启用——全部由 C++ `RefreshBag`/`UpdateEquipButton` 管理；Designer 默认状态（Collapsed/Disabled）为可选优化。
+5. **手工步骤 B（必做）**：在 WBP_Inventory Designer 中配置三个固定布局的 UMG Navigation 元数据：背包 4×2（第 1/5 格边界、Wrap 或 Stop 按设计）、笔记 1×12（上下 Wrap，右方向 Explicit 到 `Note_Roll` 滚动区）、收藏品 4×3（Wrap）；`Note_Roll` 设 `Is Focusable=true`。C++ 侧 `ULRScreenWidget.HandleNavigate` 只调用 `FSlateApplication::NavigateFromWidget`，Designer 配置的 Stop/Wrap/Explicit/Custom/CustomBoundary 是唯一方向导航权威；C++ 不实现第二套几何寻路。
+6. **手工步骤 C（推荐）**：在 `IMC_LRMenu` 编辑器中给 `Gamepad_Left2D` 映射添加 `InputModifierDeadZone` 修饰符（死区约 0.2）；MCP 无法实例化 IMC 内的 instanced 修饰符子对象。
+
+### 快照与容量契约
+
+- `FLRInventorySnapshot` 是只读 UI View Model：`Items`（含 Icon）、`Notes`（含 Locked 占位）、`Collectibles`（含 Locked 剪影占位）、`SelectedWeaponItemId`、`EffectiveWeaponItemId`、`bIsValid`。Widget 只消费快照，动作一律回到 `ULRInventoryComponent`。
+- 排序固定：背包按 `AcquisitionSequence` 再按 `ItemId`；笔记按 `ReadingId` 字典序；收藏品按 `DisplayOrder` 再按 `CollectibleId`。
+- 容量契约（开发期，非截断）：Bag 8 / Note 12 / Collectible 12。第九种独立物品由 `AddItem` 返回 `InventoryFull`；`ULRGameContentSet` 校验拒绝 13 条阅读行/13 件收藏品；快照越界 `ensureAlwaysMsgf` + `bIsValid=false` 让 UI fail closed。
+- Locked 视图不泄露内容：笔记只暴露 `ReadingId`、`bUnlocked=false` 和“？？？”；收藏品只暴露稳定 ID、剪影图和解锁标记。剪影来源：`ULRCollectibleDefinition.LockedIcon`，缺失时回退 `ULRUITuning.LockedCollectibleIcon` 共享剪影。
+- 领域事件：`OnInventoryChanged`、`OnNotesChanged`、`OnCollectiblesChanged`、`OnSelectedWeaponChanged`；`ULRMenuWidgetController` 菜单关闭期间只标记 dirty，打开或可见期间收到事件才重建并广播 `OnSnapshotChanged`。
+
+### L_Home 统一菜单 PIE 验收步骤
+
+0. 完成上述手工步骤 A/B/C，编译并保存 `WBP_Inventory`。
+1. 验证打开/关闭：`Tab`（键盘）/DPad-Up（手柄）打开日志/背包页，`Escape`/B 关闭；关闭后清空各 Tab 焦点索引与选择 ID，恢复 Gameplay 输入且无幽灵输入。
+2. 验证导航（键鼠 WASD/方向键、手柄 DPad/左摇杆）：背包 4×2 跨行/边界/Wrap；`Enabled -> Disabled -> Enabled` 由原生 UMG/Slate 正确跳过；笔记 1×12 上下滚动，右方向进入 `Note_Roll`，Up/Down 按 `ULRUITuning.NoteScrollStep` 步长滚动，Left 返回 `LastNoteIndex`；收藏品 4×3 与 Wrap。
+3. 验证焦点恢复：Tab 内首次打开聚焦第一个 Enabled 条目；会话内切换 Tab 恢复上次索引；槽位被 Disabled/快照刷新后焦点不卡死；全 Disabled 时聚焦 Screen 自身。
+4. 验证选择与详情：Confirm（E/A）或鼠标点击槽位更新右侧详情；仅移动焦点不改详情；选择武器显示 `Choose_Weapon_BTN`，选择非武器/切 Tab/关闭菜单隐藏。
+5. 验证装备：`UIPrimaryAction`（Y）装备当前焦点武器；`Choose_Weapon_BTN` 装备已确认武器；装备后 `Bag_Weapon_N` 标识只出现在 `SelectedWeaponItemId` 槽位；菜单中 Y 不触发攻击，关闭菜单后攻击恢复。
+6. 验证 Locked：未读笔记显示“？？？”且不可选；未收集收藏品显示剪影且不可选；已读/已收集后解锁显示真实内容。
+7. 验证容量：背包满时拾取第 9 种物品显示“物品已满！”；ContentSet 超过 12 条笔记/收藏品时 Data Validation 报错。
+8. 验证输入模式优先级：对话中打开菜单被拒绝；过场（Transition）期间菜单输入被屏蔽；Transition 结束后恢复对话/菜单层而不是无条件回 Gameplay。
+9. Output Log 不允许出现 BindWidget、输入 Context、Focus、Navigation、容量或资源加载警告。
+
+## 统一菜单打开语义与测试环境（2026-08-13 修订）
+
+- 状态：`已验证（L_PIE_Test 冒烟）`
+- 变更：打开统一菜单的语义从 `OpenJournalAction`（Tab 打开日志页、菜单中再按关闭）迁移为 `OpenInventoryAction`（固定打开背包页）。
+
+### 输入语义（最终确定）
+
+| 输入 | 行为 |
+| --- | --- |
+| `I`（键盘）/ `DPad-Up`（手柄） | 仅从 Gameplay 打开统一菜单背包页；菜单已打开或其他输入层激活时不处理（`I` 不加入 Menu Context，不能用于关闭菜单）。 |
+| `Tab`（菜单内） | `NextTabAction` 循环切换下一页：背包 -> 笔记 -> 收藏品 -> 背包。 |
+| `Escape` / `B` | 关闭菜单并恢复 Gameplay 输入。 |
+| `LB` / `RB` | 上一页 / 下一页（与 Tab 同语义）。 |
+
+### API 与资产迁移
+
+1. `ULRInputConfig::OpenJournalAction` 迁移为 `OpenInventoryAction`；旧属性保留 `DeprecatedProperty` 标记，序列化经 `DefaultEngine.ini` 的 `[CoreRedirects] +PropertyRedirects` 自动迁移到新属性（实测加载后 `OpenInventoryAction` 自动指向 `IA_LROpenInventory`）。
+2. 输入资产 `IA_LROpenJournal` 重命名为 `IA_LROpenInventory`（AssetTools 重命名自动更新引用），不新增第二套菜单打开动作。
+3. `IMC_LRGameplay`：移除 `Tab -> OpenInventory`，新增 `I -> OpenInventory`，保留 `Gamepad_DPad_Up -> OpenInventory`；其余映射不变。
+4. `IMC_LRMenu`：新增 `Tab -> NextTabAction`（LB/RB 保留）；`Gamepad_Left2D` 已带 `InputModifierDeadZone` 死区修饰符（约 0.2）。
+5. 焦点守卫：`ULRInventoryScreenWidget::ApplyTabNavigationGuard` 在初始化时对所有可聚焦控件（Tab 按钮 3 + 背包 8 + 装备 1 + 笔记 12 + 收藏品 12）设置 Slate `Next/Previous` 导航为 `Stop`——Tab 键只由 `NextTabAction` 消费切页，不触发默认焦点遍历；方向键/WASD 的网格导航规则不变。
+
+### 失败保护
+
+- 菜单打开目标固定为 `ELRScreenType::Inventory`；`I` 在 Menu/Dialogue/Transition 层均不处理（只检查 Gameplay）。
+- 菜单内 `Tab` 只切页；若 `NextTabAction` 未配置或绑定缺失，`HandleUICommand` 返回未处理，焦点保持不动（Slate Stop 规则兜底）。
+- 序列化迁移失败（旧资产无引用）时 `ULRInputConfig::Validate` 报 `UI, gameplay, and attack actions are required`，控制器不绑定输入并 ensure 提示。
+
+### 测试环境（AGENTS.md 同步）
+
+- 所有通用手动 PIE、UI、输入和功能冒烟默认使用 `/Game/LostRunic/Levels/PIE_Test/L_PIE_Test`；不得为测试打开/修改/摆放无关正式关卡。
+- 测试分级：Bug 修复（测试关卡复现 + 已有精准测试）；新功能/共享框架/发布候选分别升级为定向、跨系统、全量测试。
+
+### PIE 验收结果（2026-08-13，L_PIE_Test）
+
+1. `I` 打开背包页并生成可见 `WBP_Inventory` 实例（Slate 文本检测确认）。
+2. 菜单打开后 `I` 再按无动作（菜单保持）。
+3. `Tab` 按顺序循环背包、笔记、收藏品，焦点不额外跳转（两次完整循环无 Focus/Navigation 警告）。
+4. `Escape` 关闭后可用 `I` 重新打开（两次独立 PIE 循环均通过）。
+5. Output Log 无菜单创建、Widget 编译、焦点或输入上下文警告。
+6. 菜单打开后角色不能移动（Gameplay Context 移除 + Handler 防御）与鼠标可见（`ConfigureViewportInput(Menu)`）由架构保证，`LostRunic.UI.InputLayerPriorityAndRestore` 自动化测试覆盖层切换。
+7. 手柄路径（`DPad-Up` 打开、`LB`/`RB` 切页）由 `LostRunic.Input.InventoryOpenMappings` 自动化测试断言映射，PIE 手柄实测留待发布验收。

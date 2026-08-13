@@ -92,6 +92,12 @@ public:
 	 */
 	ULRTransitionWidgetController* GetTransitionController() const { return TransitionController; }
 
+	/**
+	 * @brief 查询统一菜单 Screen 类；权威配置在 HUD 蓝图默认值，自动化测试用于断言其派生自 ULRInventoryScreenWidget。
+	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+	 */
+	TSubclassOf<ULRScreenWidget> GetMenuScreenClass() const { return MenuScreenClass; }
+
 protected:
 	/** HUDScreen Class 的软类或类默认引用，用于创建对应蓝图实例。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。 */
 	UPROPERTY(EditDefaultsOnly, Category = "Widgets")
@@ -144,6 +150,24 @@ private:
 	 * @brief 隐藏所有互斥菜单页面，确保同一时刻只有一个焦点目标。
 	 */
 	void HideMenuScreens();
+
+	/**
+	 * @brief 尽力把菜单控制器绑定到角色库存；Possess 未发生时 Inventory 为空，SetObservedCharacter 会兜底完成绑定。
+	 * @param playerController 参与本次操作的运行时对象 `playerController`；函数会检查空值和所需接口。
+	 */
+	void BindMenuControllerToCharacter(ALRPlayerController* playerController);
+
+	/**
+	 * @brief 查询当前内容集；不修改领域状态。
+	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+	 */
+	class ULRGameContentSet* GetContentSet() const;
+
+	/**
+	 * @brief 查询当前 UI 调优；不修改领域状态。
+	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+	 */
+	class ULRUITuning* GetUITuning() const;
 
 	/**
 	 * @brief 处理统一菜单 Tab 切换：显示单个菜单 Widget 并触发 OnMenuTabChanged。

@@ -101,6 +101,12 @@ ELRAddItemResult ULRInventoryComponent::AddItem(const FName itemId, const int32 
 	}
 	const ULRItemDefinition* definition = FindDefinition(itemId);
 	const int32 currentQuantity = GetItemCount(itemId);
+	if (!Entries.Contains(itemId) && Entries.Num() >= LRMenuCapacity::Bag)
+	{
+		UE_LOG(LogLostRunicInteraction, Warning, TEXT("Inventory=%s rejects new item=%s; distinct item capacity=%d reached."),
+			*GetNameSafe(GetOwner()), *itemId.ToString(), LRMenuCapacity::Bag);
+		return ELRAddItemResult::InventoryFull;
+	}
 	if (currentQuantity + count > definition->MaxStackSize)
 	{
 		UE_LOG(LogLostRunicInteraction, Warning, TEXT("Inventory=%s cannot add item=%s count=%d; current=%d max=%d."),
@@ -159,16 +165,23 @@ const FLRInventoryEntry* ULRInventoryComponent::FindEntry(const FName itemId) co
  */
 bool ULRInventoryComponent::SetSelectedWeapon(const FName itemId)
 {
+	const FName previous = GetSelectedWeapon();
 	if (itemId.IsNone())
 	{
 		SelectedWeaponItemId = NAME_None;
-		return true;
 	}
-	if (!IsWeapon(itemId))
+	else if (!IsWeapon(itemId))
 	{
 		return false;
 	}
-	SelectedWeaponItemId = itemId;
+	else
+	{
+		SelectedWeaponItemId = itemId;
+	}
+	if (GetSelectedWeapon() != previous)
+	{
+		OnSelectedWeaponChanged.Broadcast();
+	}
 	return true;
 }
 
@@ -223,7 +236,14 @@ bool ULRInventoryComponent::AddNoteId(const FName noteId)
 	{
 		return false;
 	}
+	if (NoteIds.Num() >= LRMenuCapacity::Notes)
+	{
+		UE_LOG(LogLostRunicInteraction, Warning, TEXT("Inventory=%s rejects note=%s; note capacity=%d reached."),
+			*GetNameSafe(GetOwner()), *noteId.ToString(), LRMenuCapacity::Notes);
+		return false;
+	}
 	NoteIds.Add(noteId);
+	OnNotesChanged.Broadcast();
 	return true;
 }
 
@@ -244,7 +264,14 @@ ELRAddCollectibleResult ULRInventoryComponent::AddCollectibleId(const FName coll
 	{
 		return ELRAddCollectibleResult::AlreadyOwned;
 	}
+	if (CollectibleIds.Num() >= LRMenuCapacity::Collectibles)
+	{
+		UE_LOG(LogLostRunicInteraction, Warning, TEXT("Inventory=%s rejects collectible=%s; collectible capacity=%d reached."),
+			*GetNameSafe(GetOwner()), *collectibleId.ToString(), LRMenuCapacity::Collectibles);
+		return ELRAddCollectibleResult::AtCapacity;
+	}
 	CollectibleIds.Add(collectibleId);
+	OnCollectiblesChanged.Broadcast();
 	return ELRAddCollectibleResult::Success;
 }
 
@@ -285,6 +312,31 @@ TArray<FName> ULRInventoryComponent::GetOwnedItemIds() const
 	}
 	itemIds.Sort(FNameLexicalLess());
 	return itemIds;
+}
+
+/**
+ * @brief 按获得顺序（AcquisitionSequence）再按 ItemId 返回持有条目，供统一菜单快照固定排序。
+ * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+ */
+TArray<FLRInventoryEntry> ULRInventoryComponent::GetOwnedEntriesOrdered() const
+{
+	TArray<FLRInventoryEntry> owned;
+	for (const TPair<FName, FLRInventoryEntry>& item : Entries)
+	{
+		if (item.Value.Quantity > 0)
+		{
+			owned.Add(item.Value);
+		}
+	}
+	owned.Sort([](const FLRInventoryEntry& a, const FLRInventoryEntry& b)
+	{
+		if (a.AcquisitionSequence != b.AcquisitionSequence)
+		{
+			return a.AcquisitionSequence < b.AcquisitionSequence;
+		}
+		return a.ItemId.LexicalLess(b.ItemId);
+	});
+	return owned;
 }
 
 /**
@@ -363,6 +415,9 @@ void ULRInventoryComponent::RestoreSaveState(const FLRSaveInventoryChunk& savedI
 	{
 		OnInventoryChanged.Broadcast(item.Key, item.Value.Quantity);
 	}
+	OnNotesChanged.Broadcast();
+	OnCollectiblesChanged.Broadcast();
+	OnSelectedWeaponChanged.Broadcast();
 }
 
 /**
@@ -398,6 +453,7 @@ void ULRInventoryComponent::RemoveEntry(const FName itemId)
 		if (SelectedWeaponItemId == itemId)
 		{
 			SelectedWeaponItemId = NAME_None;
+			OnSelectedWeaponChanged.Broadcast();
 		}
 		OnInventoryChanged.Broadcast(itemId, 0);
 	}

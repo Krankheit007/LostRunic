@@ -35,3 +35,6 @@
 Thumbs.db
 Desktop.ini
 
+
+# Git diff archives (never committed)
+/GitDiff/

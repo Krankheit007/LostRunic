@@ -9,6 +9,7 @@
 #include "Framework/LRPlayerController.h"
 
 #include "Framework/LRCharacter.h"
+#include "InputActionValue.h"
 #include "Interaction/LRInteractionComponent.h"
 #include "Items/LRInventoryComponent.h"
 #include "State/LRStateComponent.h"
@@ -72,13 +73,13 @@ void ALRPlayerController::HandleCancel()
 }
 
 /**
- * @brief 处理 Handle Open Journal 事件，将引擎回调转换为对应领域状态更新。
+ * @brief 处理 Handle Open Inventory 事件：仅在 Gameplay 模式打开统一菜单背包页；菜单已打开时不处理。
  */
-void ALRPlayerController::HandleOpenJournal()
+void ALRPlayerController::HandleOpenInventory()
 {
 	if (PlayerUI)
 	{
-		PlayerUI->HandleOpenJournal();
+		PlayerUI->HandleOpenInventory();
 	}
 }
 
@@ -90,6 +91,51 @@ void ALRPlayerController::HandlePause()
 	if (PlayerUI)
 	{
 		PlayerUI->HandlePause();
+	}
+}
+
+/**
+ * @brief 处理 Handle Navigate 事件：方向导航交给 PlayerUIComponent 路由到当前可聚焦 Screen。
+ * @param value 本次输入、状态更新或测试使用的值。
+ */
+void ALRPlayerController::HandleNavigate(const FInputActionValue& value)
+{
+	if (PlayerUI)
+	{
+		PlayerUI->HandleNavigate(value.Get<FVector2D>());
+	}
+}
+
+/**
+ * @brief 处理 Handle Previous Tab 事件：切换统一菜单上一页。
+ */
+void ALRPlayerController::HandlePreviousTab()
+{
+	if (PlayerUI)
+	{
+		PlayerUI->HandlePreviousTab();
+	}
+}
+
+/**
+ * @brief 处理 Handle Next Tab 事件：切换统一菜单下一页。
+ */
+void ALRPlayerController::HandleNextTab()
+{
+	if (PlayerUI)
+	{
+		PlayerUI->HandleNextTab();
+	}
+}
+
+/**
+ * @brief 处理 Handle UI Primary Action 事件：对当前 UI 条目执行主要业务动作（本界面为装备焦点武器）。
+ */
+void ALRPlayerController::HandleUIPrimaryAction()
+{
+	if (PlayerUI)
+	{
+		PlayerUI->HandleUIPrimaryAction();
 	}
 }
 

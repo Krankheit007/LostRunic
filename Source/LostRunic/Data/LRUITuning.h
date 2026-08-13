@@ -12,6 +12,8 @@
 
 #include "LRUITuning.generated.h"
 
+class UTexture2D;
+
 /** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
 UCLASS(BlueprintType, meta = (DisplayName = "Lost Runic UI Tuning"))
 class LOSTRUNIC_API ULRUITuning : public ULRTuningAsset
@@ -34,6 +36,14 @@ public:
 	/** Navigation Repeat Seconds 的时间参数，单位为秒；由所属调优或资产提供权威值。 C++ 安全默认值为 `0.2f`。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。编辑器约束：单位 `s`，最小值 `0.05`，最大值 `2.0`。 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI|Input", meta = (ClampMin = "0.05", ClampMax = "2.0", Units = "s"))
 	float NavigationRepeatSeconds = 0.2f;
+
+	/** Note Scroll Step 的领域数据，由所属类型负责维护和校验；笔记列表 ScrollBox 聚焦时 Up/Down 单次滚动的像素步长。 C++ 安全默认值为 `60.0f`。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。编辑器约束：最小值 `1.0`，最大值 `500.0`。 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI|Input", meta = (ClampMin = "1.0", ClampMax = "500.0"))
+	float NoteScrollStep = 60.0f;
+
+	/** Locked Collectible Icon 的共享剪影图；定义未提供 LockedIcon 时使用。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI|Collectibles")
+	TSoftObjectPtr<UTexture2D> LockedCollectibleIcon;
 
 	/**
 	 * @brief 校验当前资产的必填引用、数值边界及跨字段关系，并输出可诊断错误。
