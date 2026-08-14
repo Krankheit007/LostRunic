@@ -39,13 +39,33 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|Hearing", meta = (ClampMin = "50.0", ClampMax = "10000.0", Units = "cm"))
 	float MaxHearingRange = 5000.0f;
 
-	/** 有效听觉刺激首次增加的警戒量；默认 6。 C++ 安全默认值为 `6`。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。编辑器约束：最小值 `1`，最大值 `11`。 */
+	/** 吸引注意噪声每次增加的警戒量；设计基线 1（0→1、档内 +1）。 C++ 安全默认值为 `1`。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。编辑器约束：最小值 `1`，最大值 `11`。 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|Alert", meta = (ClampMin = "1", ClampMax = "11"))
-	int32 HearingAlertAmount = 6;
+	int32 AttractAlertAmount = 1;
 
-	/** 明确看见玩家后设置的警戒等级；默认 11，进入追逐。 C++ 安全默认值为 `11`。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。编辑器约束：最小值 `1`，最大值 `11`。 */
+	/** 警戒低于 SightInvestigateLevel 时看见玩家设置的目标等级；默认 6，前往调查。 C++ 安全默认值为 `6`。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。编辑器约束：最小值 `1`，最大值 `11`。 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|Alert", meta = (ClampMin = "1", ClampMax = "11"))
-	int32 SightAlertLevel = 11;
+	int32 SightInvestigateLevel = 6;
+
+	/** 警戒处于 6-10 档时看见玩家设置的目标等级；默认 11，进入追逐。 C++ 安全默认值为 `11`。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。编辑器约束：最小值 `1`，最大值 `11`。 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|Alert", meta = (ClampMin = "1", ClampMax = "11"))
+	int32 SightChaseLevel = 11;
+
+	/** 1-5 档吸引注意增加的冷却时间；默认 0.5 秒；从 0 首次进入 6-10 档的首个增量也使用该值。 C++ 安全默认值为 `0.5f`。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。编辑器约束：单位 `s`，最小值 `0.0`，最大值 `10.0`。 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|Alert", meta = (ClampMin = "0.0", ClampMax = "10.0", Units = "s"))
+	float AlertIncreaseCooldownSeconds = 0.5f;
+
+	/** 6-10 档前往/观察中吸引注意增加的冷却时间；默认 0.2 秒。 C++ 安全默认值为 `0.2f`。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。编辑器约束：单位 `s`，最小值 `0.0`，最大值 `10.0`。 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|Alert", meta = (ClampMin = "0.0", ClampMax = "10.0", Units = "s"))
+	float InvestigateIncreaseCooldownSeconds = 0.2f;
+
+	/** 室内奔跑对当前房间守卫的警戒下限；默认 5。 C++ 安全默认值为 `5`。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。编辑器约束：最小值 `0`，最大值 `11`。 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|Alert", meta = (ClampMin = "0", ClampMax = "11"))
+	int32 RoomRunAlertLevel = 5;
+
+	/** 室内奔跑对相邻房间守卫的警戒增量；默认 1。 C++ 安全默认值为 `1`。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。编辑器约束：最小值 `1`，最大值 `11`。 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|Alert", meta = (ClampMin = "1", ClampMax = "11"))
+	int32 AdjacentRoomRunAlertAmount = 1;
 
 	/** 每个衰减周期降低的警戒值；默认 1。 C++ 安全默认值为 `1`。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。编辑器约束：最小值 `1`，最大值 `11`。 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|Alert", meta = (ClampMin = "1", ClampMax = "11"))
@@ -67,8 +87,8 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|Alert", meta = (ClampMin = "0.05", ClampMax = "10.0", Units = "s"))
 	float AlertDecayIntervalSeconds = 0.5f;
 
-	/** 到达最后异常位置后的搜索持续时间；默认 5 秒。 C++ 安全默认值为 `5.0f`。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。编辑器约束：单位 `s`，最小值 `0.1`，最大值 `60.0`。 */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|Alert", meta = (ClampMin = "0.1", ClampMax = "60.0", Units = "s"))
+	/** 已废弃：旧固定搜索时长；搜索改为「抵达观察 3s → 自然衰减 → 归零清理」，保留字段仅用于资产序列化兼容，不再参与运行与校验。 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|Alert|Deprecated", meta = (DeprecatedProperty, ClampMin = "0.1", ClampMax = "60.0", Units = "s"))
 	float SearchDurationSeconds = 5.0f;
 
 	/** 追逐中判定捕获玩家的距离；默认 75 cm。 C++ 安全默认值为 `75.0f`。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。编辑器约束：单位 `cm`，最小值 `10.0`，最大值 `500.0`。 */

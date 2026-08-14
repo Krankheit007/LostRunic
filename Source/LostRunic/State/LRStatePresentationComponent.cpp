@@ -8,6 +8,10 @@
  */
 #include "State/LRStatePresentationComponent.h"
 
+#include "Data/LRGameTuningSet.h"
+#include "Data/LRPresentationTuning.h"
+#include "Engine/GameInstance.h"
+#include "Framework/LRGameInstanceSubsystem.h"
 #include "State/LRStateComponent.h"
 
 /**
@@ -25,10 +29,58 @@ void ULRStatePresentationComponent::BeginPlay()
 {
 	Super::BeginPlay();
 	StateComponent = GetOwner() ? GetOwner()->FindComponentByClass<ULRStateComponent>() : nullptr;
+	const UGameInstance* gameInstance = GetWorld() ? GetWorld()->GetGameInstance() : nullptr;
+	const ULRGameInstanceSubsystem* subsystem = gameInstance ? gameInstance->GetSubsystem<ULRGameInstanceSubsystem>() : nullptr;
+	Tuning = subsystem && subsystem->GetTuningSet() ? subsystem->GetTuningSet()->Presentation : nullptr;
 	if (ensureMsgf(StateComponent, TEXT("%s requires a sibling LRStateComponent."), *GetNameSafe(this)))
 	{
 		StateComponent->OnStateChanging.AddDynamic(this, &ULRStatePresentationComponent::HandleStateChanging);
 	}
+}
+
+/**
+ * @brief 查询 Perception Reveal Radius（角色周围显现半径，设计 4.5m）；艺术表现预留接入点。
+ * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+ */
+float ULRStatePresentationComponent::GetPerceptionRevealRadius() const
+{
+	return Tuning ? Tuning->PerceptionRevealRadius : GetDefault<ULRPresentationTuning>()->PerceptionRevealRadius;
+}
+
+/**
+ * @brief 查询 Noise Reveal Radius（声源周围显现半径，设计 2m）；艺术表现预留接入点。
+ * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+ */
+float ULRStatePresentationComponent::GetNoiseRevealRadius() const
+{
+	return Tuning ? Tuning->NoiseRevealRadius : GetDefault<ULRPresentationTuning>()->NoiseRevealRadius;
+}
+
+/**
+ * @brief 查询 Noise Reveal Duration Seconds（声源显现时长，设计 5s）；艺术表现预留接入点。
+ * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+ */
+float ULRStatePresentationComponent::GetNoiseRevealDurationSeconds() const
+{
+	return Tuning ? Tuning->NoiseRevealDurationSeconds : GetDefault<ULRPresentationTuning>()->NoiseRevealDurationSeconds;
+}
+
+/**
+ * @brief 查询 Perception Blend Weight（感知后处理混合权重）；艺术表现预留接入点。
+ * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+ */
+float ULRStatePresentationComponent::GetPerceptionBlendWeight() const
+{
+	return Tuning ? Tuning->PerceptionBlendWeight : GetDefault<ULRPresentationTuning>()->PerceptionBlendWeight;
+}
+
+/**
+ * @brief 查询 Courage Blend Weight（勇气后处理混合权重）；艺术表现预留接入点。
+ * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+ */
+float ULRStatePresentationComponent::GetCourageBlendWeight() const
+{
+	return Tuning ? Tuning->CourageBlendWeight : GetDefault<ULRPresentationTuning>()->CourageBlendWeight;
 }
 
 /**

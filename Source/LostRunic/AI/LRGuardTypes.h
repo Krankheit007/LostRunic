@@ -20,5 +20,43 @@ enum class ELRGuardBehaviorState : uint8
 	Suspicious UMETA(DisplayName = "Suspicious"),
 	Investigate UMETA(DisplayName = "Investigate"),
 	Search UMETA(DisplayName = "Search"),
-	Chase UMETA(DisplayName = "Chase")
+	Chase UMETA(DisplayName = "Chase"),
+	Stunned UMETA(DisplayName = "Stunned")
+};
+
+/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
+UENUM(BlueprintType, meta = (DisplayName = "Lost Runic Guard Alert Tier"))
+enum class ELRGuardAlertTier : uint8
+{
+	Hidden UMETA(DisplayName = "Hidden"),
+	White UMETA(DisplayName = "White"),
+	Red UMETA(DisplayName = "Red"),
+	Full UMETA(DisplayName = "Full")
+};
+
+/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
+USTRUCT(BlueprintType, meta = (DisplayName = "Lost Runic Alert Snapshot"))
+struct LOSTRUNIC_API FLRAlertSnapshot
+{
+	GENERATED_BODY()
+
+	/** Level 的领域数据，由所属类型负责维护和校验。 C++ 安全默认值为 `0`。 蓝图可读取但不可写入。 */
+	UPROPERTY(BlueprintReadOnly, Category = "Alert")
+	int32 Level = 0;
+
+	/** Fraction 的领域数据，由所属类型负责维护和校验。 C++ 安全默认值为 `0.0f`。 蓝图可读取但不可写入。 */
+	UPROPERTY(BlueprintReadOnly, Category = "Alert")
+	float Fraction = 0.0f;
+
+	/** Tier 的领域数据，由所属类型负责维护和校验。 C++ 安全默认值为 `ELRGuardAlertTier::Hidden`。 蓝图可读取但不可写入。 */
+	UPROPERTY(BlueprintReadOnly, Category = "Alert")
+	ELRGuardAlertTier Tier = ELRGuardAlertTier::Hidden;
+
+	/** Behavior 的领域数据，由所属类型负责维护和校验。 C++ 安全默认值为 `ELRGuardBehaviorState::IdlePatrol`。 蓝图可读取但不可写入。 */
+	UPROPERTY(BlueprintReadOnly, Category = "Alert")
+	ELRGuardBehaviorState Behavior = ELRGuardBehaviorState::IdlePatrol;
+
+	/** Full Alert 的开关；true 表示启用，false 表示禁用。 C++ 安全默认值为 `false`。 蓝图可读取但不可写入。 */
+	UPROPERTY(BlueprintReadOnly, Category = "Alert")
+	bool bFullAlert = false;
 };

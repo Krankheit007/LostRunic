@@ -8,13 +8,17 @@
  */
 #include "Stealth/LRNoiseEmitterComponent.h"
 
+#include "AI/LRAlertComponent.h"
 #include "Core/LRGameplayTags.h"
 #include "Data/LRGameTuningSet.h"
+#include "Data/LRGuardTuning.h"
 #include "Data/LRMovementTuning.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
 #include "Framework/LRGameInstanceSubsystem.h"
 #include "Gameplay/LRLocomotionComponent.h"
+#include "Gameplay/LRMovementRules.h"
+#include "Gameplay/LRRoomVolume.h"
 #include "Interaction/LRInteractionComponent.h"
 #include "Interaction/LRInteractionTypes.h"
 #include "Perception/AISense_Hearing.h"
@@ -38,6 +42,7 @@ void ULRNoiseEmitterComponent::BeginPlay()
 	const UGameInstance* gameInstance = GetWorld() ? GetWorld()->GetGameInstance() : nullptr;
 	const ULRGameInstanceSubsystem* subsystem = gameInstance ? gameInstance->GetSubsystem<ULRGameInstanceSubsystem>() : nullptr;
 	Tuning = subsystem && subsystem->GetTuningSet() ? subsystem->GetTuningSet()->Movement : nullptr;
+	GuardTuning = subsystem && subsystem->GetTuningSet() ? subsystem->GetTuningSet()->Guard : nullptr;
 	if (!ensureMsgf(Locomotion && Interaction && Tuning, TEXT("%s requires locomotion, interaction, and Movement tuning."),
 		*GetNameSafe(this)))
 	{
@@ -88,7 +93,74 @@ void ULRNoiseEmitterComponent::EmitNoise(const FVector location, const float rad
  */
 void ULRNoiseEmitterComponent::HandleFootstep(const FVector location, const float radius, const FGameplayTag reason)
 {
+	if (reason == LRGameplayTags::NoiseFootstepRunIndoor)
+	{
+		ApplyIndoorRunNoise(location);
+		return;
+	}
 	EmitNoise(location, radius, reason);
+}
+
+/**
+ * @brief 室内奔跑噪声：房间传播优先（当前房警戒至少提升到 RoomRunAlertLevel、相邻房 +1，多房间候选目标值取最大、一次应用）；无房间时回退 1200 半径听觉事件；始终广播 OnNoiseEmitted 供表现钩子，绝不调用 ReportNoiseEvent（防双计）。
+ * @param location 世界空间位置，Unreal 单位为厘米。
+ */
+void ULRNoiseEmitterComponent::ApplyIndoorRunNoise(const FVector location)
+{
+	if (!GetWorld() || !GuardTuning || !Tuning)
+	{
+		return;
+	}
+
+	TArray<ALRRoomVolume*> rooms;
+	ALRRoomVolume::FindRoomsAtLocation(GetWorld(), location, rooms);
+	if (rooms.Num() == 0)
+	{
+		EmitNoise(location, Tuning->IndoorRunNoiseRadius, LRGameplayTags::NoiseFootstepRunIndoor);
+		return;
+	}
+
+	// 对每位守卫收集其所属房间的候选目标值：当前房与相邻房（多房间取最大、不累加），一次应用。
+	TSet<AActor*> applied;
+	for (const ALRRoomVolume* room : rooms)
+	{
+		for (const TWeakObjectPtr<AActor>& guardWeak : room->GetOverlappingGuards())
+		{
+			AActor* guard = guardWeak.Get();
+			ULRAlertComponent* alert = guard ? guard->FindComponentByClass<ULRAlertComponent>() : nullptr;
+			if (!alert || applied.Contains(guard))
+			{
+				continue;
+			}
+			applied.Add(guard);
+			const int32 currentAlert = alert->GetAlertLevel();
+			int32 bestTarget = currentAlert;
+			for (const ALRRoomVolume* containingRoom : rooms)
+			{
+				if (containingRoom->GetOverlappingGuards().Contains(guard))
+				{
+					bestTarget = FMath::Max(bestTarget,
+						LRMovementRules::ResolveRoomRunTargetLevel(true, currentAlert, *GuardTuning));
+				}
+				for (const TWeakObjectPtr<ALRRoomVolume>& adjacentWeak : containingRoom->GetAdjacentRooms())
+				{
+					const ALRRoomVolume* adjacent = adjacentWeak.Get();
+					if (adjacent && adjacent->GetOverlappingGuards().Contains(guard))
+					{
+						bestTarget = FMath::Max(bestTarget,
+							LRMovementRules::ResolveRoomRunTargetLevel(false, currentAlert, *GuardTuning));
+					}
+				}
+			}
+			if (bestTarget > currentAlert)
+			{
+				alert->ApplyAlertDelta(bestTarget - currentAlert, location, GetOwner(), LRGameplayTags::NoiseFootstepRunIndoor);
+			}
+		}
+	}
+
+	// 表现钩子：房间路径只广播表现事件，绝不 ReportNoiseEvent（防与听觉分支双计）。
+	OnNoiseEmitted.Broadcast(location, Tuning->IndoorRunNoiseRadius, LRGameplayTags::NoiseFootstepRunIndoor);
 }
 
 /**

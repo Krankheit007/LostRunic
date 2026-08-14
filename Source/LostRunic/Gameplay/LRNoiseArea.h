@@ -14,6 +14,7 @@
 #include "LRNoiseArea.generated.h"
 
 class UBoxComponent;
+class ULRLocomotionComponent;
 
 /** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
 UCLASS(BlueprintType, meta = (DisplayName = "Lost Runic Noise Area"))
@@ -41,9 +42,29 @@ private:
 	void HandleBeginOverlap(UPrimitiveComponent* component, AActor* otherActor, UPrimitiveComponent* otherComponent,
 		int32 otherBodyIndex, bool bFromSweep, const FHitResult& sweepResult);
 
+	/**
+	 * @brief 处理 Handle End Overlap 事件，将引擎回调转换为对应领域状态更新；离开区域后按剩余重叠集合重新求值环境。
+	 * @param component 参与本次操作的运行时对象 `component`；函数会检查空值和所需接口。
+	 * @param otherActor 参与本次操作的运行时对象 `otherActor`；函数会检查空值和所需接口。
+	 * @param otherComponent 参与本次操作的运行时对象 `otherComponent`；函数会检查空值和所需接口。
+	 * @param otherBodyIndex 本次操作使用的计数、增量或索引 `otherBodyIndex`；由函数校验合法范围。
+	 */
+	UFUNCTION()
+	void HandleEndOverlap(UPrimitiveComponent* component, AActor* otherActor, UPrimitiveComponent* otherComponent,
+		int32 otherBodyIndex);
+
+	/**
+	 * @brief 按固定优先级（Indoor > OutdoorStealth > Outdoor）从所有覆盖该角色的噪声区域重新解析环境并应用；无区域时默认 Outdoor。
+	 * @param actor 本次查询、交互或事件涉及的 Actor。
+	 */
+	void RefreshActorEnvironment(AActor* actor);
+
 	/** Bounds 的开关；true 表示启用，false 表示禁用。 仅在蓝图或详情面板中查看，不可编辑。 */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Noise", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UBoxComponent> Bounds;
+
+	/** Overlapping Actors 的运行时状态；由所属类型维护，不在蓝图中配置。 */
+	TArray<TWeakObjectPtr<AActor>> OverlappingActors;
 
 	/** Environment 的领域数据，由所属类型负责维护和校验。 C++ 安全默认值为 `ELRNoiseEnvironment::Indoor`。 可在对应资产、DataTable 行或蓝图实例中配置。 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Noise", meta = (AllowPrivateAccess = "true"))

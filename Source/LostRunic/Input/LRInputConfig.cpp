@@ -24,7 +24,7 @@ bool ULRInputConfig::Validate(FString& outError) const
 		outError = TEXT("All four input mapping contexts are required.");
 		return false;
 	}
-	if (!MoveAction || !SneakAction || !RunAction || !InteractAction || !CloseEyesAction || !OpenEyesAction)
+	if (!MoveAction || !RunAction || !InteractAction || !CloseEyesAction || !OpenEyesAction)
 	{
 		outError = TEXT("Gameplay movement, interaction, and state actions are required.");
 		return false;

@@ -31,9 +31,9 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard")
 	TObjectPtr<ULRGuardTuning> Tuning;
 
-	/** Behavior 的开关；true 表示启用，false 表示禁用。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。 */
+	/** Behavior 的 StateTree 硬引用；随定义资产同步加载，OnPossess 时确定启动顺序。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard")
-	TSoftObjectPtr<UStateTree> Behavior;
+	TObjectPtr<UStateTree> Behavior;
 
 	/**
 	 * @brief 查询 Primary Asset Id；不修改领域状态。

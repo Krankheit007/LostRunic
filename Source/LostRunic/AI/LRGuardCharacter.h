@@ -17,6 +17,7 @@ class ALRGuardAIController;
 class ULRCourageResponseComponent;
 class ULRAlertComponent;
 class ULRGuardDefinition;
+class UWidgetComponent;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FLRPlayerCaptured, AActor*, playerActor);
 
@@ -33,6 +34,11 @@ public:
 	ALRGuardCharacter();
 
 	/**
+	 * @brief 在进入世界后解析运行时依赖：将世界警戒条 Widget 初始化到本守卫的警戒快照。
+	 */
+	virtual void BeginPlay() override;
+
+	/**
 	 * @brief 查询 Alert Component；不修改领域状态。
 	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
 	 */
@@ -46,6 +52,20 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Lost Runic|AI")
 	bool CaptureTarget(AActor* target);
+
+	/**
+	 * @brief 查询 Definition；不修改领域状态。
+	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+	 */
+	UFUNCTION(BlueprintPure, Category = "Lost Runic|AI")
+	ULRGuardDefinition* GetDefinition() const { return Definition; }
+
+	/**
+	 * @brief 查询 Courage Response Component；不修改领域状态。
+	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+	 */
+	UFUNCTION(BlueprintPure, Category = "Lost Runic|AI")
+	ULRCourageResponseComponent* GetCourageResponseComponent() const { return CourageResponse; }
 
 	/**
 	 * @brief 查询 Patrol Point；不修改领域状态。
@@ -80,4 +100,8 @@ private:
 	/** Courage Response 的领域数据，由所属类型负责维护和校验。 仅在蓝图或详情面板中查看，不可编辑。 */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<ULRCourageResponseComponent> CourageResponse;
+
+	/** Alert Widget 的世界空间 WidgetComponent；WidgetClass 与样式由蓝图配置，C++ 只负责初始化绑定。 仅在蓝图或详情面板中查看，不可编辑。 */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UWidgetComponent> AlertWidget;
 };

@@ -53,12 +53,13 @@ void ULRAlertComponent::EndPlay(const EEndPlayReason::Type endPlayReason)
 	if (GetWorld())
 	{
 		GetWorld()->GetTimerManager().ClearTimer(DecayTimer);
+		GetWorld()->GetTimerManager().ClearTimer(ObservationTimer);
 	}
 	Super::EndPlay(endPlayReason);
 }
 
 /**
- * @brief 把警戒增减限制在 0-11，并记录原因、异常位置与目标后广播变化。
+ * @brief 把警戒增减限制在 0-11，并记录原因、异常位置与目标后广播变化；警戒归零时清理目标与观察状态。
  * @param delta 调用方提供的 `delta`，只在本次操作范围内使用。
  * @param location 世界空间位置，Unreal 单位为厘米。
  * @param target 本次规则检查或操作的目标对象。
@@ -80,11 +81,59 @@ void ULRAlertComponent::ApplyAlertDelta(const int32 delta, const FVector locatio
 		bSearching = false;
 	}
 	LastStimulusTimeSeconds = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0;
+	if (AlertLevel <= 0)
+	{
+		ClearWhenAlertZero();
+	}
 	BroadcastChange(previousLevel, previousState, reason);
 }
 
 /**
- * @brief 更新 Sight Target，并在需要时同步组件状态或广播变化事件。
+ * @brief 吸引注意语义入口：按档位冷却门控（CD 内刺激完全忽略，不改变观察状态），每次 +AttractAlertAmount，并重置 3s 观察窗口。
+ * @param location 世界空间位置，Unreal 单位为厘米。
+ * @param target 本次规则检查或操作的目标对象。
+ * @param reason Gameplay Tag 原因，用于状态转换、日志和自动化测试追踪。
+ */
+void ULRAlertComponent::ApplyAttract(const FVector location, AActor* target, const FGameplayTag reason)
+{
+	const ULRGuardTuning& tuning = GetEffectiveTuning();
+	const double now = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0;
+	// 从 0 起的首次吸引立即生效（设计：0 -> 1）；之后的增加受档位冷却门控，CD 内完全忽略。
+	if (AlertLevel > 0
+		&& !LRAlertRules::IsIncreaseAllowed(now, LastIncreaseTimeSeconds,
+			LRAlertRules::ResolveAttractIncreaseCooldown(AlertLevel, bFirstIncreaseInBand, tuning)))
+	{
+		UE_LOG(LogLostRunicAI, Verbose, TEXT("Guard=%s attract ignored (cooldown) reason=%s"),
+			*GetNameSafe(GetOwner()), *reason.GetTagName().ToString());
+		return;
+	}
+
+	const int32 previousLevel = AlertLevel;
+	const ELRGuardBehaviorState previousState = GetBehaviorState();
+	const bool bCrossingIntoBand = AlertLevel < tuning.SightInvestigateLevel;
+	AlertLevel = LRAlertRules::ApplyDelta(AlertLevel, tuning.AttractAlertAmount);
+	LastDisturbanceLocation = location;
+	if (target)
+	{
+		TargetActor = target;
+	}
+	bSearching = false;
+	LastIncreaseTimeSeconds = now;
+	LastStimulusTimeSeconds = now;
+	if (bFirstIncreaseInBand)
+	{
+		bFirstIncreaseInBand = false;
+	}
+	if (bCrossingIntoBand && AlertLevel >= tuning.SightInvestigateLevel)
+	{
+		bFirstIncreaseInBand = true;
+	}
+	StartObservation();
+	BroadcastChange(previousLevel, previousState, reason);
+}
+
+/**
+ * @brief 更新 Sight Target，并在需要时同步组件状态或广播变化事件；按 4.2.1 分档：<6 看见升到 6，6-10 看见升到 11，11 丢失降回 10。
  * @param target 本次规则检查或操作的目标对象。
  * @param bVisible 布尔开关 `bVisible`；true 表示启用或条件成立，false 表示禁用或条件不成立。
  * @param lastKnownLocation 空间值 `lastKnownLocation`；距离和位置使用 Unreal 厘米单位。
@@ -96,10 +145,23 @@ void ULRAlertComponent::SetSightTarget(AActor* target, const bool bVisible, cons
 	LastDisturbanceLocation = lastKnownLocation;
 	TargetActor = target;
 	bHasConfirmedSight = bVisible;
-	bSearching = !bVisible && AlertLevel > 0;
 	if (bVisible)
 	{
-		AlertLevel = FMath::Max(AlertLevel, GetEffectiveTuning().SightAlertLevel);
+		const ULRGuardTuning& tuning = GetEffectiveTuning();
+		if (AlertLevel < tuning.SightInvestigateLevel)
+		{
+			AlertLevel = tuning.SightInvestigateLevel;
+			bFirstIncreaseInBand = true;
+		}
+		else if (AlertLevel < tuning.SightChaseLevel)
+		{
+			AlertLevel = tuning.SightChaseLevel;
+		}
+	}
+	else if (AlertLevel >= GetEffectiveTuning().SightChaseLevel)
+	{
+		// 11 丢失视线 -> 10，前往最后看见位置；不置 bSearching，使行为解析自然落到 Investigate。
+		AlertLevel = 10;
 	}
 	LastStimulusTimeSeconds = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0;
 	BroadcastChange(previousLevel, previousState,
@@ -107,12 +169,13 @@ void ULRAlertComponent::SetSightTarget(AActor* target, const bool bVisible, cons
 }
 
 /**
- * @brief 标记守卫已到达最后异常位置，使 StateTree 从 Investigate 转入 Search。
+ * @brief 标记守卫已到达最后异常位置，使 StateTree 从 Investigate 转入 Search，并开始 3s 抵达观察。
  */
 void ULRAlertComponent::MarkInvestigationReached()
 {
 	const ELRGuardBehaviorState previousState = GetBehaviorState();
 	bSearching = AlertLevel > 0;
+	StartObservation();
 	BroadcastChange(AlertLevel, previousState, LRGameplayTags::SearchReached);
 }
 
@@ -126,7 +189,12 @@ void ULRAlertComponent::ResetAfterSearch()
 	AlertLevel = 0;
 	bSearching = false;
 	bHasConfirmedSight = false;
+	bObserving = false;
 	TargetActor.Reset();
+	if (GetWorld())
+	{
+		GetWorld()->GetTimerManager().ClearTimer(ObservationTimer);
+	}
 	BroadcastChange(previousLevel, previousState, LRGameplayTags::SearchTimeout);
 }
 
@@ -148,12 +216,64 @@ void ULRAlertComponent::HandleDecayTimer()
 	{
 		return;
 	}
-	const float elapsed = GetWorld()->GetTimeSeconds() - LastStimulusTimeSeconds;
-	if (LRAlertRules::ShouldDecay(elapsed, GetEffectiveTuning().InitialObserveSeconds, bHasConfirmedSight))
+	if (LRAlertRules::ShouldDecay(bObserving, bHasConfirmedSight, GetBehaviorState()))
 	{
 		ApplyAlertDelta(-GetEffectiveTuning().AlertDecayAmount, LastDisturbanceLocation,
 			TargetActor.Get(), LRGameplayTags::SearchAlertDecay);
 	}
+}
+
+/**
+ * @brief 处理 Handle Observation End 事件，将引擎回调转换为对应领域状态更新；观察结束前警戒维持不动。
+ */
+void ULRAlertComponent::HandleObservationEnd()
+{
+	bObserving = false;
+}
+
+/**
+ * @brief 开始 3 秒观察窗口；观察期间衰减被门控。
+ */
+void ULRAlertComponent::StartObservation()
+{
+	if (AlertLevel <= 0 || !GetWorld())
+	{
+		return;
+	}
+	bObserving = true;
+	GetWorld()->GetTimerManager().ClearTimer(ObservationTimer);
+	GetWorld()->GetTimerManager().SetTimer(ObservationTimer, this, &ULRAlertComponent::HandleObservationEnd,
+		GetEffectiveTuning().InitialObserveSeconds, false);
+}
+
+/**
+ * @brief 警戒归零时清理目标、搜索与观察状态；不额外广播（归零变化本身已广播）。
+ */
+void ULRAlertComponent::ClearWhenAlertZero()
+{
+	bSearching = false;
+	bHasConfirmedSight = false;
+	bObserving = false;
+	TargetActor.Reset();
+	if (GetWorld())
+	{
+		GetWorld()->GetTimerManager().ClearTimer(ObservationTimer);
+	}
+}
+
+/**
+ * @brief 查询当前只读警戒快照（等级、归一化进度、显示档位、行为与满值标志）；UI 绑定 OnAlertSnapshotChanged 后应立即读取本值，避免首帧不同步。
+ * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+ */
+FLRAlertSnapshot ULRAlertComponent::GetAlertSnapshot() const
+{
+	FLRAlertSnapshot snapshot;
+	snapshot.Level = AlertLevel;
+	snapshot.Fraction = AlertLevel / static_cast<float>(LRAlertRules::MaxAlertLevel);
+	snapshot.Tier = LRAlertRules::ResolveAlertTier(AlertLevel);
+	snapshot.Behavior = GetBehaviorState();
+	snapshot.bFullAlert = AlertLevel >= LRAlertRules::MaxAlertLevel;
+	return snapshot;
 }
 
 /**
@@ -169,8 +289,9 @@ void ULRAlertComponent::BroadcastChange(const int32 previousLevel, const ELRGuar
 	const ELRGuardBehaviorState currentState = GetBehaviorState();
 	UE_LOG(LogLostRunicAI, Display, TEXT("Guard=%s alert %d -> %d state %d -> %d reason=%s location=%s"),
 		*GetNameSafe(GetOwner()), previousLevel, AlertLevel, static_cast<int32>(previousState),
-		static_cast<int32>(currentState), *reason.ToString(), *LastDisturbanceLocation.ToCompactString());
+		static_cast<int32>(currentState), *reason.GetTagName().ToString(), *LastDisturbanceLocation.ToCompactString());
 	OnAlertChanged.Broadcast(previousLevel, AlertLevel, currentState, reason, LastDisturbanceLocation);
+	OnAlertSnapshotChanged.Broadcast(GetAlertSnapshot());
 }
 
 /**

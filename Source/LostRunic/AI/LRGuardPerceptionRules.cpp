@@ -8,6 +8,7 @@
  */
 #include "AI/LRGuardPerceptionRules.h"
 
+#include "Core/LRGameplayTags.h"
 #include "Data/LRGuardTuning.h"
 
 /**
@@ -36,4 +37,37 @@ bool LRGuardPerceptionRules::CanConfirmSight(const float distance, const float f
 bool LRGuardPerceptionRules::CanHear(const float distance, const float sourceRadius, const ULRGuardTuning& tuning)
 {
 	return distance <= sourceRadius * tuning.HearingRangeMultiplier;
+}
+
+/**
+ * @brief 按噪声原因标签解析守卫应做的警戒响应；CD 与观察时序由调用方组件执行，本函数只做语义映射。
+ * @param reason 噪声原因 Gameplay Tag，例如 Noise.Footstep.Walk 或 Noise.Footstep.Run.Indoor。
+ * @param currentAlert 守卫当前警戒值 0-11。
+ * @param tuning 数据或调优来源 `tuning`；调用期间只读，并按稳定 ID 解析内容。
+ * @return 结构化响应：是否响应、Delta 与是否走吸引语义（IsAttract 时调用方使用带 CD 门控的 ApplyAttract）。
+ */
+FLRNoiseResponse LRGuardPerceptionRules::ResolveNoiseAlertDelta(const FGameplayTag reason, const int32 currentAlert,
+	const ULRGuardTuning& tuning)
+{
+	FLRNoiseResponse response;
+	if (reason == LRGameplayTags::NoiseFootstepRunIndoor)
+	{
+		// 室内奔跑为「警戒至少提升到 RoomRunAlertLevel」的 Set 语义，不走吸引 CD。
+		response.bRespond = true;
+		response.Delta = FMath::Max(tuning.RoomRunAlertLevel - currentAlert, 0);
+		response.bIsAttract = false;
+		return response;
+	}
+	if (reason == LRGameplayTags::NoiseFootstepWalkFaint)
+	{
+		// 室外非潜行关走路：只有警戒 >=6 的守卫才会被吸引。
+		response.bIsAttract = true;
+		response.bRespond = currentAlert >= tuning.SightInvestigateLevel;
+		response.Delta = response.bRespond ? tuning.AttractAlertAmount : 0;
+		return response;
+	}
+	response.bRespond = true;
+	response.Delta = tuning.AttractAlertAmount;
+	response.bIsAttract = true;
+	return response;
 }

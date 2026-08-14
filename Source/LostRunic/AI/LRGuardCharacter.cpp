@@ -10,12 +10,14 @@
 
 #include "AI/LRAlertComponent.h"
 #include "AI/LRGuardAIController.h"
+#include "Components/WidgetComponent.h"
 #include "Core/LRGameplayTags.h"
 #include "Engine/GameInstance.h"
 #include "Framework/LRCharacter.h"
 #include "Items/LRCourageResponseComponent.h"
 #include "Save/LRSaveSubsystem.h"
 #include "State/LRStateComponent.h"
+#include "UI/LRWorldAlertBarWidgetBase.h"
 
 /**
  * @brief 创建对象并设置默认子对象、能力开关和安全初值；需要 World、资产或玩家的依赖延迟到初始化阶段解析。
@@ -27,6 +29,26 @@ ALRGuardCharacter::ALRGuardCharacter()
 	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
 	Alert = CreateDefaultSubobject<ULRAlertComponent>(TEXT("Alert"));
 	CourageResponse = CreateDefaultSubobject<ULRCourageResponseComponent>(TEXT("CourageResponse"));
+	AlertWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("AlertWidget"));
+	AlertWidget->SetupAttachment(GetMesh());
+	AlertWidget->SetWidgetSpace(EWidgetSpace::Screen);
+	AlertWidget->SetDrawSize(FVector2D(120.0f, 24.0f));
+	AlertWidget->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+}
+
+/**
+ * @brief 在进入世界后解析运行时依赖：将世界警戒条 Widget 初始化到本守卫的警戒快照。
+ */
+void ALRGuardCharacter::BeginPlay()
+{
+	Super::BeginPlay();
+	if (UUserWidget* widget = AlertWidget->GetWidget())
+	{
+		if (ULRWorldAlertBarWidgetBase* alertBar = Cast<ULRWorldAlertBarWidgetBase>(widget))
+		{
+			alertBar->InitializeForGuard(this);
+		}
+	}
 }
 
 /**

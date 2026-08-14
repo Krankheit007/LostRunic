@@ -43,8 +43,8 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Actions|Movement")
 	TObjectPtr<UInputAction> MoveAction;
 
-	/** Sneak Action Enhanced Input Action 资产；C++ 绑定其语义，具体键位在 Mapping Context 中配置。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。 */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Actions|Movement")
+	/** 已废弃：Sneak 与潜行切换语义重复，实际潜行切换由 ToggleCrouchAction 驱动，保留仅用于资产兼容。 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Actions|Movement|Deprecated", meta = (DeprecatedProperty, DisplayName = "Sneak Action (Deprecated)"))
 	TObjectPtr<UInputAction> SneakAction;
 
 	/** Run Action Enhanced Input Action 资产；C++ 绑定其语义，具体键位在 Mapping Context 中配置。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。 */

@@ -13,6 +13,7 @@
 #include "Data/LRGuardTuning.h"
 #include "Data/LRInteractionTuning.h"
 #include "Data/LRMovementTuning.h"
+#include "Data/LRNPCTuning.h"
 #include "Data/LRPresentationTuning.h"
 #include "Data/LRSaveTuning.h"
 #include "Data/LRStateTuning.h"
@@ -31,6 +32,7 @@ bool FLRTuningDefaultsTest::RunTest(const FString& parameters)
 	TestTrue(TEXT("Save defaults"), NewObject<ULRSaveTuning>()->Validate(error));
 	TestTrue(TEXT("UI defaults"), NewObject<ULRUITuning>()->Validate(error));
 	TestTrue(TEXT("Presentation defaults"), NewObject<ULRPresentationTuning>()->Validate(error));
+	TestTrue(TEXT("NPC defaults"), NewObject<ULRNPCTuning>()->Validate(error));
 	return true;
 }
 

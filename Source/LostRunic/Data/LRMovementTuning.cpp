@@ -35,7 +35,7 @@ bool ULRMovementTuning::Validate(FString& outError) const
 		&& LRValidation::RequireRange(TEXT("SampleIntervalSeconds"), SampleIntervalSeconds, 0.02f, 1.0f, outError)
 		&& LRValidation::RequireRange(TEXT("IndoorWalkNoiseRadius"), IndoorWalkNoiseRadius, 0.0f, 5000.0f, outError)
 		&& LRValidation::RequireRange(TEXT("IndoorRunNoiseRadius"), IndoorRunNoiseRadius, 0.0f, 5000.0f, outError)
-		&& LRValidation::RequireRange(TEXT("OutdoorSneakGuardNoiseRadius"), OutdoorSneakGuardNoiseRadius, 0.0f, 5000.0f, outError)
-		&& LRValidation::RequireRange(TEXT("OutdoorAlertGuardNoiseRadius"), OutdoorAlertGuardNoiseRadius, 0.0f, 5000.0f, outError)
+		&& LRValidation::RequireRange(TEXT("OutdoorStealthRunNoiseRadius"), OutdoorStealthRunNoiseRadius, 0.0f, 5000.0f, outError)
+		&& LRValidation::RequireRange(TEXT("OutdoorNoiseRadius"), OutdoorNoiseRadius, 0.0f, 5000.0f, outError)
 		&& LRValidation::RequireRange(TEXT("InteractionNoiseRadius"), InteractionNoiseRadius, 0.0f, 5000.0f, outError);
 }

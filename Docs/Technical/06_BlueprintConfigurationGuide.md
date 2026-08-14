@@ -119,20 +119,21 @@
 
 ### 守卫 AI 与 StateTree
 
-- **代码入口**：`ALRGuardCharacter`、`ALRGuardAIController`、警戒组件和 `ST_LRHomeGuard`。
-- **蓝图/资产**：守卫角色蓝图、守卫定义 DataAsset、StateTree 资产和关卡巡逻点。
+- **代码入口**：`ALRGuardCharacter`、`ALRGuardAIController`（生命周期/感知/行为拆三个 cpp）、`ULRAlertComponent`、`ALRRoomVolume`。
+- **蓝图/资产**：`BP_Guard`（守卫角色蓝图）、`DA_LRGuardDefinition`（定义 DataAsset，`Behavior` 为 **StateTree 硬引用**）、`ST_Guard`（StateTree 资产）、`WBP_GuardAlertBar`（世界警戒条）、`ALRRoomVolume`（室内奔跑房间体积）、关卡巡逻点。
 - **配置步骤**：
-  1. 创建 `ALRGuardCharacter` 派生蓝图，指定网格、动画和守卫定义。
-  2. 在实例上填写允许的巡逻点/路径组件；移动速度、视野、听觉和警戒阈值填写到定义或 Tuning 资产。
-  3. 在 AIController 默认值指定 StateTree；确认 StateTree 的状态名和 Gameplay Tag 与 C++ 规则一致。
-  4. 绑定警戒变化、调查、追逐和捕获事件到 UI、音效或动画表现。
-- **参数要求**：警戒范围、导航速度和感知参数必须来自定义/Tuning 资产；蓝图不能通过 Tick 改写警戒值或直接决定状态转换。
-- **验收**：PIE 中验证 IdlePatrol、Suspicious、Investigate、Search、Chase 的进入/运行/退出/超时，并检查 Visual Logger/Output Log。
+  1. 创建 `ALRGuardCharacter` 派生蓝图，指定网格、动画和守卫定义；`AlertWidget`（WidgetComponent）的 WidgetClass 指定为 `WBP_GuardAlertBar`，绘制位置与样式在蓝图配置。
+  2. 在实例上填写允许的巡逻点；移动速度、视野、听觉和警戒阈值填写到定义或 Tuning 资产。
+  3. **StateTree 接线**：`ST_Guard` 包含 `IdlePatrol / Suspicious / Investigate / Search / Chase / Stunned` 六个状态，条件节点 `FLRGuardStateCondition` 比较控制器的 `GetResolvedBehavior()`（StateTree 不自行推导警戒语义），任务节点 `FLRGuardBehaviorTask` 执行 `EnterBehavior`；树**仅由 `AI.Event.BehaviorChanged` 驱动**（`AI.Event.AlertChanged` 只表示数据变化，不驱动树）。`DA_LRGuardDefinition.Behavior` 硬引用 `ST_Guard`，控制器 `OnPossess` 自动 `SetStateTree` + `StartLogic`（无需在 AIController 默认值手动指定）。
+  4. 绑定警戒快照（`OnAlertSnapshotChanged` / `GetAlertSnapshot`）到 UI、音效或动画表现。
+- **参数要求**：警戒范围、导航速度、感知参数、吸引 CD（`AlertIncreaseCooldownSeconds`/`InvestigateIncreaseCooldownSeconds`）、房间警戒（`RoomRunAlertLevel`/`AdjacentRoomRunAlertAmount`）必须来自 Tuning/定义资产；蓝图不能通过 Tick 改写警戒值或直接决定状态转换。`AttractAlertAmount` 已重命名为语义值（资产中必须为 1），`SearchDurationSeconds` 已废弃（搜索由观察+自然衰减驱动）。
+- **验收**：PIE 中验证 IdlePatrol、Suspicious、Investigate、Search、Chase、Stunned 的进入/运行/退出，眩晕后按当前警戒恢复，`LR.Debug.Alert` 可诊断；检查 Visual Logger/Output Log。
 
 ### UI 屏幕与输入配置
 
 - **代码入口**：`ALRPlayerController`、`ULRPlayerUIComponent`、`ULRScreenWidget` 及各屏幕 Widget Controller。
 - **蓝图资产**：HUD、状态覆盖层、叙事/阅读、日志、库存、收藏品、暂停、存档和转场 Widget。
+- **暂停输入资产**：`/Game/LostRunic/Input/Actions/IA_LRPause` 的 `Trigger When Paused` 必须启用，确保世界暂停后 `Esc`/`Start` 仍能关闭暂停层；不要在 Widget 蓝图中自行调用 `Set Game Paused`。
 - **配置步骤**：
   1. 创建对应 `ULRScreenWidget` 的 Widget 蓝图，保持 BindWidget 名称与 C++ 声明一致。
   2. 只在 Widget 中配置布局、字体、动画、材质和图标；展示数据由 Controller/委托推送。
@@ -140,6 +141,84 @@
   4. 在 `ULRInputConfig` 中指定 Gameplay、Dialogue、Menu、Transition 上下文和语义 Action。
 - **参数要求**：输入上下文的优先级、焦点、鼠标光标和锁键行为由 PlayerController 管理；打字速度等表现参数来自 `ULRUITuning`。
 - **验收**：验证打开/关闭、焦点切换、对话二段确认、菜单阻断 Gameplay 输入和转场期间的输入锁定。
+
+## V2 存档 UI 基础资产（2026-08-14）
+
+本次仅创建空的 Widget Blueprint 基础资产，暂不在资产内装配控件、事件图或存档规则。四个资产均继承 `ULRScreenWidget`，由项目负责人在 Unreal Editor 中完成 Designer 布局、绑定和导航配置。
+
+| 资产 | 路径 | 父类 | 组装边界 |
+| --- | --- | --- | --- |
+| `WBP_MainMenu` | `/Game/LostRunic/UI/Save/WBP_MainMenu` | `ULRScreenWidget` | Continue / New Game / Load Game 入口与主菜单导航 |
+| `WBP_SaveSelection` | `/Game/LostRunic/UI/Save/WBP_SaveSelection` | `ULRScreenWidget` | Save/Load 共用槽位列表、模式切换、空槽和损坏状态显示 |
+| `WBP_SaveSlot` | `/Game/LostRunic/UI/Save/WBP_SaveSlot` | `ULRScreenWidget` | 单个槽位的显示编号、地图、时间、Health 和操作按钮 |
+| `WBP_SaveConfirmDialog` | `/Game/LostRunic/UI/Save/WBP_SaveConfirmDialog` | `ULRScreenWidget` | 覆盖/删除确认、取消与不可用原因展示 |
+
+### 负责人组装要求
+
+1. 保持上述资产父类不变；展示数据从 Save UI Controller/委托推送，Widget 不直接读写 Catalog 或 Payload。
+2. `WBP_SaveSelection` 必须同时支持 `ELRSaveSelectionMode::Save` 和 `Load`，并为保存、读取、删除、Continue 提供明确的焦点路径。
+3. `WBP_SaveSlot` 的稳定身份使用 `FLRSaveSlotId`，显示编号只用于展示；不要用数组下标或 Widget 名称作为存档 ID。
+4. `WBP_SaveConfirmDialog` 只负责确认表现和回调，不在蓝图中直接调用磁盘 API；操作统一转发到 `ULRSaveSubsystem` 的 V2 API。
+5. 完成 Designer/绑定后，在 `/Game/LostRunic/Levels/PIE_Test/L_PIE_Test` 验收主菜单 Continue、New Game、Load Game，以及 Save/Load 共用选择页。
+
+### V2 存档 UI 控制器与新游戏 API
+
+- **控制器所有者**：`ALRHUD` 创建唯一的 `ULRSaveWidgetController`，并将其注入 `SaveSlots` 页面。HUD 执行 `EndPlay` 时解除控制器绑定；关闭 `SaveSlots` 页面时调用 `Close()`。
+- **只读视图模型**：槽位列表绑定 `GetSnapshot()` 和 `OnSnapshotChanged`。蓝图使用 `FLRSaveUISnapshot.Slots`，以及 `FLRSaveSlotView` 中的 `SlotId`、`DisplayIndex`、`MapDisplayName`、`Health`、`bCanLoad`、`bCanOverwrite` 和 `bCanDelete`。
+- **保存模式**：调用 `Open(ELRSaveSelectionMode::Save)`；创建、主操作、删除、确认和取消分别调用 `RequestCreateManualSave()`、`RequestPrimarySlotAction(SlotId)`、`RequestDelete(SlotId)`、`ConfirmPendingAction()` 和 `CancelPendingAction()`。
+- **读取模式**：主菜单调用 `Open(ELRSaveSelectionMode::Load)`，选择健康槽位后调用 `RequestPrimarySlotAction(SlotId)`。Widget Graph 不得直接访问 Catalog 或 Payload API。
+- **状态处理**：页面需要表现 `Idle`、`Confirming`、`Saving`、`Loading`、`Deleting` 和 `Error`。`bIsBusy=true` 时禁用重复操作；显示 `StatusMessage`，并为 `Error` 状态提供关闭错误提示的操作。
+- **主菜单新游戏**：调用 `ULRSaveSubsystem.RequestNewGame()`。该流程异步执行；收到 `OnSaveOperationCompleted`，且 `Operation=NewGame`、`Code=Succeeded` 后，才能表现为已进入可玩世界。Widget 不得自行调用 `OpenLevel`。
+- **新游戏数据配置**：填写 `ULRGameContentSet.NewGameMapId`；对应地图注册项的 `FLRMapRegistration.DefaultStartAnchorId` 必须能在目标地图中解析。新游戏先重置 Provider 状态，再替换自动槽；所有手动槽保持不变，启动失败时保留旧自动槽供 Continue 使用。
+
+#### 存档 UI 与新游戏 Designer 检查表
+
+1. 四个新资产统一放在 `/Game/LostRunic/UI/Save/`，并保持父类为 `ULRScreenWidget`。
+2. 在 `WBP_SaveSelection` 中，将槽位列表绑定到快照变更事件，并把按钮操作转发到上述控制器函数。
+3. 在 `WBP_SaveSlot` 中显示以稳定 `SlotId` 为身份的视图；`DisplayIndex` 仅用于显示文本，不参与槽位寻址。
+4. 在 `WBP_SaveConfirmDialog` 中只调用确认或取消；不得直接写入 SaveGame 槽位。
+5. 在 `WBP_MainMenu` 中，通过 SaveSubsystem API 和操作完成事件处理 Continue、Load 和 New Game。
+6. 只在 `/Game/LostRunic/Levels/PIE_Test/L_PIE_Test` 执行验收：暂停后打开 SaveSlots、未暂停时拒绝手动保存、确认覆盖与删除、读取健康槽位，并验证 New Game 保留全部手动槽，且首次新自动存档成功前旧自动槽仍然有效。
+
+## 核心玩法机制：四状态 + 潜行 + 敌人警戒 + NPC（2026-08-14）
+
+本批次实现 4.1 四状态（睁眼/闭眼）与 4.2 潜行玩法（主角侧噪声、敌人警戒全量、掩体、通用 NPC），并为四状态美术风格差异预留接入点。**C++ 规则已完整实现**，以下为需要在蓝图中装配/配置的表面。
+
+### 步态与噪声环境（主角侧）
+
+- **步态权限**：`ULRLocomotionComponent` 提供 `RequestToggleSneak` / `RequestStartRun` / `RequestStopRun`（受状态规则验证，禁止时广播 `OnPaceRequestRejected` + 日志 `Movement.Reject.PaceForbidden`）；`ApplyPace`/`OverridePace`/`ClearPaceOverride` 为组件内部应用通道（掩体强制潜行使用 `Movement.Override.Hidden`）。进入状态自动应用默认步态（Perception 潜行 / Courage 走路 / Memory 走路）。
+- **掩体**：`ALRHidePoint` 实例配置 `bAllowMovementWhileHidden`：桌下/草丛/管道（可移动）= true，柜/箱（固定）= false；进入掩体强制潜行，退出按当前状态重新求值。掩体容量与进出音效不在本批次。
+- **噪声环境体积**：`ALRNoiseArea` 实例配置 `Environment`：`Indoor` / `Outdoor` / `OutdoorStealth`；重叠按 `Indoor > OutdoorStealth > Outdoor` 解析，无区域时默认 `Outdoor`。进入/退出都会重新求值。
+- **脚步噪声**（纯规则，见 `LRMovementRules::ResolveFootstepNoise`）：潜行无声；走路 室内 400 / 室外潜行 250 / 室外非潜行 250+Faint；奔跑 室内房间传播（无房间回退 1200）/ 室外潜行 600 / 室外非潜行 250。调优字段已重命名：`OutdoorSneakGuardNoiseRadius`→`OutdoorStealthRunNoiseRadius`、`OutdoorAlertGuardNoiseRadius`→`OutdoorNoiseRadius`（PropertyRedirects 已迁移）。
+
+### 敌人警戒（4.2.1 全量）
+
+- **行为语义**（C++ 权威）：吸引噪声 +1（1-5 档 CD 0.5s；首次进入 6-10 档 0.5s、其后 0.2s；CD 内刺激完全忽略）；看见玩家 警戒<6→6、6-10→11、11 丢失→10；观察 3s（0→1 与抵达调查点）与衰减 0.5s/-1 由 `ULRAlertComponent` 计时器驱动；`ResolveTargetBehavior` 为行为唯一权威（眩晕优先）。警戒条 UI 只读 `FLRAlertSnapshot`（Level/Fraction/Tier/Behavior/bFullAlert）+ `OnAlertSnapshotChanged`，绑定后立即推送初值。
+- **`WBP_GuardAlertBar`**：继承 `ULRWorldAlertBarWidgetBase`；覆盖 `HandleAlertSnapshotChanged` 只做表现：`Tier=Hidden` 隐藏、`White` 白色进度条、`Red` 红色、`Full` 满值+额外红色特效（样式需重新设计）。由 `BP_Guard` 的 `AlertWidget` 组件初始化，Widget 不自行猜测所属守卫。
+- **`ALRRoomVolume` 摆放**：在关卡中摆放 Box 体积（Trigger profile），填写 `RoomId`（稳定 FName），`AdjacentRooms` 连线到相邻房间体积（门/窗拓扑）；守卫进入体积自动注册。室内奔跑：当前房间守卫警戒至少提升到 `RoomRunAlertLevel`(5)、相邻房间 +1；同一守卫属多房间时取最大效果、不累加；无房间体积时回退 1200 半径听觉事件。房间体积必须早于守卫生成。
+- **`ST_Guard` 资产（编辑器人工创建 + MCP 检查）**：见「守卫 AI 与 StateTree」小节接线要求。
+
+### 通用 NPC
+
+- **`BP_NPC`**：继承 `ALRNPCCharacter`，配置网格、动画与 `DA_LRNPCDefinition`。
+- **`DA_LRNPCDefinition`**：`NpcId`（稳定 FName）、`Behavior`（StateTree **硬引用** `ST_NPC`）、`DialogueRowId`（对话 DataTable 稳定行 ID）、`DefaultBehavior`（Idle/Patrol）。
+- **`ST_NPC` 资产（编辑器人工创建 + MCP 检查）**：四个状态 `Idle / Patrol / ReactToNoise / Conversation`；条件 `FLRNPCStateCondition` 比较控制器 `GetActiveBehavior()`，任务 `FLRNPCBehaviorTask`；Idle 附加 `FLRNPCLookAtPlayerTask`（低频朝向检测），ReactToNoise 附加 `FLRNPCReactToNoiseTask`（限时反应，到时发 `AI.Event.NPCReactionEnded` 回默认行为）。树由 `AI.Event.NPCNoiseHeard` / `NPCDialogueStarted` / `NPCDialogueEnded` / `NPCReactionEnded` 驱动。
+- **对话**：交互选项 `Interaction.Action.Talk`（Normal 状态）经 `ULRDialogueSubsystem::StartDialogue` 启动；Conversation 高优先级，普通噪声不打断（只触发 `OnNoiseHeard` 表现钩子）。巡逻点按实例配置。
+- **调优**：`DA_LRNPCTuning`（登记进 `DA_LRGameTuningSet.NPC`）：`LookAtPlayerRadiusCm`、`LookAtIntervalSeconds`、`NoiseReactionDurationSeconds`、`PatrolSpeedCm`。
+- **预留**：`OnNoiseHeard`（BlueprintImplementableEvent）与 `OnNPCAttentionChanged` 委托为未来告警/逃离扩展钩子，本批次不实现告警逻辑。
+
+### 四状态美术表现预留（不实现视觉效果）
+
+- **表现事件（已具备）**：`ULRStateComponent` 的 `OnStateChanging(PreviousMode, NextMode, Reason)` / `OnStateChanged`；`ULRStatePresentationComponent` 转发 `OnStatePresentationRequested` + `PresentStateChange`（表现锁由 `CompleteStatePresentation` 释放）。未来接入 Normal/Perception/Courage/Memory 四套视觉/后处理/音频只需订阅既有事件。
+- **表现调优接入点（新增 getter）**：`GetPerceptionRevealRadius()`(4.5m)、`GetNoiseRevealRadius()`(2m)、`GetNoiseRevealDurationSeconds()`(5s)、`GetPerceptionBlendWeight()`、`GetCourageBlendWeight()`——值来自 `ULRPresentationTuning`（`DA_LRGameTuningSet.Presentation`）。
+- **其他钩子**：`ULRNoiseEmitterComponent::OnNoiseEmitted`（声源显现，房间传播路径也已广播）；`ELRScreenType::StateOverlay`（屏幕层）；`LRHUDWidgetController::OnPerceptionModeChanged`（已有）。
+
+### 输入与调优变更
+
+- `SneakAction` 已废弃（`DeprecatedProperty`，移出 Validate 必填）；潜行切换继续使用 `ToggleCrouchAction`（C / B 切换）。
+- 调优重命名（PropertyRedirects 已配置）：`HearingAlertAmount`→`AttractAlertAmount`（**资产值需改为 1**）、`SightAlertLevel`→`SightChaseLevel`(11)、移动噪声半径两项；`SearchDurationSeconds` 废弃。
+- 新建资产清单（StateTree 需编辑器人工创建，其余可 MCP）：`ST_Guard`、`ST_NPC`、`DA_LRGuardDefinition`、`DA_LRNPCDefinition`、`DA_LRNPCTuning`、`BP_Guard`、`WBP_GuardAlertBar`、`BP_NPC`；`DA_LRGameTuningSet` 登记 `DA_LRNPCTuning`。
+- **PIE 验收（`/Game/LostRunic/Levels/PIE_Test/L_PIE_Test`，键鼠+手柄，Output Log 无项目级 Warning/Error）**：状态步态（Perception 强制潜行、Courage 拒潜行、Memory 仅走路）；掩体进入强制潜行/固定掩体不可移动/掩体内不可见；噪声区域进入退出与重叠优先级、7 行步态×环境噪声、房间传播（本房→5、邻房+1、多房间取最大、无房间兜底）；完整警戒流程（0→吸引→1 观察 3s、CD 内忽略、看见→6 前往、抵达 Search 观察→衰减→0 巡逻、6-10 看见→11 追逐、丢失→10、追上死亡→Memory）；世界警戒条四档表现与首帧同步；击退眩晕 0.6s 恢复（`LR.Debug.Alert` 显示 Stunned）；NPC 巡逻/站立/对话开合/噪声限时反应/Idle 朝向玩家/对话结束回默认；`LR.Debug.Tuning` 确认重命名后来源。
 
 ## 更新记录
 

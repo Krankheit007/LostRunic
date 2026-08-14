@@ -87,6 +87,16 @@ namespace LRGameplayTags
 	 * @param StateRejectAlreadyCurrent 调用方提供的 `StateRejectAlreadyCurrent`，只在本次操作范围内使用。
 	 */
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(StateRejectAlreadyCurrent);
+	/**
+	 * @brief 创建对象并设置默认子对象、能力开关和安全初值；需要 World、资产或玩家的依赖延迟到初始化阶段解析。
+	 * @param MovementRejectPaceForbidden 调用方提供的 `MovementRejectPaceForbidden`，只在本次操作范围内使用。
+	 */
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(MovementRejectPaceForbidden);
+	/**
+	 * @brief 创建对象并设置默认子对象、能力开关和安全初值；需要 World、资产或玩家的依赖延迟到初始化阶段解析。
+	 * @param MovementOverrideHidden 调用方提供的 `MovementOverrideHidden`，只在本次操作范围内使用。
+	 */
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(MovementOverrideHidden);
 
 	/**
 	 * @brief 创建对象并设置默认子对象、能力开关和安全初值；需要 World、资产或玩家的依赖延迟到初始化阶段解析。
@@ -241,6 +251,21 @@ namespace LRGameplayTags
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(NoiseInteraction);
 	/**
 	 * @brief 创建对象并设置默认子对象、能力开关和安全初值；需要 World、资产或玩家的依赖延迟到初始化阶段解析。
+	 * @param NoiseFootstepSneak 调用方提供的 `NoiseFootstepSneak`，只在本次操作范围内使用。
+	 */
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(NoiseFootstepSneak);
+	/**
+	 * @brief 创建对象并设置默认子对象、能力开关和安全初值；需要 World、资产或玩家的依赖延迟到初始化阶段解析。
+	 * @param NoiseFootstepWalkFaint 调用方提供的 `NoiseFootstepWalkFaint`，只在本次操作范围内使用。
+	 */
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(NoiseFootstepWalkFaint);
+	/**
+	 * @brief 创建对象并设置默认子对象、能力开关和安全初值；需要 World、资产或玩家的依赖延迟到初始化阶段解析。
+	 * @param NoiseFootstepRunIndoor 调用方提供的 `NoiseFootstepRunIndoor`，只在本次操作范围内使用。
+	 */
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(NoiseFootstepRunIndoor);
+	/**
+	 * @brief 创建对象并设置默认子对象、能力开关和安全初值；需要 World、资产或玩家的依赖延迟到初始化阶段解析。
 	 * @param SightPlayer 调用方提供的 `SightPlayer`，只在本次操作范围内使用。
 	 */
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(SightPlayer);
@@ -269,6 +294,31 @@ namespace LRGameplayTags
 	 * @param AIEventAlertChanged 调用方提供的 `AIEventAlertChanged`，只在本次操作范围内使用。
 	 */
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(AIEventAlertChanged);
+	/**
+	 * @brief 创建对象并设置默认子对象、能力开关和安全初值；需要 World、资产或玩家的依赖延迟到初始化阶段解析。
+	 * @param AIEventBehaviorChanged 调用方提供的 `AIEventBehaviorChanged`，只在本次操作范围内使用。
+	 */
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(AIEventBehaviorChanged);
+	/**
+	 * @brief 创建对象并设置默认子对象、能力开关和安全初值；需要 World、资产或玩家的依赖延迟到初始化阶段解析。
+	 * @param AIEventNPCNoiseHeard 调用方提供的 `AIEventNPCNoiseHeard`，只在本次操作范围内使用。
+	 */
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(AIEventNPCNoiseHeard);
+	/**
+	 * @brief 创建对象并设置默认子对象、能力开关和安全初值；需要 World、资产或玩家的依赖延迟到初始化阶段解析。
+	 * @param AIEventNPCDialogueStarted 调用方提供的 `AIEventNPCDialogueStarted`，只在本次操作范围内使用。
+	 */
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(AIEventNPCDialogueStarted);
+	/**
+	 * @brief 创建对象并设置默认子对象、能力开关和安全初值；需要 World、资产或玩家的依赖延迟到初始化阶段解析。
+	 * @param AIEventNPCDialogueEnded 调用方提供的 `AIEventNPCDialogueEnded`，只在本次操作范围内使用。
+	 */
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(AIEventNPCDialogueEnded);
+	/**
+	 * @brief 创建对象并设置默认子对象、能力开关和安全初值；需要 World、资产或玩家的依赖延迟到初始化阶段解析。
+	 * @param AIEventNPCReactionEnded 调用方提供的 `AIEventNPCReactionEnded`，只在本次操作范围内使用。
+	 */
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(AIEventNPCReactionEnded);
 	/**
 	 * @brief 创建对象并设置默认子对象、能力开关和安全初值；需要 World、资产或玩家的依赖延迟到初始化阶段解析。
 	 * @param NarrativeEventCompleted 调用方提供的 `NarrativeEventCompleted`，只在本次操作范围内使用。

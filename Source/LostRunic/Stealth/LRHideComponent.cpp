@@ -9,8 +9,10 @@
 #include "Stealth/LRHideComponent.h"
 
 #include "Core/LRGameplayTags.h"
+#include "Framework/LRCharacter.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Gameplay/LRLocomotionComponent.h"
 #include "State/LRStateComponent.h"
 #include "Stealth/LRHidePoint.h"
 
@@ -30,6 +32,7 @@ void ULRHideComponent::BeginPlay()
 	Super::BeginPlay();
 	Character = Cast<ACharacter>(GetOwner());
 	State = GetOwner() ? GetOwner()->FindComponentByClass<ULRStateComponent>() : nullptr;
+	Locomotion = Cast<ALRCharacter>(GetOwner()) ? Cast<ALRCharacter>(GetOwner())->GetLocomotionComponent() : nullptr;
 	ensureMsgf(Character && State, TEXT("%s requires an ACharacter owner and State component."), *GetNameSafe(this));
 }
 
@@ -62,6 +65,11 @@ bool ULRHideComponent::EnterHidePoint(ALRHidePoint* hidePoint)
 		Character->GetCharacterMovement()->DisableMovement();
 	}
 	State->SetBlockerActive(LRGameplayTags::StateBlockerHidden, true);
+	if (Locomotion)
+	{
+		// 掩体强制潜行覆盖；退出时按当前状态重新求值，不恢复可能过期的缓存步态。
+		Locomotion->OverridePace(ELRMovementPace::Sneak, LRGameplayTags::MovementOverrideHidden);
+	}
 	OnHiddenStateChanged.Broadcast(true, hidePoint);
 	return true;
 }
@@ -85,6 +93,10 @@ bool ULRHideComponent::ExitHidePoint()
 	}
 	bMovementLockedByHide = false;
 	State->SetBlockerActive(LRGameplayTags::StateBlockerHidden, false);
+	if (Locomotion)
+	{
+		Locomotion->ClearPaceOverride(LRGameplayTags::MovementOverrideHidden);
+	}
 	OnHiddenStateChanged.Broadcast(false, nullptr);
 	return true;
 }

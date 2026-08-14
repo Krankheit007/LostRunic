@@ -13,6 +13,7 @@
 
 #include "LRNoiseEmitterComponent.generated.h"
 
+class ULRGuardTuning;
 class ULRInteractionComponent;
 class ULRLocomotionComponent;
 class ULRMovementTuning;
@@ -66,6 +67,12 @@ private:
 	void HandleFootstep(FVector location, float radius, FGameplayTag reason);
 
 	/**
+	 * @brief 室内奔跑噪声：房间传播优先（当前房警戒至少提升到 RoomRunAlertLevel、相邻房 +1，多房间候选目标值取最大、一次应用）；无房间时回退 1200 半径听觉事件；始终广播 OnNoiseEmitted 供表现钩子，绝不调用 ReportNoiseEvent（防双计）。
+	 * @param location 世界空间位置，Unreal 单位为厘米。
+	 */
+	void ApplyIndoorRunNoise(const FVector location);
+
+	/**
 	 * @brief 处理 Handle Interaction 事件，将引擎回调转换为对应领域状态更新。
 	 * @param result 本次领域操作的结构化数据 `result`；字段语义由对应 USTRUCT 定义。
 	 */
@@ -83,4 +90,8 @@ private:
 	/** 运行时解析出的调优资产缓存；不序列化，不由蓝图编辑。 该字段仅为运行时缓存，不进入存档。 */
 	UPROPERTY(Transient)
 	TObjectPtr<ULRMovementTuning> Tuning;
+
+	/** Guard 调优缓存；室内奔跑房间警戒目标值来源。 该字段仅为运行时缓存，不进入存档。 */
+	UPROPERTY(Transient)
+	TObjectPtr<ULRGuardTuning> GuardTuning;
 };

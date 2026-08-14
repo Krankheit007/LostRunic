@@ -15,6 +15,7 @@
 
 class ACharacter;
 class ALRHidePoint;
+class ULRLocomotionComponent;
 class ULRStateComponent;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FLRHiddenStateChanged, bool, bHidden, ALRHidePoint*, hidePoint);
@@ -83,6 +84,10 @@ private:
 	/** State 的领域数据，由所属类型负责维护和校验。 该字段仅为运行时缓存，不进入存档。 */
 	UPROPERTY(Transient)
 	TObjectPtr<ULRStateComponent> State;
+
+	/** Locomotion 的领域数据，由所属类型负责维护和校验。 该字段仅为运行时缓存，不进入存档。 */
+	UPROPERTY(Transient)
+	TObjectPtr<ULRLocomotionComponent> Locomotion;
 
 	/** Current Hide Point 的领域数据，由所属类型负责维护和校验。 该字段仅为运行时缓存，不进入存档。 */
 	UPROPERTY(Transient)

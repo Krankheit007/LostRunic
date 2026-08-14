@@ -25,6 +25,8 @@ namespace LRGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(StateRejectConcurrentInput, "State.Reject.ConcurrentInput", "Another eye input owns the current press.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(StateRejectPresentationLocked, "State.Reject.PresentationLocked", "Presentation has not completed.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(StateRejectAlreadyCurrent, "State.Reject.AlreadyCurrent", "The target mode is already active.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(MovementRejectPaceForbidden, "Movement.Reject.PaceForbidden", "The requested pace is forbidden by the current state.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(MovementOverrideHidden, "Movement.Override.Hidden", "Pace is temporarily forced to Sneak while hiding.");
 
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(InteractionActionInteract, "Interaction.Action.Interact", "Generic interaction.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(InteractionActionPickup, "Interaction.Action.Pickup", "Pickup interaction.");
@@ -57,12 +59,20 @@ namespace LRGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(NoiseFootstepWalk, "Noise.Footstep.Walk", "Walking footstep stimulus.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(NoiseFootstepRun, "Noise.Footstep.Run", "Running footstep stimulus.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(NoiseInteraction, "Noise.Interaction", "Interaction-created noise stimulus.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(NoiseFootstepSneak, "Noise.Footstep.Sneak", "Silent sneak footstep; presentation/animation hook only, never emitted as hearing.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(NoiseFootstepWalkFaint, "Noise.Footstep.Walk.Faint", "Outdoor open-area walk; only guards with alert at least 6 respond.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(NoiseFootstepRunIndoor, "Noise.Footstep.Run.Indoor", "Indoor run; propagated through room volumes with alert floor semantics.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(SightPlayer, "Sight.Player", "A guard saw the player.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(SightPlayerLost, "Sight.Player.Lost", "A guard lost confirmed sight of the player.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(SearchReached, "Search.Reached", "A guard reached the latest disturbance location.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(SearchAlertDecay, "Search.AlertDecay", "Alert decayed after its observation delay.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(SearchTimeout, "Search.Timeout", "A guard search timed out.");
-	UE_DEFINE_GAMEPLAY_TAG_COMMENT(AIEventAlertChanged, "AI.Event.AlertChanged", "Alert state changed and StateTree should reselect.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(AIEventAlertChanged, "AI.Event.AlertChanged", "Alert or perception data changed; data-level event, does not drive StateTree selection.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(AIEventBehaviorChanged, "AI.Event.BehaviorChanged", "The resolved guard behavior changed; StateTree should reselect.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(AIEventNPCNoiseHeard, "AI.Event.NPCNoiseHeard", "An NPC heard a noise and StateTree should react.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(AIEventNPCDialogueStarted, "AI.Event.NPCDialogueStarted", "An NPC conversation started.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(AIEventNPCDialogueEnded, "AI.Event.NPCDialogueEnded", "An NPC conversation ended.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(AIEventNPCReactionEnded, "AI.Event.NPCReactionEnded", "An NPC noise reaction timed out; return to base behavior.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(NarrativeEventCompleted, "Narrative.Event.Completed", "A stable narrative event completed.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(NarrativeRejectNoSession, "Narrative.Reject.NoSession", "No narrative session can receive the request.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(NarrativeRejectMissingContent, "Narrative.Reject.MissingContent", "The requested stable content ID is not registered.");

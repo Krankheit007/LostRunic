@@ -30,11 +30,127 @@ bool FLRAlertRulesTest::RunTest(const FString& parameters)
 	TestEqual(TEXT("Zero alert patrols"), LRAlertRules::ResolveState(0, false, false), ELRGuardBehaviorState::IdlePatrol);
 	TestEqual(TEXT("Low alert is suspicious"), LRAlertRules::ResolveState(5, false, false), ELRGuardBehaviorState::Suspicious);
 	TestEqual(TEXT("Mid alert investigates"), LRAlertRules::ResolveState(6, false, false), ELRGuardBehaviorState::Investigate);
-	TestEqual(TEXT("Max alert searches after sight is lost"), LRAlertRules::ResolveState(11, false, false), ELRGuardBehaviorState::Search);
+	TestEqual(TEXT("Max alert without sight searches"), LRAlertRules::ResolveState(11, false, false), ELRGuardBehaviorState::Search);
 	TestEqual(TEXT("Confirmed max alert chases"), LRAlertRules::ResolveState(11, true, false), ELRGuardBehaviorState::Chase);
-	TestFalse(TEXT("Sight suppresses decay"), LRAlertRules::ShouldDecay(30.0f, 3.0f, true));
-	TestFalse(TEXT("Observation delay has not elapsed"), LRAlertRules::ShouldDecay(2.99f, 3.0f, false));
-	TestTrue(TEXT("Observation delay boundary decays"), LRAlertRules::ShouldDecay(3.0f, 3.0f, false));
+	TestEqual(TEXT("Searching in red band searches"), LRAlertRules::ResolveState(6, false, true), ELRGuardBehaviorState::Search);
+	TestEqual(TEXT("Searching below red band is suspicious"), LRAlertRules::ResolveState(5, false, true), ELRGuardBehaviorState::Suspicious);
+	TestFalse(TEXT("Observation suppresses decay"), LRAlertRules::ShouldDecay(true, false, ELRGuardBehaviorState::Suspicious));
+	TestFalse(TEXT("Sight suppresses decay"), LRAlertRules::ShouldDecay(false, true, ELRGuardBehaviorState::Search));
+	TestFalse(TEXT("Investigate holds alert while traveling"), LRAlertRules::ShouldDecay(false, false, ELRGuardBehaviorState::Investigate));
+	TestFalse(TEXT("Chase holds alert"), LRAlertRules::ShouldDecay(false, false, ELRGuardBehaviorState::Chase));
+	TestTrue(TEXT("Suspicious decays after observation"), LRAlertRules::ShouldDecay(false, false, ELRGuardBehaviorState::Suspicious));
+	TestTrue(TEXT("Search decays after observation"), LRAlertRules::ShouldDecay(false, false, ELRGuardBehaviorState::Search));
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLRNoiseAlertDeltaTest, "LostRunic.AI.NoiseAlertDelta",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FLRNoiseAlertDeltaTest::RunTest(const FString& parameters)
+{
+	ULRGuardTuning* tuning = NewObject<ULRGuardTuning>(GetTransientPackage());
+	if (!TestNotNull(TEXT("Guard tuning created"), tuning))
+	{
+		return false;
+	}
+
+	// 室内奔跑：Set 语义，警戒至少提升到 RoomRunAlertLevel，不走吸引 CD。
+	FLRNoiseResponse indoorRun = LRGuardPerceptionRules::ResolveNoiseAlertDelta(
+		LRGameplayTags::NoiseFootstepRunIndoor, 3, *tuning);
+	TestTrue(TEXT("Indoor run responds"), indoorRun.bRespond);
+	TestEqual(TEXT("Indoor run raises to floor"), indoorRun.Delta, 2);
+	TestFalse(TEXT("Indoor run is not attract"), indoorRun.bIsAttract);
+	indoorRun = LRGuardPerceptionRules::ResolveNoiseAlertDelta(LRGameplayTags::NoiseFootstepRunIndoor, 6, *tuning);
+	TestEqual(TEXT("Indoor run above floor is ignored"), indoorRun.Delta, 0);
+
+	// Faint：仅警戒 >=6 的守卫响应，且为吸引语义。
+	FLRNoiseResponse faintLow = LRGuardPerceptionRules::ResolveNoiseAlertDelta(
+		LRGameplayTags::NoiseFootstepWalkFaint, 5, *tuning);
+	TestFalse(TEXT("Faint ignored below six"), faintLow.bRespond);
+	TestTrue(TEXT("Faint is attract"), faintLow.bIsAttract);
+	FLRNoiseResponse faintHigh = LRGuardPerceptionRules::ResolveNoiseAlertDelta(
+		LRGameplayTags::NoiseFootstepWalkFaint, 6, *tuning);
+	TestTrue(TEXT("Faint responds at six"), faintHigh.bRespond);
+	TestEqual(TEXT("Faint attracts one"), faintHigh.Delta, 1);
+
+	// 普通噪声：一律吸引 +1。
+	const FGameplayTag plainReasons[] = {
+		LRGameplayTags::NoiseFootstepWalk.GetTag(),
+		LRGameplayTags::NoiseFootstepRun.GetTag(),
+		LRGameplayTags::NoiseInteraction.GetTag()
+	};
+	for (const FGameplayTag reason : plainReasons)
+	{
+		const FLRNoiseResponse response = LRGuardPerceptionRules::ResolveNoiseAlertDelta(reason, 4, *tuning);
+		TestTrue(TEXT("Plain noise responds"), response.bRespond);
+		TestEqual(TEXT("Plain noise attracts one"), response.Delta, tuning->AttractAlertAmount);
+		TestTrue(TEXT("Plain noise is attract"), response.bIsAttract);
+	}
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLRAlertIncreaseCooldownTest, "LostRunic.AI.AlertIncreaseCooldown",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FLRAlertIncreaseCooldownTest::RunTest(const FString& parameters)
+{
+	ULRGuardTuning* tuning = NewObject<ULRGuardTuning>(GetTransientPackage());
+	if (!TestNotNull(TEXT("Guard tuning created"), tuning))
+	{
+		return false;
+	}
+
+	// 1-5 档与首次进入 6-10 档使用 0.5s，6-10 档后续使用 0.2s。
+	TestEqual(TEXT("Low band uses long cooldown"),
+		LRAlertRules::ResolveAttractIncreaseCooldown(3, false, *tuning), tuning->AlertIncreaseCooldownSeconds);
+	TestEqual(TEXT("First increase in red band uses long cooldown"),
+		LRAlertRules::ResolveAttractIncreaseCooldown(6, true, *tuning), tuning->AlertIncreaseCooldownSeconds);
+	TestEqual(TEXT("Later increases in red band use short cooldown"),
+		LRAlertRules::ResolveAttractIncreaseCooldown(6, false, *tuning), tuning->InvestigateIncreaseCooldownSeconds);
+
+	// 冷却边界：等于冷却时长时允许；冷却被拒绝的刺激完全忽略。
+	TestTrue(TEXT("Cooldown elapsed allows increase"), LRAlertRules::IsIncreaseAllowed(10.0, 9.5, 0.5f));
+	TestFalse(TEXT("Cooldown active rejects increase"), LRAlertRules::IsIncreaseAllowed(10.0, 9.6, 0.5f));
+	TestTrue(TEXT("Zero cooldown always allows"), LRAlertRules::IsIncreaseAllowed(10.0, 0.0, 0.0f));
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLRResolveTargetBehaviorTest, "LostRunic.AI.ResolveTargetBehavior",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FLRResolveTargetBehaviorTest::RunTest(const FString& parameters)
+{
+	// 眩晕覆盖一切：感知与警戒继续运行，但行为被钉在 Stunned。
+	TestEqual(TEXT("Stun overrides chase"), LRAlertRules::ResolveTargetBehavior(true, 11, true, false),
+		ELRGuardBehaviorState::Stunned);
+	TestEqual(TEXT("Stun overrides idle"), LRAlertRules::ResolveTargetBehavior(true, 0, false, false),
+		ELRGuardBehaviorState::Stunned);
+	// 未眩晕时按警戒推导。
+	TestEqual(TEXT("Resolved idle"), LRAlertRules::ResolveTargetBehavior(false, 0, false, false),
+		ELRGuardBehaviorState::IdlePatrol);
+	TestEqual(TEXT("Resolved suspicious"), LRAlertRules::ResolveTargetBehavior(false, 5, false, false),
+		ELRGuardBehaviorState::Suspicious);
+	TestEqual(TEXT("Resolved investigate"), LRAlertRules::ResolveTargetBehavior(false, 6, false, false),
+		ELRGuardBehaviorState::Investigate);
+	TestEqual(TEXT("Resolved chase"), LRAlertRules::ResolveTargetBehavior(false, 11, true, false),
+		ELRGuardBehaviorState::Chase);
+	// 眩晕结束后按当前警戒与视线恢复。
+	TestEqual(TEXT("Stun recovery resumes chase"), LRAlertRules::ResolveTargetBehavior(false, 11, true, false),
+		ELRGuardBehaviorState::Chase);
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLRAlertTierTest, "LostRunic.AI.AlertTierMapping",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FLRAlertTierTest::RunTest(const FString& parameters)
+{
+	TestEqual(TEXT("Zero alert is hidden"), LRAlertRules::ResolveAlertTier(0), ELRGuardAlertTier::Hidden);
+	TestEqual(TEXT("Low alert is white"), LRAlertRules::ResolveAlertTier(1), ELRGuardAlertTier::White);
+	TestEqual(TEXT("Five is white boundary"), LRAlertRules::ResolveAlertTier(5), ELRGuardAlertTier::White);
+	TestEqual(TEXT("Six is red"), LRAlertRules::ResolveAlertTier(6), ELRGuardAlertTier::Red);
+	TestEqual(TEXT("Ten is red boundary"), LRAlertRules::ResolveAlertTier(10), ELRGuardAlertTier::Red);
+	TestEqual(TEXT("Eleven is full"), LRAlertRules::ResolveAlertTier(11), ELRGuardAlertTier::Full);
 	return true;
 }
 

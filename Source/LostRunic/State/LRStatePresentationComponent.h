@@ -14,6 +14,7 @@
 
 #include "LRStatePresentationComponent.generated.h"
 
+class ULRPresentationTuning;
 class ULRStateComponent;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FLRStatePresentationRequested,
@@ -47,6 +48,37 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Lost Runic|State|Presentation")
 	void CompleteStatePresentation();
 
+	/**
+	 * @brief 查询 Perception Reveal Radius（角色周围显现半径，设计 4.5m）；艺术表现预留接入点。
+	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+	 */
+	UFUNCTION(BlueprintPure, Category = "Lost Runic|State|Presentation")
+	float GetPerceptionRevealRadius() const;
+	/**
+	 * @brief 查询 Noise Reveal Radius（声源周围显现半径，设计 2m）；艺术表现预留接入点。
+	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+	 */
+	UFUNCTION(BlueprintPure, Category = "Lost Runic|State|Presentation")
+	float GetNoiseRevealRadius() const;
+	/**
+	 * @brief 查询 Noise Reveal Duration Seconds（声源显现时长，设计 5s）；艺术表现预留接入点。
+	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+	 */
+	UFUNCTION(BlueprintPure, Category = "Lost Runic|State|Presentation")
+	float GetNoiseRevealDurationSeconds() const;
+	/**
+	 * @brief 查询 Perception Blend Weight（感知后处理混合权重）；艺术表现预留接入点。
+	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+	 */
+	UFUNCTION(BlueprintPure, Category = "Lost Runic|State|Presentation")
+	float GetPerceptionBlendWeight() const;
+	/**
+	 * @brief 查询 Courage Blend Weight（勇气后处理混合权重）；艺术表现预留接入点。
+	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+	 */
+	UFUNCTION(BlueprintPure, Category = "Lost Runic|State|Presentation")
+	float GetCourageBlendWeight() const;
+
 	/** Broadcast when Blueprint should play the visual transition, then report completion. */
 	UPROPERTY(BlueprintAssignable, Category = "Lost Runic|State|Presentation")
 	FLRStatePresentationRequested OnStatePresentationRequested;
@@ -74,4 +106,8 @@ private:
 	/** State Component 的领域数据，由所属类型负责维护和校验。 该字段仅为运行时缓存，不进入存档。 */
 	UPROPERTY(Transient)
 	TObjectPtr<ULRStateComponent> StateComponent;
+
+	/** 表现调优资产缓存；不序列化，不由蓝图编辑。 该字段仅为运行时缓存，不进入存档。 */
+	UPROPERTY(Transient)
+	TObjectPtr<ULRPresentationTuning> Tuning;
 };

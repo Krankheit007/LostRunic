@@ -18,6 +18,7 @@ class ULRGuardTuning;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_FiveParams(FLRAlertChanged, int32, previousLevel, int32, currentLevel,
 	ELRGuardBehaviorState, currentState, FGameplayTag, reason, FVector, disturbanceLocation);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FLRAlertSnapshotChanged, const FLRAlertSnapshot&, snapshot);
 
 /** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
 UCLASS(ClassGroup = "Lost Runic", BlueprintType, meta = (BlueprintSpawnableComponent, DisplayName = "Lost Runic Alert"))
@@ -42,7 +43,7 @@ public:
 	virtual void EndPlay(const EEndPlayReason::Type endPlayReason) override;
 
 	/**
-	 * @brief 把警戒增减限制在 0-11，并记录原因、异常位置与目标后广播变化。
+	 * @brief 把警戒增减限制在 0-11，并记录原因、异常位置与目标后广播变化；警戒归零时清理目标与观察状态。
 	 * @param delta 调用方提供的 `delta`，只在本次操作范围内使用。
 	 * @param location 世界空间位置，Unreal 单位为厘米。
 	 * @param target 本次规则检查或操作的目标对象。
@@ -50,6 +51,15 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Lost Runic|AI|Alert")
 	void ApplyAlertDelta(int32 delta, FVector location, AActor* target, FGameplayTag reason);
+
+	/**
+	 * @brief 吸引注意语义入口：按档位冷却门控（CD 内刺激完全忽略，不改变观察状态），每次 +AttractAlertAmount，并重置 3s 观察窗口。
+	 * @param location 世界空间位置，Unreal 单位为厘米。
+	 * @param target 本次规则检查或操作的目标对象。
+	 * @param reason Gameplay Tag 原因，用于状态转换、日志和自动化测试追踪。
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Lost Runic|AI|Alert")
+	void ApplyAttract(FVector location, AActor* target, FGameplayTag reason);
 
 	/**
 	 * @brief 更新 Sight Target，并在需要时同步组件状态或广播变化事件。
@@ -114,15 +124,52 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Lost Runic|AI|Alert")
 	bool HasConfirmedSight() const { return bHasConfirmedSight; }
 
+	/**
+	 * @brief 判断 Is Searching 对应条件；不产生玩法副作用。
+	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+	 */
+	UFUNCTION(BlueprintPure, Category = "Lost Runic|AI|Alert")
+	bool IsSearching() const { return bSearching; }
+
+	/**
+	 * @brief 判断 Is Observing 对应条件；不产生玩法副作用。
+	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+	 */
+	UFUNCTION(BlueprintPure, Category = "Lost Runic|AI|Alert")
+	bool IsObserving() const { return bObserving; }
+
+	/**
+	 * @brief 查询当前只读警戒快照（等级、归一化进度、显示档位、行为与满值标志）；UI 绑定 OnAlertSnapshotChanged 后应立即读取本值，避免首帧不同步。
+	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+	 */
+	UFUNCTION(BlueprintPure, Category = "Lost Runic|AI|Alert")
+	FLRAlertSnapshot GetAlertSnapshot() const;
+
 	/** 当 Alert Changed 发生时广播；蓝图可绑定该委托以更新表现，不应在回调中改写核心规则。  */
 	UPROPERTY(BlueprintAssignable, Category = "Lost Runic|AI|Alert")
 	FLRAlertChanged OnAlertChanged;
+
+	/** 当 Alert Snapshot Changed 发生时广播；世界警戒条 Widget 绑定该只读快照，蓝图只做表现。  */
+	UPROPERTY(BlueprintAssignable, Category = "Lost Runic|AI|Alert")
+	FLRAlertSnapshotChanged OnAlertSnapshotChanged;
 
 private:
 	/**
 	 * @brief 处理 Handle Decay Timer 事件，将引擎回调转换为对应领域状态更新。
 	 */
 	void HandleDecayTimer();
+	/**
+	 * @brief 处理 Handle Observation End 事件，将引擎回调转换为对应领域状态更新；观察结束前警戒维持不动。
+	 */
+	void HandleObservationEnd();
+	/**
+	 * @brief 开始 3 秒观察窗口；观察期间衰减被门控。
+	 */
+	void StartObservation();
+	/**
+	 * @brief 警戒归零时清理目标、搜索与观察状态；不额外广播（归零变化本身已广播）。
+	 */
+	void ClearWhenAlertZero();
 	/**
 	 * @brief 广播警戒旧值、新值和原因标签，供 StateTree、UI、日志与测试订阅。
 	 * @param previousLevel 本次操作使用的计数、增量或索引 `previousLevel`；由函数校验合法范围。
@@ -156,10 +203,18 @@ private:
 	FGameplayTag LastReason;
 	/** Last Stimulus Time Seconds 的运行时状态；由所属类型维护，不在蓝图中配置。 */
 	double LastStimulusTimeSeconds = 0.0;
+	/** Last Increase Time Seconds 的运行时状态；由所属类型维护，不在蓝图中配置。 */
+	double LastIncreaseTimeSeconds = 0.0;
 	/** Has Confirmed Sight 的运行时状态；由所属类型维护，不在蓝图中配置。 */
 	bool bHasConfirmedSight = false;
 	/** Searching 的运行时状态；由所属类型维护，不在蓝图中配置。 */
 	bool bSearching = false;
+	/** Observing 的运行时状态；由所属类型维护，不在蓝图中配置。 */
+	bool bObserving = false;
+	/** First Increase In Band 的运行时状态；由所属类型维护，不在蓝图中配置。 */
+	bool bFirstIncreaseInBand = false;
 	/** Decay Timer 的运行时句柄，用于取消回调并避免 Tick；不在蓝图中配置。 */
 	FTimerHandle DecayTimer;
+	/** Observation Timer 的运行时句柄，用于取消回调并避免 Tick；不在蓝图中配置。 */
+	FTimerHandle ObservationTimer;
 };

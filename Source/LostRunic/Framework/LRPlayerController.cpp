@@ -163,7 +163,7 @@ void ALRPlayerController::HandleSneakToggle()
 	}
 	if (ALRCharacter* character = Cast<ALRCharacter>(GetPawn()))
 	{
-		character->GetLocomotionComponent()->ToggleSneak();
+		character->GetLocomotionComponent()->RequestToggleSneak();
 	}
 }
 
@@ -178,7 +178,7 @@ void ALRPlayerController::HandleRunStarted()
 	}
 	if (ALRCharacter* character = Cast<ALRCharacter>(GetPawn()))
 	{
-		character->GetLocomotionComponent()->StartRun();
+		character->GetLocomotionComponent()->RequestStartRun();
 	}
 }
 
@@ -193,7 +193,7 @@ void ALRPlayerController::HandleRunStopped()
 	}
 	if (ALRCharacter* character = Cast<ALRCharacter>(GetPawn()))
 	{
-		character->GetLocomotionComponent()->StopRun();
+		character->GetLocomotionComponent()->RequestStopRun();
 	}
 }
 

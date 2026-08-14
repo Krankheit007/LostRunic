@@ -1,6 +1,6 @@
 /**
  * @file LRLocomotionComponent.h
- * @brief 根据心理状态和玩家切换请求选择潜行/走路/奔跑，以 80/150/250 cm/s 基线移动，并按移动距离和环境发布脚步噪声。
+ * @brief 根据心理状态和玩家切换请求选择潜行/走路/奔跑，以 80/150/250 cm/s 基线移动，并按移动距离和环境发布脚步噪声。玩家请求经状态步态规则验证，组件内部应用与掩体覆盖走独立通道。
  *
  * 关联文件：LRLocomotionComponent.cpp；所属领域：Gameplay。
  * 设计依据：Docs/Design/01_GameDesignSummary.md 与 Docs/Technical/04_TechnicalDesign.md。
@@ -16,8 +16,10 @@
 
 class ACharacter;
 class ULRMovementTuning;
+class ULRStateComponent;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FLRFootstepEvent, FVector, location, float, radius, FGameplayTag, noiseTag);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FLRPaceRequestRejected, ELRMovementPace, requestedPace, FGameplayTag, reason);
 
 /** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
 UCLASS(ClassGroup = "Lost Runic", BlueprintType, meta = (BlueprintSpawnableComponent, DisplayName = "Lost Runic Locomotion"))
@@ -42,39 +44,55 @@ public:
 	virtual void EndPlay(const EEndPlayReason::Type endPlayReason) override;
 
 	/**
-	 * @brief 更新 Pace，并在需要时同步组件状态或广播变化事件。
-	 * @param newPace 本次操作使用的 `newPace` 枚举或模式值。
+	 * @brief 请求切换潜行与走路；受当前状态步态规则验证，Perception 强制潜行，Courage 禁止潜行，Memory 仅走路。
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Lost Runic|Movement")
-	void SetPace(ELRMovementPace newPace);
+	void RequestToggleSneak();
 
 	/**
-	 * @brief 在状态允许时切换潜行与走路；Perception 强制潜行，Courage 禁止潜行。
+	 * @brief 请求开始奔跑；当前状态禁止奔跑时拒绝并广播拒绝原因。
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Lost Runic|Movement")
-	void ToggleSneak();
+	void RequestStartRun();
 
 	/**
-	 * @brief 开始 Start Run 流程，建立本次操作拥有的状态、委托或计时器。
+	 * @brief 请求结束奔跑，恢复到奔跑前的步态。
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Lost Runic|Movement")
-	void StartRun();
+	void RequestStopRun();
 
 	/**
-	 * @brief 结束或取消 Stop Run 流程，并清理本次操作拥有的临时状态。
-	 */
-	UFUNCTION(BlueprintCallable, Category = "Lost Runic|Movement")
-	void StopRun();
-
-	/**
-	 * @brief 查询 Pace；不修改领域状态。
+	 * @brief 查询有效步态（掩体覆盖优先）；不修改领域状态。
 	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
 	 */
 	UFUNCTION(BlueprintPure, Category = "Lost Runic|Movement")
-	ELRMovementPace GetPace() const { return Pace; }
+	ELRMovementPace GetPace() const { return GetEffectivePace(); }
 
 	/**
-	 * @brief 更新 Noise Environment，并在需要时同步组件状态或广播变化事件。
+	 * @brief 组件内部应用步态（状态同步、掩体、调试）；玩家输入请走 Request* 入口。
+	 * @param newPace 本次操作使用的 `newPace` 枚举或模式值。
+	 * @param source 来源 Gameplay Tag，用于日志与诊断；None 表示常规状态应用。
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Lost Runic|Movement")
+	void ApplyPace(ELRMovementPace newPace, FGameplayTag source = FGameplayTag());
+
+	/**
+	 * @brief 带来源标识的临时步态覆盖（如掩体强制潜行）；清除时按当前状态重新求值合法步态。
+	 * @param newPace 本次操作使用的 `newPace` 枚举或模式值。
+	 * @param source 来源 Gameplay Tag，用于标识覆盖的持有者。
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Lost Runic|Movement")
+	void OverridePace(ELRMovementPace newPace, FGameplayTag source);
+
+	/**
+	 * @brief 清除指定来源的临时步态覆盖；覆盖期间的基础步态可能因状态规则过期，清除后重新求值。
+	 * @param source 来源 Gameplay Tag，用于标识覆盖的持有者。
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Lost Runic|Movement")
+	void ClearPaceOverride(FGameplayTag source);
+
+	/**
+	 * @brief 更新 Noise Environment，并在需要时同步组件状态或广播变化事件；仅由 ALRNoiseArea 调用。
 	 * @param newEnvironment 调用方提供的 `newEnvironment`，只在本次操作范围内使用。
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Lost Runic|Movement")
@@ -84,9 +102,31 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Lost Runic|Noise")
 	FLRFootstepEvent OnFootstep;
 
+	/** 当 Pace Request Rejected 发生时广播；蓝图可绑定该委托以更新表现，不应在回调中改写核心规则。  */
+	UPROPERTY(BlueprintAssignable, Category = "Lost Runic|Movement")
+	FLRPaceRequestRejected OnPaceRequestRejected;
+
 private:
 	/**
-	 * @brief 以低频计时器累计角色实际位移，达到步长后发布脚步而不使用 Tick。
+	 * @brief 处理 Handle State Changed 事件，将引擎回调转换为对应领域状态更新；清空掩体覆盖并按状态默认步态应用。
+	 * @param currentMode 本次操作使用的 `currentMode` 枚举或模式值。
+	 * @param reason Gameplay Tag 原因，用于状态转换、日志和自动化测试追踪。
+	 */
+	UFUNCTION()
+	void HandleStateChanged(ELRPerceptionMode currentMode, FGameplayTag reason);
+
+	/**
+	 * @brief 查询 Effective Mode；State 组件缺失时回退 Normal（无 World 测试场景）。
+	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+	 */
+	ELRPerceptionMode GetEffectiveMode() const;
+	/**
+	 * @brief 查询 Effective Pace；掩体等覆盖存在时返回覆盖值，否则返回基础步态。
+	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+	 */
+	ELRMovementPace GetEffectivePace() const;
+	/**
+	 * @brief 以低频计时器累计角色实际位移，达到步长后按步态×环境解析并发布脚步而不使用 Tick。
 	 */
 	void SampleTravelDistance();
 	/**
@@ -95,10 +135,14 @@ private:
 	 */
 	float GetStepDistance() const;
 	/**
-	 * @brief 查询 Noise Radius；不修改领域状态。
-	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+	 * @brief 按有效步态同步 CharacterMovement 的 MaxWalkSpeed。
 	 */
-	float GetNoiseRadius() const;
+	void SyncMovementSpeed();
+	/**
+	 * @brief 对禁止的步态请求统一记录日志并广播拒绝事件。
+	 * @param requestedPace 本次操作使用的 `requestedPace` 枚举或模式值。
+	 */
+	void RejectPaceRequest(ELRMovementPace requestedPace);
 
 	/** Character 的领域数据，由所属类型负责维护和校验。 该字段仅为运行时缓存，不进入存档。 */
 	UPROPERTY(Transient)
@@ -108,12 +152,20 @@ private:
 	UPROPERTY(Transient)
 	TObjectPtr<ULRMovementTuning> Tuning;
 
+	/** State 的领域数据，由所属类型负责维护和校验。 该字段仅为运行时缓存，不进入存档。 */
+	UPROPERTY(Transient)
+	TWeakObjectPtr<ULRStateComponent> State;
+
 	/** Pace 的内部运行时数据；不参与蓝图配置。 */
 	ELRMovementPace Pace = ELRMovementPace::Walk;
 	/** Pace Before Run 的内部运行时数据；不参与蓝图配置。 */
 	ELRMovementPace PaceBeforeRun = ELRMovementPace::Walk;
 	/** Noise Environment 的内部运行时数据；不参与蓝图配置。 */
-	ELRNoiseEnvironment NoiseEnvironment = ELRNoiseEnvironment::Indoor;
+	ELRNoiseEnvironment NoiseEnvironment = ELRNoiseEnvironment::Outdoor;
+	/** Pace Override 的运行时状态；由所属类型维护，不在蓝图中配置。 */
+	ELRMovementPace PaceOverride = ELRMovementPace::Walk;
+	/** Pace Override Source 的运行时状态；由所属类型维护，不在蓝图中配置。 */
+	FGameplayTag PaceOverrideSource;
 	/** Last Sample Location 的运行时状态；由所属类型维护，不在蓝图中配置。 */
 	FVector LastSampleLocation = FVector::ZeroVector;
 	/** Distance Since Footstep 的内部运行时数据；不参与蓝图配置。 */

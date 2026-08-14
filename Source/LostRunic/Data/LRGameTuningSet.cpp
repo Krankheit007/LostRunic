@@ -12,6 +12,7 @@
 #include "Data/LRGuardTuning.h"
 #include "Data/LRInteractionTuning.h"
 #include "Data/LRMovementTuning.h"
+#include "Data/LRNPCTuning.h"
 #include "Data/LRPresentationTuning.h"
 #include "Data/LRSaveTuning.h"
 #include "Data/LRStateTuning.h"
@@ -62,7 +63,8 @@ bool ULRGameTuningSet::Validate(FString& outError) const
 		&& ValidateEntry(TEXT("Guard"), Guard.Get(), outError)
 		&& ValidateEntry(TEXT("Save"), Save.Get(), outError)
 		&& ValidateEntry(TEXT("UI"), UI.Get(), outError)
-		&& ValidateEntry(TEXT("Presentation"), Presentation.Get(), outError);
+		&& ValidateEntry(TEXT("Presentation"), Presentation.Get(), outError)
+		&& ValidateEntry(TEXT("NPC"), NPC.Get(), outError);
 }
 
 /**
@@ -70,9 +72,9 @@ bool ULRGameTuningSet::Validate(FString& outError) const
  */
 void ULRGameTuningSet::LogSources() const
 {
-	UE_LOG(LogLostRunicTuning, Display, TEXT("TuningSet=%s State=%s Movement=%s Interaction=%s Guard=%s Save=%s UI=%s Presentation=%s"),
+	UE_LOG(LogLostRunicTuning, Display, TEXT("TuningSet=%s State=%s Movement=%s Interaction=%s Guard=%s Save=%s UI=%s Presentation=%s NPC=%s"),
 		*GetPathName(), *GetNameSafe(State), *GetNameSafe(Movement), *GetNameSafe(Interaction), *GetNameSafe(Guard),
-		*GetNameSafe(Save), *GetNameSafe(UI), *GetNameSafe(Presentation));
+		*GetNameSafe(Save), *GetNameSafe(UI), *GetNameSafe(Presentation), *GetNameSafe(NPC));
 }
 
 #if WITH_EDITOR

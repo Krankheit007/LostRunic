@@ -1,6 +1,6 @@
 /**
  * @file LRLocomotionComponent.cpp
- * @brief 根据心理状态和玩家切换请求选择潜行/走路/奔跑，以 80/150/250 cm/s 基线移动，并按移动距离和环境发布脚步噪声。
+ * @brief 根据心理状态和玩家切换请求选择潜行/走路/奔跑，以 80/150/250 cm/s 基线移动，并按移动距离和环境发布脚步噪声。玩家请求经状态步态规则验证，组件内部应用与掩体覆盖走独立通道。
  *
  * 关联文件：LRLocomotionComponent.h；所属领域：Gameplay。
  * 设计依据：Docs/Design/01_GameDesignSummary.md 与 Docs/Technical/04_TechnicalDesign.md。
@@ -14,9 +14,12 @@
 #include "Data/LRMovementTuning.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
+#include "Framework/LRCharacter.h"
 #include "Framework/LRGameInstanceSubsystem.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Gameplay/LRMovementRules.h"
+#include "State/LRStateComponent.h"
 #include "TimerManager.h"
 
 /**
@@ -37,13 +40,18 @@ void ULRLocomotionComponent::BeginPlay()
 	const UGameInstance* gameInstance = GetWorld() ? GetWorld()->GetGameInstance() : nullptr;
 	const ULRGameInstanceSubsystem* subsystem = gameInstance ? gameInstance->GetSubsystem<ULRGameInstanceSubsystem>() : nullptr;
 	Tuning = subsystem && subsystem->GetTuningSet() ? subsystem->GetTuningSet()->Movement : nullptr;
+	State = Cast<ALRCharacter>(GetOwner()) ? Cast<ALRCharacter>(GetOwner())->GetStateComponent() : nullptr;
 	if (!ensureMsgf(Character && Tuning, TEXT("%s requires an ACharacter owner and Movement tuning."), *GetNameSafe(this)))
 	{
 		return;
 	}
 
 	LastSampleLocation = Character->GetActorLocation();
-	SetPace(Pace);
+	ApplyPace(Pace, FGameplayTag());
+	if (State.IsValid())
+	{
+		State->OnStateChanged.AddDynamic(this, &ULRLocomotionComponent::HandleStateChanged);
+	}
 	GetWorld()->GetTimerManager().SetTimer(SampleTimer, this, &ULRLocomotionComponent::SampleTravelDistance,
 		Tuning->SampleIntervalSeconds, true);
 }
@@ -54,6 +62,10 @@ void ULRLocomotionComponent::BeginPlay()
  */
 void ULRLocomotionComponent::EndPlay(const EEndPlayReason::Type endPlayReason)
 {
+	if (State.IsValid())
+	{
+		State->OnStateChanged.RemoveDynamic(this, &ULRLocomotionComponent::HandleStateChanged);
+	}
 	if (GetWorld())
 	{
 		GetWorld()->GetTimerManager().ClearTimer(SampleTimer);
@@ -62,69 +74,137 @@ void ULRLocomotionComponent::EndPlay(const EEndPlayReason::Type endPlayReason)
 }
 
 /**
- * @brief 更新 Pace，并在需要时同步组件状态或广播变化事件。
- * @param newPace 本次操作使用的 `newPace` 枚举或模式值。
+ * @brief 请求切换潜行与走路；受当前状态步态规则验证，Perception 强制潜行，Courage 禁止潜行，Memory 仅走路。
  */
-void ULRLocomotionComponent::SetPace(const ELRMovementPace newPace)
-{
-	Pace = newPace;
-	if (!Character || !Tuning)
-	{
-		return;
-	}
-
-	float speed = Tuning->WalkSpeed;
-	if (Pace == ELRMovementPace::Sneak)
-	{
-		speed = Tuning->SneakSpeed;
-	}
-	else if (Pace == ELRMovementPace::Run)
-	{
-		speed = Tuning->RunSpeed;
-	}
-	Character->GetCharacterMovement()->MaxWalkSpeed = speed;
-}
-
-/**
- * @brief 在状态允许时切换潜行与走路；Perception 强制潜行，Courage 禁止潜行。
- */
-void ULRLocomotionComponent::ToggleSneak()
+void ULRLocomotionComponent::RequestToggleSneak()
 {
 	ELRMovementPace& targetPace = Pace == ELRMovementPace::Run ? PaceBeforeRun : Pace;
-	targetPace = targetPace == ELRMovementPace::Sneak ? ELRMovementPace::Walk : ELRMovementPace::Sneak;
+	const ELRMovementPace candidate = targetPace == ELRMovementPace::Sneak ? ELRMovementPace::Walk : ELRMovementPace::Sneak;
+	if (!LRMovementRules::IsPaceAllowed(GetEffectiveMode(), candidate))
+	{
+		RejectPaceRequest(candidate);
+		return;
+	}
 	if (Pace != ELRMovementPace::Run)
 	{
-		SetPace(targetPace);
+		ApplyPace(candidate, FGameplayTag());
+	}
+	else
+	{
+		targetPace = candidate;
 	}
 }
 
 /**
- * @brief 开始 Start Run 流程，建立本次操作拥有的状态、委托或计时器。
+ * @brief 请求开始奔跑；当前状态禁止奔跑时拒绝并广播拒绝原因。
  */
-void ULRLocomotionComponent::StartRun()
+void ULRLocomotionComponent::RequestStartRun()
 {
 	if (Pace == ELRMovementPace::Run)
 	{
+		return;
+	}
+	if (!LRMovementRules::IsPaceAllowed(GetEffectiveMode(), ELRMovementPace::Run))
+	{
+		RejectPaceRequest(ELRMovementPace::Run);
 		return;
 	}
 
 	PaceBeforeRun = Pace;
-	SetPace(ELRMovementPace::Run);
+	ApplyPace(ELRMovementPace::Run, FGameplayTag());
 }
 
 /**
- * @brief 结束或取消 Stop Run 流程，并清理本次操作拥有的临时状态。
+ * @brief 请求结束奔跑，恢复到奔跑前的步态。
  */
-void ULRLocomotionComponent::StopRun()
+void ULRLocomotionComponent::RequestStopRun()
 {
 	if (Pace == ELRMovementPace::Run)
 	{
-		SetPace(PaceBeforeRun);
+		ApplyPace(PaceBeforeRun, FGameplayTag());
 	}
 }
 
 /**
- * @brief 以低频计时器累计角色实际位移，达到步长后发布脚步而不使用 Tick。
+ * @brief 组件内部应用步态（状态同步、掩体、调试）；玩家输入请走 Request* 入口。
+ * @param newPace 本次操作使用的 `newPace` 枚举或模式值。
+ * @param source 来源 Gameplay Tag，用于日志与诊断；None 表示常规状态应用。
+ */
+void ULRLocomotionComponent::ApplyPace(const ELRMovementPace newPace, const FGameplayTag source)
+{
+	if (Pace != newPace)
+	{
+		UE_LOG(LogLostRunicState, Verbose, TEXT("Locomotion=%s pace %d -> %d source=%s"), *GetNameSafe(this),
+			static_cast<int32>(Pace), static_cast<int32>(newPace), *source.ToString());
+	}
+	Pace = newPace;
+	SyncMovementSpeed();
+}
+
+/**
+ * @brief 带来源标识的临时步态覆盖（如掩体强制潜行）；清除时按当前状态重新求值合法步态。
+ * @param newPace 本次操作使用的 `newPace` 枚举或模式值。
+ * @param source 来源 Gameplay Tag，用于标识覆盖的持有者。
+ */
+void ULRLocomotionComponent::OverridePace(const ELRMovementPace newPace, const FGameplayTag source)
+{
+	PaceOverride = newPace;
+	PaceOverrideSource = source;
+	SyncMovementSpeed();
+}
+
+/**
+ * @brief 清除指定来源的临时步态覆盖；覆盖期间的基础步态可能因状态规则过期，清除后重新求值。
+ * @param source 来源 Gameplay Tag，用于标识覆盖的持有者。
+ */
+void ULRLocomotionComponent::ClearPaceOverride(const FGameplayTag source)
+{
+	if (!PaceOverrideSource.IsValid() || PaceOverrideSource != source)
+	{
+		return;
+	}
+	PaceOverrideSource = FGameplayTag();
+	if (!LRMovementRules::IsPaceAllowed(GetEffectiveMode(), Pace))
+	{
+		Pace = LRMovementRules::GetDefaultPace(GetEffectiveMode());
+	}
+	SyncMovementSpeed();
+}
+
+/**
+ * @brief 处理 Handle State Changed 事件，将引擎回调转换为对应领域状态更新；清空掩体覆盖并按状态默认步态应用。
+ * @param currentMode 本次操作使用的 `currentMode` 枚举或模式值。
+ * @param reason Gameplay Tag 原因，用于状态转换、日志和自动化测试追踪。
+ */
+void ULRLocomotionComponent::HandleStateChanged(const ELRPerceptionMode currentMode, const FGameplayTag reason)
+{
+	if (PaceOverrideSource.IsValid())
+	{
+		ClearPaceOverride(PaceOverrideSource);
+	}
+	ApplyPace(LRMovementRules::GetDefaultPace(currentMode), reason);
+}
+
+/**
+ * @brief 查询 Effective Mode；State 组件缺失时回退 Normal（无 World 测试场景）。
+ * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+ */
+ELRPerceptionMode ULRLocomotionComponent::GetEffectiveMode() const
+{
+	return State.IsValid() ? State->GetCurrentMode() : ELRPerceptionMode::Normal;
+}
+
+/**
+ * @brief 查询 Effective Pace；掩体等覆盖存在时返回覆盖值，否则返回基础步态。
+ * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+ */
+ELRMovementPace ULRLocomotionComponent::GetEffectivePace() const
+{
+	return PaceOverrideSource.IsValid() ? PaceOverride : Pace;
+}
+
+/**
+ * @brief 以低频计时器累计角色实际位移，达到步长后按步态×环境解析并发布脚步而不使用 Tick。
  */
 void ULRLocomotionComponent::SampleTravelDistance()
 {
@@ -143,8 +223,8 @@ void ULRLocomotionComponent::SampleTravelDistance()
 	}
 
 	DistanceSinceFootstep = FMath::Fmod(DistanceSinceFootstep, stepDistance);
-	const FGameplayTag noiseTag = Pace == ELRMovementPace::Run ? LRGameplayTags::NoiseFootstepRun : LRGameplayTags::NoiseFootstepWalk;
-	OnFootstep.Broadcast(location, GetNoiseRadius(), noiseTag);
+	const FLRNoiseResolution resolution = LRMovementRules::ResolveFootstepNoise(GetEffectivePace(), NoiseEnvironment, *Tuning);
+	OnFootstep.Broadcast(location, resolution.Radius, resolution.Tag);
 }
 
 /**
@@ -153,22 +233,40 @@ void ULRLocomotionComponent::SampleTravelDistance()
  */
 float ULRLocomotionComponent::GetStepDistance() const
 {
-	return Pace == ELRMovementPace::Run ? Tuning->RunStepDistance : Tuning->WalkStepDistance;
+	return GetEffectivePace() == ELRMovementPace::Run ? Tuning->RunStepDistance : Tuning->WalkStepDistance;
 }
 
 /**
- * @brief 查询 Noise Radius；不修改领域状态。
- * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+ * @brief 按有效步态同步 CharacterMovement 的 MaxWalkSpeed。
  */
-float ULRLocomotionComponent::GetNoiseRadius() const
+void ULRLocomotionComponent::SyncMovementSpeed()
 {
-	if (Pace == ELRMovementPace::Sneak)
+	if (!Character || !Tuning)
 	{
-		return NoiseEnvironment == ELRNoiseEnvironment::Outdoor ? Tuning->OutdoorSneakGuardNoiseRadius : 0.0f;
+		return;
 	}
-	if (Pace == ELRMovementPace::Run)
+
+	float speed = Tuning->WalkSpeed;
+	const ELRMovementPace effectivePace = GetEffectivePace();
+	if (effectivePace == ELRMovementPace::Sneak)
 	{
-		return Tuning->IndoorRunNoiseRadius;
+		speed = Tuning->SneakSpeed;
 	}
-	return NoiseEnvironment == ELRNoiseEnvironment::Outdoor ? Tuning->OutdoorAlertGuardNoiseRadius : Tuning->IndoorWalkNoiseRadius;
+	else if (effectivePace == ELRMovementPace::Run)
+	{
+		speed = Tuning->RunSpeed;
+	}
+	Character->GetCharacterMovement()->MaxWalkSpeed = speed;
+}
+
+/**
+ * @brief 对禁止的步态请求统一记录日志并广播拒绝事件。
+ * @param requestedPace 本次操作使用的 `requestedPace` 枚举或模式值。
+ */
+void ULRLocomotionComponent::RejectPaceRequest(const ELRMovementPace requestedPace)
+{
+	UE_LOG(LogLostRunicState, Warning, TEXT("Locomotion=%s pace request %d rejected in mode %d reason=%s"),
+		*GetNameSafe(this), static_cast<int32>(requestedPace), static_cast<int32>(GetEffectiveMode()),
+		*LRGameplayTags::MovementRejectPaceForbidden.GetTag().ToString());
+	OnPaceRequestRejected.Broadcast(requestedPace, LRGameplayTags::MovementRejectPaceForbidden);
 }

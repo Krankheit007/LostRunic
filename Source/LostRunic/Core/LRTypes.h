@@ -46,7 +46,8 @@ UENUM(BlueprintType, meta = (DisplayName = "Lost Runic Noise Environment"))
 enum class ELRNoiseEnvironment : uint8
 {
 	Indoor UMETA(DisplayName = "Indoor"),
-	Outdoor UMETA(DisplayName = "Outdoor")
+	Outdoor UMETA(DisplayName = "Outdoor"),
+	OutdoorStealth UMETA(DisplayName = "Outdoor Stealth")
 };
 
 /** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */

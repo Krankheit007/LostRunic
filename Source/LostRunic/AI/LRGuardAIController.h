@@ -20,6 +20,7 @@ class UAISenseConfig_Hearing;
 class UAISenseConfig_Sight;
 class ULRAlertComponent;
 class ULRGuardTuning;
+class ULRStateTuning;
 class UStateTreeAIComponent;
 
 /** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
@@ -71,6 +72,13 @@ public:
 	 */
 	void ExitBehavior(ELRGuardBehaviorState behavior);
 	/**
+	 * @brief 查询 Resolved Behavior；行为状态唯一权威解析（眩晕优先，否则警戒推导），StateTree 只执行该结果。
+	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
+	 */
+	UFUNCTION(BlueprintPure, Category = "Lost Runic|AI")
+	ELRGuardBehaviorState GetResolvedBehavior() const;
+
+	/**
 	 * @brief 输出守卫行为、警戒值和最后异常点，并按调试开关绘制视野与听觉范围。
 	 */
 	void LogAndDrawDiagnostics() const;
@@ -109,13 +117,19 @@ private:
 	 */
 	void ConfigurePerception();
 	/**
-	 * @brief 按可调低频计时检查追逐目标距离；进入捕获半径后触发玩家死亡与 Memory 流程。
+	 * @brief 按可调低频计时检查追逐目标距离；进入捕获半径后触发玩家死亡与 Memory 流程；眩晕期间跳过。
 	 */
 	void HandleCaptureTimer();
 	/**
-	 * @brief 处理 Handle Search Timeout 事件，将引擎回调转换为对应领域状态更新。
+	 * @brief 处理 Handle Knockback 事件：进入 Stunned 覆盖（停止移动、清除焦点），按 Courage 击退时长计时恢复。
+	 * @param direction 击退方向 `direction`；仅用于诊断。
 	 */
-	void HandleSearchTimeout();
+	UFUNCTION()
+	void HandleKnockback(FVector direction);
+	/**
+	 * @brief 眩晕计时结束后按当前警戒与视线重新解析行为并广播恢复事件。
+	 */
+	void HandleStunEnd();
 	/**
 	 * @brief 开始 Start Patrol Move 流程，建立本次操作拥有的状态、委托或计时器。
 	 */
@@ -158,6 +172,10 @@ private:
 	UPROPERTY(Transient)
 	TObjectPtr<ULRGuardTuning> Tuning;
 
+	/** State 调优缓存；眩晕时长与 Courage 击退根运动同源。 该字段仅为运行时缓存，不进入存档。 */
+	UPROPERTY(Transient)
+	TObjectPtr<ULRStateTuning> StateTuning;
+
 	/** Alert 的领域数据，由所属类型负责维护和校验。 该字段仅为运行时缓存，不进入存档。 */
 	UPROPERTY(Transient)
 	TWeakObjectPtr<ULRAlertComponent> Alert;
@@ -166,8 +184,10 @@ private:
 	ELRGuardBehaviorState ActiveBehavior = ELRGuardBehaviorState::IdlePatrol;
 	/** Patrol Index 的内部运行时数据；不参与蓝图配置。 */
 	int32 PatrolIndex = 0;
+	/** Stunned 的运行时状态；由所属类型维护，不在蓝图中配置。 */
+	bool bStunned = false;
 	/** Capture Timer 的运行时句柄，用于取消回调并避免 Tick；不在蓝图中配置。 */
 	FTimerHandle CaptureTimer;
-	/** Search Timer 的运行时句柄，用于取消回调并避免 Tick；不在蓝图中配置。 */
-	FTimerHandle SearchTimer;
+	/** Stun Timer 的运行时句柄，用于取消回调并避免 Tick；不在蓝图中配置。 */
+	FTimerHandle StunTimer;
 };

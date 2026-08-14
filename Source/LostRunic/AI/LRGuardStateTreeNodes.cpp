@@ -61,6 +61,6 @@ void FLRGuardBehaviorTask::ExitState(FStateTreeExecutionContext& context,
 bool FLRGuardStateCondition::TestCondition(FStateTreeExecutionContext& context) const
 {
 	const FInstanceDataType& data = context.GetInstanceData(*this);
-	const ULRAlertComponent* alert = data.AIController ? data.AIController->GetAlertComponent() : nullptr;
-	return alert && alert->GetBehaviorState() == ExpectedBehavior;
+	// StateTree 只执行控制器解析的结果，不自行重新定义警戒语义。
+	return data.AIController && data.AIController->GetResolvedBehavior() == ExpectedBehavior;
 }

@@ -57,21 +57,21 @@ bool FLRMovementPaceInputTest::RunTest(const FString& parameters)
 	ULRLocomotionComponent* locomotion = NewObject<ULRLocomotionComponent>();
 	TestEqual(TEXT("Default pace is Walk"), locomotion->GetPace(), ELRMovementPace::Walk);
 
-	locomotion->ToggleSneak();
+	locomotion->RequestToggleSneak();
 	TestEqual(TEXT("Toggle enters Sneak"), locomotion->GetPace(), ELRMovementPace::Sneak);
-	locomotion->StartRun();
+	locomotion->RequestStartRun();
 	TestEqual(TEXT("Run press enters Run"), locomotion->GetPace(), ELRMovementPace::Run);
-	locomotion->StopRun();
+	locomotion->RequestStopRun();
 	TestEqual(TEXT("Run release restores Sneak"), locomotion->GetPace(), ELRMovementPace::Sneak);
 
-	locomotion->ToggleSneak();
-	locomotion->StartRun();
-	locomotion->StopRun();
+	locomotion->RequestToggleSneak();
+	locomotion->RequestStartRun();
+	locomotion->RequestStopRun();
 	TestEqual(TEXT("Run release restores Walk"), locomotion->GetPace(), ELRMovementPace::Walk);
 
-	locomotion->StartRun();
-	locomotion->ToggleSneak();
-	locomotion->StopRun();
+	locomotion->RequestStartRun();
+	locomotion->RequestToggleSneak();
+	locomotion->RequestStopRun();
 	TestEqual(TEXT("Sneak toggle during Run changes restored pace"), locomotion->GetPace(), ELRMovementPace::Sneak);
 	return true;
 }

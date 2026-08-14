@@ -51,13 +51,13 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Movement|Noise", meta = (ClampMin = "0.0", ClampMax = "5000.0", Units = "cm"))
 	float IndoorRunNoiseRadius = 1200.0f;
 
-	/** Outdoor Sneak Guard Noise Radius 的空间距离参数，默认使用 Unreal 厘米单位。 C++ 安全默认值为 `600.0f`。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。编辑器约束：单位 `cm`，最小值 `0.0`，最大值 `5000.0`。 */
+	/** Outdoor Stealth Run Noise Radius 的空间距离参数，默认使用 Unreal 厘米单位；室外潜行关奔跑脚步噪声半径（设计 6m）。 C++ 安全默认值为 `600.0f`。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。编辑器约束：单位 `cm`，最小值 `0.0`，最大值 `5000.0`。 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Movement|Noise", meta = (ClampMin = "0.0", ClampMax = "5000.0", Units = "cm"))
-	float OutdoorSneakGuardNoiseRadius = 600.0f;
+	float OutdoorStealthRunNoiseRadius = 600.0f;
 
-	/** Outdoor Alert Guard Noise Radius 的空间距离参数，默认使用 Unreal 厘米单位。 C++ 安全默认值为 `250.0f`。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。编辑器约束：单位 `cm`，最小值 `0.0`，最大值 `5000.0`。 */
+	/** Outdoor Noise Radius 的空间距离参数，默认使用 Unreal 厘米单位；室外潜行走路、室外非潜行走路与奔跑共用（设计 2.5m，走路的非潜行变体经 Faint 标签在守卫侧过滤）。 C++ 安全默认值为 `250.0f`。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。编辑器约束：单位 `cm`，最小值 `0.0`，最大值 `5000.0`。 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Movement|Noise", meta = (ClampMin = "0.0", ClampMax = "5000.0", Units = "cm"))
-	float OutdoorAlertGuardNoiseRadius = 250.0f;
+	float OutdoorNoiseRadius = 250.0f;
 
 	/** Interaction Noise Radius 的空间距离参数，默认使用 Unreal 厘米单位。 C++ 安全默认值为 `500.0f`。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。编辑器约束：单位 `cm`，最小值 `0.0`，最大值 `5000.0`。 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Movement|Noise", meta = (ClampMin = "0.0", ClampMax = "5000.0", Units = "cm"))
