@@ -160,7 +160,7 @@
 1. 保持上述资产父类不变；展示数据从 Save UI Controller/委托推送，Widget 不直接读写 Catalog 或 Payload。
 2. `WBP_SaveSelection` 必须同时支持 `ELRSaveSelectionMode::Save` 和 `Load`，并为保存、读取、删除、Continue 提供明确的焦点路径。
 3. `WBP_SaveSlot` 的稳定身份使用 `FLRSaveSlotId`，显示编号只用于展示；不要用数组下标或 Widget 名称作为存档 ID。
-4. `WBP_SaveConfirmDialog` 只负责确认表现和回调，不在蓝图中直接调用磁盘 API；操作统一转发到 `ULRSaveSubsystem` 的 V2 API。
+4. `WBP_SaveConfirmDialog` 只负责确认表现和回调，不在蓝图中直接调用磁盘 API；操作统一转发到 `ULRSaveSubsystem` 的七个 V2 入口：`RequestCreateManualSave`、`RequestOverwriteSave`、`RequestAutoSave`、`RequestLoadSave`、`RequestDeleteSave`、`RequestContinue`、`RequestNewGame`。
 5. 完成 Designer/绑定后，在 `/Game/LostRunic/Levels/PIE_Test/L_PIE_Test` 验收主菜单 Continue、New Game、Load Game，以及 Save/Load 共用选择页。
 
 ### V2 存档 UI 控制器与新游戏 API
@@ -169,6 +169,9 @@
 - **只读视图模型**：槽位列表绑定 `GetSnapshot()` 和 `OnSnapshotChanged`。蓝图使用 `FLRSaveUISnapshot.Slots`，以及 `FLRSaveSlotView` 中的 `SlotId`、`DisplayIndex`、`MapDisplayName`、`Health`、`bCanLoad`、`bCanOverwrite` 和 `bCanDelete`。
 - **保存模式**：调用 `Open(ELRSaveSelectionMode::Save)`；创建、主操作、删除、确认和取消分别调用 `RequestCreateManualSave()`、`RequestPrimarySlotAction(SlotId)`、`RequestDelete(SlotId)`、`ConfirmPendingAction()` 和 `CancelPendingAction()`。
 - **读取模式**：主菜单调用 `Open(ELRSaveSelectionMode::Load)`，选择健康槽位后调用 `RequestPrimarySlotAction(SlotId)`。Widget Graph 不得直接访问 Catalog 或 Payload API。
+- **自动槽保护**：`RequestOverwriteSave(AutoSlot)` 必须显示 `RejectedProtectedSlot`；自动槽只能由 `RequestAutoSave`、Memory/New Game 内部 Critical operation 写入，不能覆盖或删除。
+- **统一完成事件**：所有保存、读取、删除、修复和 Memory critical operation 只监听 `OnSaveOperationCompleted`；Load/New Game 的地图切换仍由现有 request/notify 委托驱动。
+- **Memory 装配**：死亡流程调用 SaveSubsystem 的 Memory 入口；不要在蓝图修改 `DeathCount` 或 `MemoryEventIds`。`ULRGameStatisticsSubsystem.RecordDeath()` 与 `ULRDialogueSubsystem` 分别维护这两类状态。
 - **状态处理**：页面需要表现 `Idle`、`Confirming`、`Saving`、`Loading`、`Deleting` 和 `Error`。`bIsBusy=true` 时禁用重复操作；显示 `StatusMessage`，并为 `Error` 状态提供关闭错误提示的操作。
 - **主菜单新游戏**：调用 `ULRSaveSubsystem.RequestNewGame()`。该流程异步执行；收到 `OnSaveOperationCompleted`，且 `Operation=NewGame`、`Code=Succeeded` 后，才能表现为已进入可玩世界。Widget 不得自行调用 `OpenLevel`。
 - **新游戏数据配置**：填写 `ULRGameContentSet.NewGameMapId`；对应地图注册项的 `FLRMapRegistration.DefaultStartAnchorId` 必须能在目标地图中解析。新游戏先重置 Provider 状态，再替换自动槽；所有手动槽保持不变，启动失败时保留旧自动槽供 Continue 使用。
@@ -180,7 +183,8 @@
 3. 在 `WBP_SaveSlot` 中显示以稳定 `SlotId` 为身份的视图；`DisplayIndex` 仅用于显示文本，不参与槽位寻址。
 4. 在 `WBP_SaveConfirmDialog` 中只调用确认或取消；不得直接写入 SaveGame 槽位。
 5. 在 `WBP_MainMenu` 中，通过 SaveSubsystem API 和操作完成事件处理 Continue、Load 和 New Game。
-6. 只在 `/Game/LostRunic/Levels/PIE_Test/L_PIE_Test` 执行验收：暂停后打开 SaveSlots、未暂停时拒绝手动保存、确认覆盖与删除、读取健康槽位，并验证 New Game 保留全部手动槽，且首次新自动存档成功前旧自动槽仍然有效。
+6. 只在 `/Game/LostRunic/Levels/PIE_Test/L_PIE_Test` 执行验收：暂停后打开 SaveSlots、未暂停时拒绝手动保存、自动槽覆盖返回 `RejectedProtectedSlot`、确认手动覆盖与删除、读取健康槽位，并验证 New Game 保留全部手动槽，且首次新自动存档成功前旧自动槽仍然有效。
+7. Save tuning 在 `ULRSaveTuning` 的 `Save|Autosave`、`Save|Retry`、`Save|Reliability`、`Save|Slots` 分类中配置：`AutoSaveDebounceSeconds`、`RetryCount`、`RetryDelaySeconds`、`OperationTimeoutSeconds`、`AsyncWatchdogSeconds`、`MaxManualSaveSlots`。这些值来自 `ULRGameTuningSet`，缺失时只使用 C++ 安全回退并记录诊断。
 
 ## 核心玩法机制：四状态 + 潜行 + 敌人警戒 + NPC（2026-08-14）
 
@@ -368,7 +372,7 @@
 
 - 输入：`AttackAction` 沿用原 `UseQuickSlotAction` 键位；`ULRInputConfig` 中 `UseQuickSlotAction` 保留为 `Deprecated` 字段仅作资产迁移回退；删除 1-4、上一栏、下一栏绑定与 `QuickSlotActions` 数组。
 - UI：统一菜单无快捷栏 HUD；`FLRInventorySnapshot` 不再包含任何快捷栏字段。
-- 存档：`FLRSaveInventoryChunk.QuickSlots` 与 `SelectedQuickSlot` 暂时保留结构定义，捕获时不填充，恢复时完全忽略，不触发任何委托或选择恢复；后续存档重构再迁移物品获得顺序与选中武器。
+- 存档：V2 使用 `FLRSaveInventoryChunkV2`（数量、获得序号、选中武器）以及独立的 `FLRSaveNotebookChunk`/`FLRSaveCollectibleChunk`；旧 quick-slot 和旧存档结构已删除。
 
 ### L_Home 物品 PIE 验收步骤
 

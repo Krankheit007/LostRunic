@@ -59,9 +59,7 @@ namespace
 				outError = TEXT("Saved ResumeAnchor is missing from the destination world.");
 				return false;
 			}
-			const FVector location = anchor->GetActorLocation();
-			const FRotator rotation = anchor->GetActorRotation();
-			return character->SetActorLocationAndRotation(location, rotation, false, nullptr,
+			return character->SetActorLocationAndRotation(data.Player.Location, data.Player.Rotation, false, nullptr,
 				ETeleportType::TeleportPhysics);
 		}
 	};

@@ -10,29 +10,23 @@
 
 #include "Save/LRSaveTypes.h"
 
+bool LRSaveRules::IsProtectedOverwrite(const FLRSaveSlotId& slotId)
+{
+	return slotId.Type == ELRSaveSlotType::Auto;
+}
+
 /**
  * @brief 根据当前领域状态构建 Make Slot Name 所需的数据，不把临时对象作为长期存档标识。
  * @param slotType 本次操作使用的 `slotType` 枚举或模式值。
  * @param manualSlotIndex 本次操作使用的计数、增量或索引 `manualSlotIndex`；由函数校验合法范围。
  * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
  */
-FString LRSaveRules::MakeSlotName(const ELRSaveSlotType slotType, const int32 manualSlotIndex)
-{
-	return slotType == ELRSaveSlotType::Auto ? TEXT("LostRunic_Auto")
-		: FString::Printf(TEXT("LostRunic_Manual_%02d"), manualSlotIndex + 1);
-}
-
 /**
  * @brief 判断 Is Manual Slot Valid 对应条件；不产生玩法副作用。
  * @param manualSlotIndex 本次操作使用的计数、增量或索引 `manualSlotIndex`；由函数校验合法范围。
  * @param manualSlotCount 本次操作使用的计数、增量或索引 `manualSlotCount`；由函数校验合法范围。
  * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
  */
-bool LRSaveRules::IsManualSlotValid(const int32 manualSlotIndex, const int32 manualSlotCount)
-{
-	return manualSlotIndex >= 0 && manualSlotIndex < manualSlotCount;
-}
-
 /**
  * @brief 判断 Is Manual Save Allowed 对应条件；不产生玩法副作用。
  * @param phase 本次操作使用的 `phase` 枚举或模式值。
@@ -84,20 +78,3 @@ bool LRSaveRules::IsResumeWorld(const ELRMemoryTransactionPhase phase, const FNa
  * @param bSuccess 布尔开关 `bSuccess`；true 表示启用或条件成立，false 表示禁用或条件不成立。
  * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
  */
-ELRMemoryTransactionPhase LRSaveRules::ResolveAfterWrite(const ELRMemoryTransactionPhase phase,
-	const ELRSaveWriteKind writeKind, const bool bSuccess)
-{
-	if (!bSuccess)
-	{
-		return phase;
-	}
-	if (phase == ELRMemoryTransactionPhase::SavingEntry && writeKind == ELRSaveWriteKind::MemoryEntry)
-	{
-		return ELRMemoryTransactionPhase::InMemory;
-	}
-	if (phase == ELRMemoryTransactionPhase::SavingReturn && writeKind == ELRSaveWriteKind::MemoryReturn)
-	{
-		return ELRMemoryTransactionPhase::None;
-	}
-	return phase;
-}

@@ -1,206 +1,321 @@
-/**
- * @file LRSaveSubsystem.cpp
- * @brief 管理槽位元数据、快照构建、普通自动存档防抖、失败重试、异步 FIFO 队列、继续游戏选择及 Memory A/B 事务。
- *
- * 关联文件：LRSaveSubsystem.h；所属领域：Save。
- * 设计依据：Docs/Design/01_GameDesignSummary.md 与 Docs/Technical/04_TechnicalDesign.md。
- * 除带 EditDefaultsOnly、EditAnywhere 或 EditInstanceOnly 的字段外，其余成员均为运行时状态，不应由蓝图直接改写。
- */
 #include "Save/LRSaveSubsystem.h"
 
+#include "Core/LRGameplayTags.h"
 #include "Core/LRLog.h"
+#include "Data/LRGameContentSet.h"
 #include "Data/LRGameTuningSet.h"
 #include "Data/LRSaveTuning.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
+#include "Framework/LRCharacter.h"
 #include "Framework/LRGameInstanceSubsystem.h"
+#include "Framework/LRPlayerController.h"
+#include "Kismet/GameplayStatics.h"
 #include "Narrative/LRDialogueSubsystem.h"
-#include "Save/LRSaveGame.h"
 #include "Save/LRSaveCatalog.h"
 #include "Save/LRSaveCatalogStore.h"
 #include "Save/LRSaveProvider.h"
 #include "Save/LRSaveRules.h"
-#include "TimerManager.h"
+#include "State/LRStateComponent.h"
+#include "UI/LRHUD.h"
+#include "UI/LRPlayerUIComponent.h"
 
-/**
- * @brief 初始化子系统拥有的长期状态与事件绑定。
- * @param collection 调用方提供的 `collection`，只在本次操作范围内使用。
- */
+namespace
+{
+	FLRSaveOperationResult MakeOperationResult(const FGuid operationId, const ELRSaveOperationType type,
+		const FLRSaveSlotId& slotId, const ELRSaveResultCode code, const FString& diagnostic)
+	{
+		FLRSaveOperationResult result;
+		result.OperationId = operationId;
+		result.Operation = type;
+		result.SlotId = slotId;
+		result.Code = code;
+		result.Diagnostic = diagnostic;
+		return result;
+	}
+}
+
 void ULRSaveSubsystem::Initialize(FSubsystemCollectionBase& collection)
 {
 	Super::Initialize(collection);
 	collection.InitializeDependency<ULRGameInstanceSubsystem>();
 	collection.InitializeDependency<ULRDialogueSubsystem>();
-	const ULRGameInstanceSubsystem* dataSubsystem = GetGameInstance()->GetSubsystem<ULRGameInstanceSubsystem>();
+
+	const ULRGameInstanceSubsystem* dataSubsystem = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<ULRGameInstanceSubsystem>() : nullptr;
 	Tuning = dataSubsystem && dataSubsystem->GetTuningSet() ? dataSubsystem->GetTuningSet()->Save : nullptr;
-	WorkingSave = NewObject<ULRSaveGame>(this);
 	FLRCatalogRecoveryResult recovery;
 	SaveCatalog = FLRSaveCatalogStore::LoadBestCatalog(this, recovery);
 	LRSaveProviders::CreateRequired(SaveProviders);
 	if (!recovery.Diagnostic.IsEmpty())
 	{
-		UE_LOG(LogLostRunicSave, Log, TEXT("V2 catalog startup: %s"), *recovery.Diagnostic);
+		UE_LOG(LogLostRunicSave, Log, TEXT("V2 catalog bootstrap: %s"), *recovery.Diagnostic);
 	}
-	if (ULRDialogueSubsystem* dialogueSubsystem = GetGameInstance()->GetSubsystem<ULRDialogueSubsystem>())
+	if (SaveCatalog && SaveCatalog->PendingOperation.IsSet())
 	{
-		dialogueSubsystem->OnEventCommitted.AddDynamic(this, &ULRSaveSubsystem::HandleNarrativeEventCommitted);
+		EnqueuePendingCatalogRepair();
+	}
+	if (ULRDialogueSubsystem* dialogue = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<ULRDialogueSubsystem>() : nullptr)
+	{
+		dialogue->OnEventCommitted.AddDynamic(this, &ULRSaveSubsystem::HandleNarrativeEventCommitted);
 	}
 }
 
-/**
- * @brief 释放子系统事件绑定和运行时缓存。
- */
 void ULRSaveSubsystem::Deinitialize()
 {
-	if (ULRDialogueSubsystem* dialogueSubsystem = GetGameInstance()->GetSubsystem<ULRDialogueSubsystem>())
+	if (ULRDialogueSubsystem* dialogue = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<ULRDialogueSubsystem>() : nullptr)
 	{
-		dialogueSubsystem->OnEventCommitted.RemoveDynamic(this, &ULRSaveSubsystem::HandleNarrativeEventCommitted);
+		dialogue->OnEventCommitted.RemoveDynamic(this, &ULRSaveSubsystem::HandleNarrativeEventCommitted);
 	}
 	if (UWorld* world = GetCurrentWorld())
 	{
-		world->GetTimerManager().ClearTimer(AutoSaveDebounceTimer);
-		world->GetTimerManager().ClearTimer(RetryTimer);
+		FTimerManager& timers = world->GetTimerManager();
+		timers.ClearTimer(AutoSaveDebounceTimer);
+		timers.ClearTimer(ExplicitRetryTimer);
+		timers.ClearTimer(OperationTimeoutTimer);
+		timers.ClearTimer(AsyncWatchdogTimer);
 	}
-	RequestQueue.Reset();
-	V2OperationQueue.Reset();
-	ActiveV2Operation = FLRQueuedSaveOperation();
-	LoadedV2Payload = nullptr;
+	OperationQueue.Reset();
+	ActiveOperation = FLRQueuedSaveOperation();
+	ActivePayload = nullptr;
 	SaveCatalog = nullptr;
 	SaveProviders.Reset();
-	V2OperationState = ELRSaveOperationState::Idle;
-	ActiveRequest = FLRQueuedSaveRequest();
-	WorkingSave = nullptr;
+	OperationState = ELRSaveOperationState::Idle;
+	PendingAutoSaveOperationId.Invalidate();
+	PendingNewGameOperationId.Invalidate();
 	Tuning = nullptr;
-	bAwaitingLoadedResume = false;
 	Super::Deinitialize();
 }
 
-/**
- * @brief 更新 Resume Anchor，并在需要时同步组件状态或广播变化事件。
- * @param anchor 调用方提供的 `anchor`，只在本次操作范围内使用。
- */
+TArray<FLRSaveSlotMetadata> ULRSaveSubsystem::GetSaveSlots() const
+{
+	return SaveCatalog ? SaveCatalog->Slots : TArray<FLRSaveSlotMetadata>();
+}
+
+int32 ULRSaveSubsystem::GetMaxManualSaveSlots() const
+{
+	return GetManualSlotCount();
+}
+
+FLRSaveOperationResult ULRSaveSubsystem::MakeRejected(const ELRSaveOperationType type,
+	const FLRSaveSlotId& slotId, const ELRSaveResultCode code, const FString& diagnostic) const
+{
+	return MakeOperationResult(FGuid::NewGuid(), type, slotId, code, diagnostic);
+}
+
+bool ULRSaveSubsystem::CaptureCurrentData(FLRSaveDataV2& outData, FString& outError)
+{
+	UGameInstance* gameInstance = GetGameInstance();
+	if (!gameInstance)
+	{
+		outError = TEXT("GameInstance is unavailable.");
+		return false;
+	}
+	FLRSaveDataV2 captured;
+	if (!LRSaveProviders::CaptureAll(SaveProviders, *gameInstance, captured, outError))
+	{
+		return false;
+	}
+	outData = captured;
+	CurrentData = captured;
+	return true;
+}
+
 void ULRSaveSubsystem::SetResumeAnchor(const FLRResumeAnchor& anchor)
 {
 	if (!anchor.IsValid())
 	{
-		UE_LOG(LogLostRunicSave, Warning, TEXT("SaveSubsystem rejected invalid resume anchor map=%s anchor=%s."),
+		UE_LOG(LogLostRunicSave, Warning, TEXT("Rejected invalid resume anchor map=%s anchor=%s."),
 			*anchor.MapId.ToString(), *anchor.AnchorId.ToString());
 		return;
 	}
-	WorkingSave->ResumeAnchor = anchor;
+	CurrentData.Player.ResumeAnchor = anchor;
 }
 
-/**
- * @brief 查询 Resume Anchor；不修改领域状态。
- * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
- */
 FLRResumeAnchor ULRSaveSubsystem::GetResumeAnchor() const
 {
-	return WorkingSave ? WorkingSave->ResumeAnchor : FLRResumeAnchor();
+	return CurrentData.Player.ResumeAnchor;
 }
 
-/**
- * @brief 请求普通自动存档；按 Save 调优资产执行防抖，不合并关键 Memory 事务。
- * @param reasonId 稳定标识 `reasonId`；用于内容查询和存档，不依赖显示名或数组序号。
- * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
- */
-ELRSaveRequestResult ULRSaveSubsystem::RequestAutoSave(const FName reasonId)
-{
-	if (!WorkingSave)
-	{
-		return ELRSaveRequestResult::MissingOrCorrupt;
-	}
-	PendingAutoSaveReason = reasonId.IsNone() ? LRSaveIds::AutoSlotReason : reasonId;
-	UWorld* world = GetCurrentWorld();
-	if (!world || GetEffectiveTuning().AutoSaveDebounceSeconds <= 0.0f)
-	{
-		QueuePendingAutoSave();
-		return ELRSaveRequestResult::Queued;
-	}
-	world->GetTimerManager().SetTimer(AutoSaveDebounceTimer, this, &ULRSaveSubsystem::QueuePendingAutoSave,
-		GetEffectiveTuning().AutoSaveDebounceSeconds, false);
-	return ELRSaveRequestResult::Scheduled;
-}
-
-/**
- * @brief 请求写入指定手动槽；校验槽位范围，并在 Memory 事务期间明确拒绝。
- * @param manualSlotIndex 本次操作使用的计数、增量或索引 `manualSlotIndex`；由函数校验合法范围。
- * @param reasonId 稳定标识 `reasonId`；用于内容查询和存档，不依赖显示名或数组序号。
- * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
- */
-ELRSaveRequestResult ULRSaveSubsystem::RequestManualSave(const int32 manualSlotIndex, const FName reasonId)
-{
-	if (!IsManualSaveAllowed())
-	{
-		return ELRSaveRequestResult::RejectedMemoryManual;
-	}
-	if (!LRSaveRules::IsManualSlotValid(manualSlotIndex, GetManualSlotCount()))
-	{
-		return ELRSaveRequestResult::RejectedInvalidSlot;
-	}
-	return QueueWrite(LRSaveRules::MakeSlotName(ELRSaveSlotType::Manual, manualSlotIndex), reasonId, ELRSaveWriteKind::Manual);
-}
-
-/**
- * @brief 创建不可变快照并将关键写入直接加入 FIFO，不参与普通自动存档防抖。
- * @param reasonId 稳定标识 `reasonId`；用于内容查询和存档，不依赖显示名或数组序号。
- * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
- */
-ELRSaveRequestResult ULRSaveSubsystem::RequestCriticalSave(const FName reasonId)
-{
-	return QueueWrite(LRSaveRules::MakeSlotName(ELRSaveSlotType::Auto), reasonId, ELRSaveWriteKind::Critical);
-}
-
-/**
- * @brief 判断 Is Manual Save Allowed 对应条件；不产生玩法副作用。
- * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
- */
 bool ULRSaveSubsystem::IsManualSaveAllowed() const
 {
 	const UWorld* world = GetCurrentWorld();
-	return LRSaveRules::IsManualSaveAllowed(MemoryPhase, world && world->IsPaused());
+	return !bPersistenceBlocked && LRSaveRules::IsManualSaveAllowed(MemoryPhase, world && world->IsPaused());
 }
 
-/**
- * @brief 处理 Handle Narrative Event Committed 事件，将引擎回调转换为对应领域状态更新。
- * @param eventId 剧情事件的稳定 FName ID，用于一次性判定和存档。
- * @param savePolicy 本次操作使用的 `savePolicy` 枚举或模式值。
- */
 void ULRSaveSubsystem::HandleNarrativeEventCommitted(const FName eventId, const ELRSavePolicy savePolicy)
 {
 	if (savePolicy == ELRSavePolicy::AutoOnComplete)
 	{
 		RequestAutoSave(eventId);
+		return;
 	}
-	else if (savePolicy == ELRSavePolicy::Critical)
+	if (savePolicy != ELRSavePolicy::Critical || bPersistenceBlocked)
 	{
-		RequestCriticalSave(eventId);
+		return;
+	}
+	FLRSaveDataV2 captured;
+	FString error;
+	FLRSaveSlotId autoSlot;
+	autoSlot.Type = ELRSaveSlotType::Auto;
+	autoSlot.Guid = LRSaveV2Ids::AutoSlotGuid;
+	if (CaptureCurrentData(captured, error))
+	{
+		EnqueueOperation(ELRSaveOperationType::CriticalSave, autoSlot, eventId, &captured);
+	}
+	else
+	{
+		UE_LOG(LogLostRunicSave, Warning, TEXT("Critical narrative capture failed event=%s error=%s"),
+			*eventId.ToString(), *error);
 	}
 }
 
-/**
- * @brief 查询 Effective Tuning；不修改领域状态。
- * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
- */
+FLRSaveOperationResult ULRSaveSubsystem::RequestAutoSave(const FName reasonId)
+{
+	if (bPersistenceBlocked)
+	{
+		FLRSaveSlotId autoSlot;
+		autoSlot.Type = ELRSaveSlotType::Auto;
+		autoSlot.Guid = LRSaveV2Ids::AutoSlotGuid;
+		return MakeRejected(ELRSaveOperationType::AutoSave, autoSlot, ELRSaveResultCode::RejectedBusy,
+			TEXT("Persistence is blocked until catalog recovery succeeds."));
+	}
+
+	FLRSaveSlotId autoSlot;
+	autoSlot.Type = ELRSaveSlotType::Auto;
+	autoSlot.Guid = LRSaveV2Ids::AutoSlotGuid;
+	const FGuid operationId = FGuid::NewGuid();
+	const FName effectiveReason = reasonId.IsNone() ? LRSaveIds::AutoSlotReason : reasonId;
+	if (GetEffectiveTuning().AutoSaveDebounceSeconds > 0.0f)
+	{
+		if (UWorld* world = GetCurrentWorld())
+		{
+			PendingAutoSaveReason = effectiveReason;
+			PendingAutoSaveOperationId = operationId;
+			FTimerDelegate callback = FTimerDelegate::CreateWeakLambda(this,
+				[this]() { CapturePendingAutoSave(); });
+			world->GetTimerManager().SetTimer(AutoSaveDebounceTimer, callback,
+				GetEffectiveTuning().AutoSaveDebounceSeconds, false);
+			return MakeOperationResult(operationId, ELRSaveOperationType::AutoSave, autoSlot,
+				ELRSaveResultCode::Queued, TEXT("Automatic save is waiting for debounce."));
+		}
+	}
+
+	FLRSaveDataV2 captured;
+	FString error;
+	if (!CaptureCurrentData(captured, error))
+	{
+		return MakeOperationResult(operationId, ELRSaveOperationType::AutoSave, autoSlot,
+			ELRSaveResultCode::ProviderUnavailable, error);
+	}
+	return EnqueueOperation(ELRSaveOperationType::AutoSave, autoSlot, effectiveReason, &captured,
+		ELRSaveMemoryPurpose::None, ELRSaveSlotHealth::Healthy, false, operationId);
+}
+
+void ULRSaveSubsystem::CapturePendingAutoSave()
+{
+	const FGuid operationId = PendingAutoSaveOperationId;
+	const FName reasonId = PendingAutoSaveReason;
+	PendingAutoSaveOperationId.Invalidate();
+	PendingAutoSaveReason = NAME_None;
+	if (!operationId.IsValid() || bPersistenceBlocked)
+	{
+		return;
+	}
+	FLRSaveDataV2 captured;
+	FString error;
+	FLRSaveSlotId autoSlot;
+	autoSlot.Type = ELRSaveSlotType::Auto;
+	autoSlot.Guid = LRSaveV2Ids::AutoSlotGuid;
+	if (!CaptureCurrentData(captured, error))
+	{
+		OnSaveOperationCompleted.Broadcast(MakeOperationResult(operationId, ELRSaveOperationType::AutoSave,
+			autoSlot, ELRSaveResultCode::ProviderUnavailable, error));
+		return;
+	}
+	EnqueueOperation(ELRSaveOperationType::AutoSave, autoSlot, reasonId, &captured,
+		ELRSaveMemoryPurpose::None, ELRSaveSlotHealth::Healthy, false, operationId);
+}
+
 const ULRSaveTuning& ULRSaveSubsystem::GetEffectiveTuning() const
 {
 	return Tuning ? *Tuning : *GetDefault<ULRSaveTuning>();
 }
 
-/**
- * @brief 查询 Manual Slot Count；不修改领域状态。
- * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
- */
 int32 ULRSaveSubsystem::GetManualSlotCount() const
 {
 	return GetEffectiveTuning().MaxManualSaveSlots;
 }
 
-/**
- * @brief 查询 Current World；不修改领域状态。
- * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
- */
 UWorld* ULRSaveSubsystem::GetCurrentWorld() const
 {
 	return GetGameInstance() ? GetGameInstance()->GetWorld() : nullptr;
+}
+
+FName ULRSaveSubsystem::GetCurrentMapId() const
+{
+	const ULRGameInstanceSubsystem* data = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<ULRGameInstanceSubsystem>() : nullptr;
+	const ULRGameContentSet* content = data ? data->GetContentSet() : nullptr;
+	return content ? content->FindMapIdForWorld(GetCurrentWorld()) : NAME_None;
+}
+
+bool ULRSaveSubsystem::TravelToMap(const FName mapId)
+{
+	const ULRGameInstanceSubsystem* data = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<ULRGameInstanceSubsystem>() : nullptr;
+	const ULRGameContentSet* content = data ? data->GetContentSet() : nullptr;
+	const TSoftObjectPtr<UWorld> map = content ? content->FindMap(mapId) : TSoftObjectPtr<UWorld>();
+	if (map.IsNull())
+	{
+		UE_LOG(LogLostRunicSave, Warning, TEXT("Save travel rejected map=%s is not registered."), *mapId.ToString());
+		return false;
+	}
+	UGameplayStatics::OpenLevelBySoftObjectPtr(this, map);
+	return true;
+}
+
+void ULRSaveSubsystem::SetMemoryPhase(const ELRMemoryTransactionPhase newPhase)
+{
+	if (MemoryPhase == newPhase)
+	{
+		return;
+	}
+	MemoryPhase = newPhase;
+	OnMemoryTransactionChanged.Broadcast(MemoryPhase);
+	UE_LOG(LogLostRunicSave, Log, TEXT("Memory phase=%d"), static_cast<int32>(MemoryPhase));
+}
+
+void ULRSaveSubsystem::SetTransitionInput(const bool bVisible) const
+{
+	ALRPlayerController* controller = Cast<ALRPlayerController>(
+		UGameplayStatics::GetPlayerController(GetCurrentWorld(), 0));
+	if (!controller)
+	{
+		return;
+	}
+	if (ALRHUD* hud = controller->GetHUD<ALRHUD>())
+	{
+		hud->ShowTransition(bVisible);
+	}
+	if (ULRPlayerUIComponent* playerUi = controller->GetPlayerUI())
+	{
+		playerUi->SetTransitionLayer(bVisible);
+	}
+}
+
+void ULRSaveSubsystem::ApplyMemoryState(ALRCharacter* character) const
+{
+	ULRStateComponent* state = character ? character->GetStateComponent() : nullptr;
+	if (!state || state->GetCurrentMode() == ELRPerceptionMode::Memory)
+	{
+		return;
+	}
+	FLRStateChangeRequest request;
+	request.TargetMode = ELRPerceptionMode::Memory;
+	request.RequestType = ELRStateRequestType::Death;
+	request.Source = LRGameplayTags::StateSourceDeath;
+	state->RequestStateChange(request);
 }

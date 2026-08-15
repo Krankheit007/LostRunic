@@ -145,6 +145,9 @@ public:
 	/** V2 save adapter. Memory events remain a separate durable chunk. */
 	void CaptureStorySaveState(FLRSaveStoryChunk& outStory) const;
 	void RestoreStorySaveState(const FLRSaveStoryChunk& savedStory);
+	void CaptureMemoryEventIds(TSet<FName>& outEventIds) const;
+	void RestoreMemoryEventIds(const TSet<FName>& eventIds);
+	bool RecordMemoryEvent(FName eventId);
 	/** Clears transient narrative presentation state when a New Game begins. */
 	void ResetForNewGame();
 
@@ -216,6 +219,9 @@ private:
 	/** Completed Event Ids 的领域数据，由所属类型负责维护和校验。 该字段仅为运行时缓存，不进入存档。 */
 	UPROPERTY(Transient)
 	TSet<FName> CompletedEventIds;
+
+	UPROPERTY(Transient)
+	TSet<FName> MemoryEventIds;
 
 	/** Completion Event Id 的内部运行时数据；不参与蓝图配置。 */
 	FName CompletionEventId = NAME_None;

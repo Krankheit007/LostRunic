@@ -237,9 +237,9 @@ bool FLRWeaponEventTest::RunTest(const FString& parameters)
 		}(), 2);
 
 	// 存档恢复广播笔记、收藏品与武器事件。
-	FLRSaveInventoryChunk chunk;
+	FLRSaveNotebookChunk chunk;
 	chunk.NoteIds.Add(TEXT("Note.Restored"));
-	inventory->RestoreSaveState(chunk);
+	inventory->RestoreNotebookSaveState(chunk);
 	TestEqual(TEXT("Restore broadcasts notes event"), observer->NotesChangedCount, 1);
 	TestEqual(TEXT("Restore broadcasts collectibles event"), observer->CollectiblesChangedCount, 1);
 	TestEqual(TEXT("Restore broadcasts weapon event"), observer->SelectedWeaponChangedCount, 3);
@@ -340,12 +340,12 @@ bool FLRSnapshotOverflowTest::RunTest(const FString& parameters)
 {
 	// 存档恢复不设容量门，可构造 13 条笔记的越界库存；快照必须 fail closed。
 	ULRInventoryComponent* inventory = NewObject<ULRInventoryComponent>();
-	FLRSaveInventoryChunk chunk;
+	FLRSaveNotebookChunk chunk;
 	for (int32 index = 0; index < 13; ++index)
 	{
 		chunk.NoteIds.Add(FName(*FString::Printf(TEXT("Note.%02d"), index + 1)));
 	}
-	inventory->RestoreSaveState(chunk);
+	inventory->RestoreNotebookSaveState(chunk);
 	TestEqual(TEXT("Restored thirteen notes"), inventory->GetNoteIds().Num(), 13);
 
 	ULRMenuWidgetController* controller = NewObject<ULRMenuWidgetController>();

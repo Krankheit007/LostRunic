@@ -223,12 +223,10 @@ public:
 	 * @brief 把运行时库存、笔记或收藏品状态复制到存档分块；不填充已废弃的快捷栏字段。
 	 * @param outInventory 参与本次操作的运行时对象 `outInventory`；函数会检查空值和所需接口。
 	 */
-	void CaptureSaveState(FLRSaveInventoryChunk& outInventory) const;
 	/**
 	 * @brief 从存档分块恢复运行时状态；完全忽略已废弃的快捷栏字段。
 	 * @param savedInventory 参与本次操作的运行时对象 `savedInventory`；函数会检查空值和所需接口。
 	 */
-	void RestoreSaveState(const FLRSaveInventoryChunk& savedInventory);
 
 	void CaptureInventorySaveState(FLRSaveInventoryChunkV2& outInventory) const;
 	void RestoreInventorySaveState(const FLRSaveInventoryChunkV2& savedInventory);

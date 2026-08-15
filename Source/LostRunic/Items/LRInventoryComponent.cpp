@@ -373,54 +373,6 @@ ULRItemDefinition* ULRInventoryComponent::FindDefinition(const FName itemId) con
 }
 
 /**
- * @brief 把运行时库存、笔记或收藏品状态复制到存档分块；不填充已废弃的快捷栏字段。
- * @param outInventory 参与本次操作的运行时对象 `outInventory`；函数会检查空值和所需接口。
- */
-void ULRInventoryComponent::CaptureSaveState(FLRSaveInventoryChunk& outInventory) const
-{
-	outInventory.ItemCounts.Reset();
-	for (const TPair<FName, FLRInventoryEntry>& item : Entries)
-	{
-		if (item.Value.Quantity > 0)
-		{
-			outInventory.ItemCounts.Add(item.Key, item.Value.Quantity);
-		}
-	}
-	outInventory.NoteIds = NoteIds;
-	outInventory.CollectibleIds = CollectibleIds;
-}
-
-/**
- * @brief 从存档分块恢复运行时状态；完全忽略已废弃的快捷栏字段。
- * @param savedInventory 参与本次操作的运行时对象 `savedInventory`；函数会检查空值和所需接口。
- */
-void ULRInventoryComponent::RestoreSaveState(const FLRSaveInventoryChunk& savedInventory)
-{
-	Entries.Reset();
-	SelectedWeaponItemId = NAME_None;
-	for (const TPair<FName, int32>& item : savedInventory.ItemCounts)
-	{
-		if (item.Value > 0 && Definitions.Contains(item.Key))
-		{
-			FLRInventoryEntry& entry = Entries.Add(item.Key);
-			entry.ItemId = item.Key;
-			entry.Quantity = item.Value;
-			entry.AcquisitionSequence = NextAcquisitionSequence++;
-		}
-	}
-	NoteIds = savedInventory.NoteIds;
-	CollectibleIds = savedInventory.CollectibleIds;
-
-	for (const TPair<FName, FLRInventoryEntry>& item : Entries)
-	{
-		OnInventoryChanged.Broadcast(item.Key, item.Value.Quantity);
-	}
-	OnNotesChanged.Broadcast();
-	OnCollectiblesChanged.Broadcast();
-	OnSelectedWeaponChanged.Broadcast();
-}
-
-/**
  * @brief 在事务成功后扣除一个一次性物品；扣为 0 时删除条目并清理显式武器选择。
  * @param itemId 物品的稳定 FName ID，用于定义查询和存档，不依赖显示名。
  * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。

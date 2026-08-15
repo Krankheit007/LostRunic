@@ -16,7 +16,7 @@ The four-slot quick bar and the standalone weapon system were removed. The inven
 
 `ULRItemActionComponent` on `ALRCharacter` is the only item action entry: `RequestUseItem(ItemId, Target)` (target must implement `ILRItemUseTarget`) and `RequestAttack()` (target must implement `ILRAttackTarget`; no weapon resolves to an empty-handed attack). Both share one `ULRItemUseResolver` transaction: entry/request validation, ownership, action-tag declaration, attack-state rules, per-entry target checks, execution, post-success consumption, and structured rejection. `ULRInventoryComponent` is again pure inventory state plus explicit weapon selection (`SetSelectedWeapon`/`GetSelectedWeapon`); `GetEffectiveWeapon` lazily falls back to the earliest-acquired owned weapon and the selection clears immediately when the selected weapon is consumed. Attack distance, facing cone, and cooldown live in `ULRStateTuning` (`CourageAttackRangeCm`, `CourageAttackFacingDegrees`, `CourageAttackCooldownSeconds`).
 
-The unified menu is one UMG asset with Inventory/Notes/Collectibles tabs; `FLRInventorySnapshot` carries per-item views and weapon IDs and contains no quick-slot data. `ALRNoteInteractableActor` records `ReadingId` as soon as the reading session opens; `ALRCollectiblePickupActor` hides only on a `Success` collectible record. `FLRSaveInventoryChunk.QuickSlots`/`SelectedQuickSlot` remain as legacy struct fields that are never populated, never restored, and never surfaced by UI.
+The unified menu is one UMG asset with Inventory/Notes/Collectibles tabs; `FLRInventorySnapshot` carries per-item views and weapon IDs and contains no quick-slot data. `ALRNoteInteractableActor` records `ReadingId` as soon as the reading session opens; `ALRCollectiblePickupActor` hides only on a `Success` collectible record. The V2 inventory payload stores item quantities, acquisition sequences, and selected weapon ID; notebook and collectible IDs are separate V2 chunks. No quick-slot or legacy inventory chunk is serialized.
 
 ## State And Input
 
@@ -55,13 +55,13 @@ Phase-8 follow-up (does not block the framework refactor): the current project c
 
 ## Save Transactions
 
-`ULRSaveSubsystem` is the sole runtime owner of persistence and lives on `UGameInstance`, so its working snapshot and transaction phase survive level travel. `ULRSaveGame` contains only `SaveGame` data: `FLRResumeAnchor`, inventory, narrative progress, completed memory events, death count, timestamps, and the v0 migration fields. Runtime actors and definitions are never serialized.
+`ULRSaveSubsystem` is the sole runtime owner of persistence and lives on `UGameInstance`, so its V2 operation state and Home resume snapshot survive level travel. `FLRSaveDataV2` is the only payload model: player resume data, inventory, notebook, collectibles, story/memory events, and statistics. Runtime actors and definitions are never serialized; old save classes and old disk formats are ignored.
 
-Slot IDs are stable and independent of display names: `LostRunic_Auto` is the single automatic slot and `LostRunic_Manual_01` through `LostRunic_Manual_10` are the bounded manual slots. `ULRSaveTuning` is the only source for the 7.5 second ordinary auto-save debounce, retry count, retry delay, and manual slot count. Every queued write duplicates the working save before entering the game-thread FIFO; asynchronous completion advances the queue and emits success or failure delegates.
+Slot IDs are stable `FLRSaveSlotId` values and payload keys are generated from slot GUID plus catalog sequence at operation activation. `ULRSaveTuning` is the only source for debounce, retry count, retry delay, manual slot count, overall timeout, and async watchdog timeout. Every queued operation owns an immutable `FLRSaveDataV2` copy when capture is required; all writes, reads, deletes, repairs, and Memory critical saves enter the same game-thread FIFO.
 
-Death recovery keeps the Home `FLRResumeAnchor` unchanged throughout Memory. Capture accepts Death, increments the death count, locks transition input, and travels to the registered `Memory` map. World-ready submits critical save A, Memory events are queued in order, and the return request travels to the saved anchor map. World-ready then restores inventory, narrative events, actor transform, and the Memory-to-Normal state request before submitting critical save B. Manual saves are rejected for every non-`None` transaction phase.
+Death recovery captures the complete Home snapshot before travel and preserves its map, anchor, exact player transform, inventory, narrative, memory event IDs, and statistics. `ULRGameStatisticsSubsystem::RecordDeath()` updates the death count and `ULRDialogueSubsystem` owns memory event IDs. World-ready submits Memory Entry, each event submits an immutable Memory Event copy, and return restores from the Home snapshot before submitting Memory Return. The Memory map does not require a SaveAnchor. Manual saves are rejected for every non-`None` transaction phase.
 
-Loading a manual or latest save migrates v0 to v1 before applying it. If the current map differs from the saved anchor map, the subsystem travels there and defers application until `HandleWorldReady`; an unavailable registered map produces `RejectedUnavailableMap` and a user-facing load failure delegate. Invalid or corrupt saves produce `MissingOrCorrupt` with a diagnostic message.
+Loading a manual or latest save selects only V2 Catalog/Payload entries. If the current map differs from the saved map, the subsystem travels there and defers application until `HandleWorldReady`; an unavailable registered map produces `RejectedNotEligible` and a user-facing load failure. Invalid or corrupt payloads produce the corresponding V2 result code and enqueue deterministic health repair where applicable.
 
 ## Evidence
 
@@ -75,9 +75,15 @@ Phase 6 verification on 2026-08-09:
 Phase 7 verification on 2026-08-09:
 
 - `LostRunicEditor Win64 Development` compiled successfully after the save implementation and resume-application fix; only existing UE engine deprecation warnings remain.
-- `Automation RunTests LostRunic` discovered and completed 29 tests with `GIsCriticalError=0` and `EXIT CODE: 0`. The five save tests cover v0 migration, slot/manual rules, critical Memory A/B ordering, FIFO requests, immutable snapshots, and migrated anchor transform data.
+- The historical save implementation was replaced by the V2-only model; no v0 migration or legacy disk fallback is supported. The current focused V2 regression set is recorded below.
 - `DataValidationCommandlet` completed with result `0`; native validators reported 267 localization and 266 package-file checks with no project content-validation errors. The command host also reports a sandbox-only global Zen/EditorSettings write warning; `-DDC-ForceMemoryCache` keeps the project validation running without modifying project assets.
-- `git diff --check` passed. Generated `Binaries/`, `Intermediate/`, `DerivedDataCache/`, and `Saved/` outputs remain outside the tracked source change.
+- `git diff --check` passed for the historical phase. Generated `Binaries/`, `Intermediate/`, `DerivedDataCache/`, and `Saved/` outputs remain outside the tracked source change.
+
+Save V2 single-queue verification on 2026-08-15:
+
+- `LostRunicEditor Win64 Development` compiled successfully after removing the legacy APIs, queue, save classes, and disk-format fallback; only existing UE/compiler deprecation warnings remain.
+- `Automation RunTests LostRunic.Save` completed 8/8 tests, including read-only catalog bootstrap, queue-head recovery, protected automatic slot, immutable payload snapshots, Memory purpose ordering, and DeathCount/MemoryEventIds owner round-trip. `LostRunic.UI` completed 11/11, and `LostRunic.Tuning` completed 3/3. Command-line runs used `-DDC-ForceMemoryCache` because the local Installed DDC graph has no writable node.
+- The legacy API/type/queue/file scan found no matches, no generated output paths entered the diff, and `git diff --check` passed.
 
 Phase 8 item-system refactor verification on 2026-08-12:
 

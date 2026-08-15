@@ -55,7 +55,7 @@ bool FLRTuningBoundariesTest::RunTest(const FString& parameters)
 	save->AutoSaveDebounceSeconds = 0.0f;
 	save->RetryCount = 10;
 	save->RetryDelaySeconds = 10.0f;
-	save->ManualSlotCount = 100;
+	save->MaxManualSaveSlots = 100;
 	TestTrue(TEXT("Declared save boundaries"), save->Validate(error));
 	return true;
 }

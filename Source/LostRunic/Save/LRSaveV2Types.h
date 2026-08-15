@@ -25,7 +25,13 @@ UENUM(BlueprintType)
 enum class ELRSaveOperationState : uint8
 {
 	Idle, RecoveringCatalog, Capturing, WritingPayload, CommittingCatalog, ReadingPayload, AwaitingWorld,
-	Restoring, DeletingPayload
+	Restoring, DeletingPayload, RepairingHealth
+};
+
+UENUM(BlueprintType)
+enum class ELRSaveMemoryPurpose : uint8
+{
+	None, Entry, Event, Return
 };
 
 UENUM(BlueprintType)
@@ -172,8 +178,13 @@ struct LOSTRUNIC_API FLRQueuedSaveOperation
 	UPROPERTY(Transient) ELRSaveOperationType Type = ELRSaveOperationType::None;
 	UPROPERTY(Transient) FLRSaveSlotId SlotId;
 	UPROPERTY(Transient) FName ReasonId = NAME_None;
-	UPROPERTY(Transient) TObjectPtr<ULRSavePayload> Payload;
-	int32 RetryAttempt = 0;
+	UPROPERTY(Transient) FLRSaveDataV2 CapturedData;
+	UPROPERTY(Transient) ELRSaveMemoryPurpose MemoryPurpose = ELRSaveMemoryPurpose::None;
+	UPROPERTY(Transient) ELRSaveSlotHealth RequestedHealth = ELRSaveSlotHealth::Healthy;
+	int32 RetryCount = 0;
+	int64 CatalogSequence = 0;
+	FString PayloadKey;
+	bool bHasCapturedData = false;
 };
 
 namespace LRSaveV2Ids

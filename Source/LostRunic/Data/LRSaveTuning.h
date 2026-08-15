@@ -50,9 +50,6 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Save|Slots", meta = (ClampMin = "1", ClampMax = "100"))
 	int32 MaxManualSaveSlots = 20;
 
-	UPROPERTY(meta = (DeprecatedProperty, DeprecationMessage = "Use MaxManualSaveSlots."))
-	int32 ManualSlotCount = 10;
-
 	/**
 	 * @brief 校验当前资产的必填引用、数值边界及跨字段关系，并输出可诊断错误。
 	 * @param outError 输出校验失败原因；成功时保持为空。

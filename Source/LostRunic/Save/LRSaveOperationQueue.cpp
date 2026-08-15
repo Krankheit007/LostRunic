@@ -6,6 +6,13 @@ void LRSaveOperationQueue::Enqueue(TArray<FLRQueuedSaveOperation>& queue, FLRQue
 	queue.Add(MoveTemp(operation));
 }
 
+void LRSaveOperationQueue::EnqueueFront(TArray<FLRQueuedSaveOperation>& queue,
+	FLRQueuedSaveOperation&& operation)
+{
+	check(operation.OperationId.IsValid());
+	queue.Insert(MoveTemp(operation), 0);
+}
+
 bool LRSaveOperationQueue::Dequeue(TArray<FLRQueuedSaveOperation>& queue, FLRQueuedSaveOperation& outOperation)
 {
 	if (queue.IsEmpty())

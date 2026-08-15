@@ -1,5 +1,6 @@
 #include "Save/LRSaveSubsystem.h"
 
+#include "Core/LRLog.h"
 #include "Data/LRSaveTuning.h"
 #include "Engine/GameInstance.h"
 #include "Kismet/GameplayStatics.h"
@@ -7,173 +8,259 @@
 #include "Save/LRSaveCatalogStore.h"
 #include "Save/LRSavePayload.h"
 #include "Save/LRSaveProvider.h"
+#include "TimerManager.h"
 
 namespace
 {
 	constexpr int32 SaveUserIndex = 0;
 }
 
-FLRSaveSlotMetadata ULRSaveSubsystem::BuildV2Metadata(const FLRSaveSlotId& slotId, const int32 displayIndex,
-	const int64 saveSequence, const ULRSavePayload& payload) const
+FLRSaveSlotMetadata ULRSaveSubsystem::BuildMetadata(const FLRSaveSlotId& slotId, const int32 displayIndex,
+	const int64 saveSequence, const FLRSaveDataV2& data, const FString& payloadKey) const
 {
 	FLRSaveSlotMetadata metadata;
 	metadata.SlotId = slotId;
 	metadata.DisplayIndex = displayIndex;
-	metadata.PayloadKey = payload.PayloadKey;
-	metadata.MapId = payload.Data.Player.CurrentMapId;
+	metadata.PayloadKey = payloadKey;
+	metadata.MapId = data.Player.CurrentMapId;
 	metadata.SavedAtUtc = FDateTime::UtcNow();
-	metadata.PlayTimeSeconds = payload.Data.Statistics.PlayTimeSeconds;
+	metadata.PlayTimeSeconds = data.Statistics.PlayTimeSeconds;
 	metadata.SaveSequence = saveSequence;
 	metadata.Health = ELRSaveSlotHealth::Healthy;
 	return metadata;
 }
 
-bool ULRSaveSubsystem::PrepareV2Payload(FLRQueuedSaveOperation& operation, const int32 displayIndex,
-	FString& outError)
+void ULRSaveSubsystem::StartWrite()
 {
-	UGameInstance* gameInstance = GetGameInstance();
-	if (!gameInstance)
+	if (ActivePayload && ActiveOperation.PayloadKey.Len() > 0
+		&& OperationState == ELRSaveOperationState::WritingPayload)
 	{
-		outError = TEXT("GameInstance is unavailable.");
-		return false;
+		FAsyncSaveGameToSlotDelegate saveDelegate = FAsyncSaveGameToSlotDelegate::CreateWeakLambda(this,
+			[this, operationId = ActiveOperation.OperationId](const FString& slotName, const int32 userIndex,
+				const bool bSuccess)
+			{
+				HandlePayloadWritten(operationId, slotName, userIndex, bSuccess);
+			});
+		UGameplayStatics::AsyncSaveGameToSlot(ActivePayload, ActiveOperation.PayloadKey, SaveUserIndex, saveDelegate);
+		if (UWorld* world = GetCurrentWorld())
+		{
+			const FGuid operationId = ActiveOperation.OperationId;
+			FTimerDelegate watchdog = FTimerDelegate::CreateWeakLambda(this,
+				[this, operationId]() { HandleAsyncWatchdog(operationId); });
+			world->GetTimerManager().SetTimer(AsyncWatchdogTimer, watchdog,
+				GetEffectiveTuning().AsyncWatchdogSeconds, false);
+		}
+		return;
 	}
+
+	OperationState = ELRSaveOperationState::Capturing;
+	if (!SaveCatalog || !ActiveOperation.bHasCapturedData)
+	{
+		CompleteOperation(ELRSaveResultCode::ProviderUnavailable,
+			TEXT("Operation has no immutable V2 payload snapshot."));
+		return;
+	}
+	const FLRSaveSlotMetadata* previous = SaveCatalog->FindSlot(ActiveOperation.SlotId);
+	const bool bCanCreate = ActiveOperation.Type == ELRSaveOperationType::CreateManual;
+	if (!bCanCreate && !previous)
+	{
+		CompleteOperation(ELRSaveResultCode::RejectedInvalidSlot, TEXT("Target slot does not exist."));
+		return;
+	}
+	const int32 displayIndex = previous ? previous->DisplayIndex
+		: (ActiveOperation.SlotId.Type == ELRSaveSlotType::Auto ? 0
+			: SaveCatalog->FindLowestFreeDisplayIndex(GetManualSlotCount()));
+	if (displayIndex == INDEX_NONE)
+	{
+		CompleteOperation(ELRSaveResultCode::RejectedAtCapacity, TEXT("Manual save capacity reached."));
+		return;
+	}
+
 	int64 sequence = 1;
 	for (const FLRSaveSlotMetadata& slot : SaveCatalog->Slots)
 	{
 		sequence = FMath::Max(sequence, slot.SaveSequence + 1);
 	}
-	ULRSavePayload* payload = NewObject<ULRSavePayload>(this);
-	payload->SlotId = operation.SlotId;
-	payload->SaveSequence = sequence;
-	payload->PayloadKey = FLRSaveCatalogStore::MakePayloadKey(operation.SlotId, sequence);
-	if (!LRSaveProviders::CaptureAll(SaveProviders, *gameInstance, payload->Data, outError))
-	{
-		return false;
-	}
-	payload->MetadataSnapshot = BuildV2Metadata(operation.SlotId, displayIndex, sequence, *payload);
-	operation.Payload = payload;
-	LoadedV2Payload = payload;
-	return true;
-}
+	ActiveOperation.CatalogSequence = sequence;
+	ActiveOperation.PayloadKey = FLRSaveCatalogStore::MakePayloadKey(ActiveOperation.SlotId, sequence);
+	ActivePayload = NewObject<ULRSavePayload>(this);
+	ActivePayload->SlotId = ActiveOperation.SlotId;
+	ActivePayload->PayloadKey = ActiveOperation.PayloadKey;
+	ActivePayload->SaveSequence = sequence;
+	ActivePayload->Data = ActiveOperation.CapturedData;
+	ActivePayload->MetadataSnapshot = BuildMetadata(ActiveOperation.SlotId, displayIndex, sequence,
+		ActivePayload->Data, ActiveOperation.PayloadKey);
 
-void ULRSaveSubsystem::StartV2Write()
-{
-	V2OperationState = ELRSaveOperationState::Capturing;
-	const FLRSaveSlotMetadata* previous = SaveCatalog->FindSlot(ActiveV2Operation.SlotId);
-	if (ActiveV2Operation.Type != ELRSaveOperationType::CreateManual
-		&& ActiveV2Operation.Type != ELRSaveOperationType::AutoSave
-		&& ActiveV2Operation.Type != ELRSaveOperationType::NewGame && !previous)
-	{
-		CompleteV2Operation(ELRSaveResultCode::RejectedInvalidSlot, TEXT("Target slot does not exist."));
-		return;
-	}
-	const int32 displayIndex = previous ? previous->DisplayIndex
-		: (ActiveV2Operation.SlotId.Type == ELRSaveSlotType::Auto ? 0
-			: SaveCatalog->FindLowestFreeDisplayIndex(GetEffectiveTuning().MaxManualSaveSlots));
-	if (displayIndex == INDEX_NONE)
-	{
-		CompleteV2Operation(ELRSaveResultCode::RejectedAtCapacity, TEXT("Manual save capacity reached."));
-		return;
-	}
-	FString error;
-	if (!PrepareV2Payload(ActiveV2Operation, displayIndex, error))
-	{
-		CompleteV2Operation(ELRSaveResultCode::ProviderUnavailable, error);
-		return;
-	}
 	SaveCatalog->PendingOperation.Type = ELRCatalogPendingType::Write;
 	SaveCatalog->PendingOperation.PreviousMetadata = previous ? *previous : FLRSaveSlotMetadata();
-	SaveCatalog->PendingOperation.TargetMetadata = LoadedV2Payload->MetadataSnapshot;
-	V2OperationState = ELRSaveOperationState::CommittingCatalog;
+	SaveCatalog->PendingOperation.TargetMetadata = ActivePayload->MetadataSnapshot;
+	OperationState = ELRSaveOperationState::CommittingCatalog;
+	FString error;
 	if (!FLRSaveCatalogStore::CommitCatalog(*SaveCatalog, error))
 	{
 		SaveCatalog->PendingOperation = FLRCatalogPendingOperation();
-		CompleteV2Operation(ELRSaveResultCode::WriteFailed, error);
+		CompleteOperation(ELRSaveResultCode::WriteFailed, error);
 		return;
 	}
-	V2OperationState = ELRSaveOperationState::WritingPayload;
-	FAsyncSaveGameToSlotDelegate saveDelegate;
-	saveDelegate.BindUObject(this, &ULRSaveSubsystem::HandleV2PayloadWritten);
-	UGameplayStatics::AsyncSaveGameToSlot(LoadedV2Payload, LoadedV2Payload->PayloadKey,
-		SaveUserIndex, saveDelegate);
+
+	OperationState = ELRSaveOperationState::WritingPayload;
+	FAsyncSaveGameToSlotDelegate saveDelegate = FAsyncSaveGameToSlotDelegate::CreateWeakLambda(this,
+		[this, operationId = ActiveOperation.OperationId](const FString& slotName, const int32 userIndex,
+			const bool bSuccess)
+		{
+			HandlePayloadWritten(operationId, slotName, userIndex, bSuccess);
+		});
+	UGameplayStatics::AsyncSaveGameToSlot(ActivePayload, ActiveOperation.PayloadKey, SaveUserIndex, saveDelegate);
+	const FGuid operationId = ActiveOperation.OperationId;
+	if (UWorld* world = GetCurrentWorld())
+	{
+		FTimerDelegate watchdog = FTimerDelegate::CreateWeakLambda(this,
+			[this, operationId]() { HandleAsyncWatchdog(operationId); });
+		world->GetTimerManager().SetTimer(AsyncWatchdogTimer, watchdog,
+			GetEffectiveTuning().AsyncWatchdogSeconds, false);
+	}
 }
 
-void ULRSaveSubsystem::HandleV2PayloadWritten(const FString& slotName, const int32 userIndex,
-	const bool bSuccess)
+void ULRSaveSubsystem::HandlePayloadWritten(const FGuid operationId, const FString& slotName,
+	const int32 userIndex, const bool bSuccess)
 {
-	if (V2OperationState != ELRSaveOperationState::WritingPayload || !LoadedV2Payload)
+	if (ActiveOperation.OperationId != operationId || OperationState != ELRSaveOperationState::WritingPayload
+		|| !ActivePayload || slotName != ActiveOperation.PayloadKey || userIndex != SaveUserIndex)
 	{
+		UE_LOG(LogLostRunicSave, VeryVerbose, TEXT("Ignored late save callback operation=%s slot=%s"),
+			*operationId.ToString(), *slotName);
 		return;
+	}
+	if (UWorld* world = GetCurrentWorld())
+	{
+		world->GetTimerManager().ClearTimer(AsyncWatchdogTimer);
 	}
 	if (!bSuccess)
 	{
-		FString rollbackError;
+		if (ActiveOperation.RetryCount < GetEffectiveTuning().RetryCount)
+		{
+			++ActiveOperation.RetryCount;
+			if (UWorld* world = GetCurrentWorld())
+			{
+				FTimerDelegate retry = FTimerDelegate::CreateWeakLambda(this,
+					[this, operationId]() { RetryActiveOperation(operationId); });
+				world->GetTimerManager().SetTimer(ExplicitRetryTimer, retry,
+					GetEffectiveTuning().RetryDelaySeconds, false);
+				return;
+			}
+		}
+		const FLRCatalogPendingOperation pending = SaveCatalog->PendingOperation;
 		SaveCatalog->PendingOperation = FLRCatalogPendingOperation();
-		FLRSaveCatalogStore::CommitCatalog(*SaveCatalog, rollbackError);
-		CompleteV2Operation(ELRSaveResultCode::WriteFailed, TEXT("Payload write failed."));
+		FString rollbackError;
+		if (!FLRSaveCatalogStore::CommitCatalog(*SaveCatalog, rollbackError))
+		{
+			SaveCatalog->PendingOperation = pending;
+			EnqueuePendingCatalogRepair();
+		}
+		CompleteOperation(ELRSaveResultCode::WriteFailed, TEXT("Payload write failed after retries."));
 		return;
 	}
-	const FLRSaveSlotMetadata previous = SaveCatalog->PendingOperation.PreviousMetadata;
-	const FLRSaveSlotMetadata target = SaveCatalog->PendingOperation.TargetMetadata;
-	if (FLRSaveSlotMetadata* existing = SaveCatalog->FindSlot(target.SlotId))
+
+	const FLRCatalogPendingOperation pending = SaveCatalog->PendingOperation;
+	if (FLRSaveSlotMetadata* existing = SaveCatalog->FindSlot(pending.TargetMetadata.SlotId))
 	{
-		*existing = target;
+		*existing = pending.TargetMetadata;
 	}
 	else
 	{
-		SaveCatalog->Slots.Add(target);
+		SaveCatalog->Slots.Add(pending.TargetMetadata);
 	}
 	SaveCatalog->PendingOperation = FLRCatalogPendingOperation();
 	SaveCatalog->SortSlots();
-	V2OperationState = ELRSaveOperationState::CommittingCatalog;
 	FString error;
 	if (!FLRSaveCatalogStore::CommitCatalog(*SaveCatalog, error))
 	{
-		CompleteV2Operation(ELRSaveResultCode::WriteFailed, error);
+		SaveCatalog->PendingOperation = pending;
+		EnqueuePendingCatalogRepair();
+		CompleteOperation(ELRSaveResultCode::WriteFailed, error);
 		return;
 	}
-	if (!previous.PayloadKey.IsEmpty() && previous.PayloadKey != target.PayloadKey)
-	{
-		UGameplayStatics::DeleteGameInSlot(previous.PayloadKey, SaveUserIndex);
-	}
-	CompleteV2Operation(ELRSaveResultCode::Succeeded);
+	CompleteOperation(ELRSaveResultCode::Succeeded);
 }
 
-void ULRSaveSubsystem::StartV2Delete()
+void ULRSaveSubsystem::StartDelete()
 {
-	const FLRSaveSlotMetadata* target = SaveCatalog->FindSlot(ActiveV2Operation.SlotId);
+	OperationState = ELRSaveOperationState::CommittingCatalog;
+	const FLRSaveSlotMetadata* target = SaveCatalog ? SaveCatalog->FindSlot(ActiveOperation.SlotId) : nullptr;
 	if (!target)
 	{
-		CompleteV2Operation(ELRSaveResultCode::RejectedInvalidSlot, TEXT("Target slot does not exist."));
+		CompleteOperation(ELRSaveResultCode::RejectedInvalidSlot, TEXT("Target slot does not exist."));
 		return;
 	}
+	const FLRSaveSlotMetadata targetMetadata = *target;
 	SaveCatalog->PendingOperation.Type = ELRCatalogPendingType::Delete;
-	SaveCatalog->PendingOperation.PreviousMetadata = *target;
-	SaveCatalog->PendingOperation.TargetMetadata = *target;
-	V2OperationState = ELRSaveOperationState::CommittingCatalog;
+	SaveCatalog->PendingOperation.PreviousMetadata = targetMetadata;
+	SaveCatalog->PendingOperation.TargetMetadata = targetMetadata;
 	FString error;
 	if (!FLRSaveCatalogStore::CommitCatalog(*SaveCatalog, error))
 	{
 		SaveCatalog->PendingOperation = FLRCatalogPendingOperation();
-		CompleteV2Operation(ELRSaveResultCode::DeleteFailed, error);
+		CompleteOperation(ELRSaveResultCode::DeleteFailed, error);
 		return;
 	}
-	V2OperationState = ELRSaveOperationState::DeletingPayload;
-	if (UGameplayStatics::DoesSaveGameExist(target->PayloadKey, SaveUserIndex)
-		&& !UGameplayStatics::DeleteGameInSlot(target->PayloadKey, SaveUserIndex))
+	OperationState = ELRSaveOperationState::DeletingPayload;
+	if (!targetMetadata.PayloadKey.IsEmpty()
+		&& UGameplayStatics::DoesSaveGameExist(targetMetadata.PayloadKey, SaveUserIndex)
+		&& !UGameplayStatics::DeleteGameInSlot(targetMetadata.PayloadKey, SaveUserIndex))
 	{
-		CompleteV2Operation(ELRSaveResultCode::DeleteFailed, TEXT("Payload delete failed; pending delete retained."));
+		EnqueuePendingCatalogRepair();
+		CompleteOperation(ELRSaveResultCode::DeleteFailed,
+			TEXT("Payload delete failed; pending delete retained for RepairHealth."));
 		return;
 	}
 	SaveCatalog->Slots.RemoveAll([this](const FLRSaveSlotMetadata& slot)
 	{
-		return slot.SlotId == ActiveV2Operation.SlotId;
+		return slot.SlotId == ActiveOperation.SlotId;
 	});
 	SaveCatalog->PendingOperation = FLRCatalogPendingOperation();
 	if (!FLRSaveCatalogStore::CommitCatalog(*SaveCatalog, error))
 	{
-		CompleteV2Operation(ELRSaveResultCode::DeleteFailed, error);
+		SaveCatalog->PendingOperation.Type = ELRCatalogPendingType::Delete;
+		SaveCatalog->PendingOperation.PreviousMetadata = targetMetadata;
+		SaveCatalog->PendingOperation.TargetMetadata = targetMetadata;
+		EnqueuePendingCatalogRepair();
+		CompleteOperation(ELRSaveResultCode::DeleteFailed, error);
 		return;
 	}
-	CompleteV2Operation(ELRSaveResultCode::Succeeded);
+	CompleteOperation(ELRSaveResultCode::Succeeded);
+}
+
+void ULRSaveSubsystem::StartRepairHealth()
+{
+	const bool bRecoveringCatalog = !ActiveOperation.SlotId.IsValid()
+		&& ActiveOperation.RequestedHealth == ELRSaveSlotHealth::Healthy;
+	OperationState = bRecoveringCatalog ? ELRSaveOperationState::RecoveringCatalog
+		: ELRSaveOperationState::RepairingHealth;
+	FString error;
+	if (ActiveOperation.SlotId.IsValid())
+	{
+		FLRSaveSlotMetadata* slot = SaveCatalog ? SaveCatalog->FindSlot(ActiveOperation.SlotId) : nullptr;
+		if (!slot)
+		{
+			CompleteOperation(ELRSaveResultCode::RejectedInvalidSlot, TEXT("Health repair target does not exist."));
+			return;
+		}
+		slot->Health = ActiveOperation.RequestedHealth;
+		if (!FLRSaveCatalogStore::CommitCatalog(*SaveCatalog, error))
+		{
+			CompleteOperation(ELRSaveResultCode::WriteFailed, error);
+			return;
+		}
+		CompleteOperation(ELRSaveResultCode::Succeeded);
+		return;
+	}
+	if (SaveCatalog && SaveCatalog->PendingOperation.IsSet())
+	{
+		if (!FLRSaveCatalogStore::RecoverPendingOperation(*SaveCatalog, error))
+		{
+			CompleteOperation(ELRSaveResultCode::WriteFailed, error);
+			return;
+		}
+	}
+	CompleteOperation(ELRSaveResultCode::Succeeded);
 }

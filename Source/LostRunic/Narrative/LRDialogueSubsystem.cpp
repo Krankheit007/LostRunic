@@ -38,6 +38,7 @@ void ULRDialogueSubsystem::Deinitialize()
 	ContentSet = nullptr;
 	ContextTags.Reset();
 	CompletedEventIds.Reset();
+	MemoryEventIds.Reset();
 	Super::Deinitialize();
 }
 

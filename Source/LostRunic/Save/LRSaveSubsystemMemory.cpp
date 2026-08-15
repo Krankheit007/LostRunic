@@ -1,85 +1,104 @@
-/**
- * @file LRSaveSubsystemMemory.cpp
- * @brief 实现一个自动槽、十个手动槽、版本迁移、不可变快照、FIFO 异步写入，以及死亡进入 Memory 和返回恢复锚点的 A/B 关键事务。
- *
- * 关联文件：Save 目录内调用该公共契约的实现文件；所属领域：Save。
- * 设计依据：Docs/Design/01_GameDesignSummary.md 与 Docs/Technical/04_TechnicalDesign.md。
- * 除带 EditDefaultsOnly、EditAnywhere 或 EditInstanceOnly 的字段外，其余成员均为运行时状态，不应由蓝图直接改写。
- */
 #include "Save/LRSaveSubsystem.h"
 
 #include "Core/LRGameplayTags.h"
 #include "Core/LRLog.h"
-#include "Data/LRGameContentSet.h"
 #include "Framework/LRCharacter.h"
-#include "Framework/LRGameInstanceSubsystem.h"
-#include "Framework/LRPlayerController.h"
 #include "Kismet/GameplayStatics.h"
-#include "Save/LRSaveGame.h"
+#include "Narrative/LRDialogueSubsystem.h"
+#include "Save/LRGameStatisticsSubsystem.h"
 #include "Save/LRSaveRules.h"
 #include "State/LRStateComponent.h"
-#include "UI/LRHUD.h"
-#include "UI/LRPlayerUIComponent.h"
 
-/**
- * @brief 开始 Begin Death Memory Transaction 流程，建立本次操作拥有的状态、委托或计时器。
- * @param character 参与本次操作的运行时对象 `character`；函数会检查空值和所需接口。
- * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
- */
+namespace
+{
+	FLRSaveSlotId MakeMemoryAutoSlotId()
+	{
+		FLRSaveSlotId slotId;
+		slotId.Type = ELRSaveSlotType::Auto;
+		slotId.Guid = LRSaveV2Ids::AutoSlotGuid;
+		return slotId;
+	}
+}
+
 bool ULRSaveSubsystem::BeginDeathMemoryTransaction(ALRCharacter* character)
 {
-	if (!WorkingSave || !LRSaveRules::CanBeginMemoryTransaction(MemoryPhase, WorkingSave->ResumeAnchor))
+	if (bPersistenceBlocked || !character || !LRSaveRules::CanBeginMemoryTransaction(
+		MemoryPhase, CurrentData.Player.ResumeAnchor))
 	{
-		UE_LOG(LogLostRunicSave, Warning, TEXT("Memory transaction rejected phase=%d anchor=%s"),
-			static_cast<int32>(MemoryPhase), WorkingSave && WorkingSave->ResumeAnchor.IsValid() ? TEXT("valid") : TEXT("invalid"));
+		UE_LOG(LogLostRunicSave, Warning, TEXT("Memory entry rejected phase=%d anchorValid=%d"),
+			static_cast<int32>(MemoryPhase), CurrentData.Player.ResumeAnchor.IsValid() ? 1 : 0);
 		return false;
 	}
-	CaptureRuntimeState();
-	++WorkingSave->Narrative.DeathCount;
+	FLRSaveDataV2 snapshot;
+	FString error;
+	if (!CaptureCurrentData(snapshot, error))
+	{
+		UE_LOG(LogLostRunicSave, Warning, TEXT("Memory snapshot capture failed: %s"), *error);
+		return false;
+	}
+	if (ULRGameStatisticsSubsystem* statistics = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<ULRGameStatisticsSubsystem>() : nullptr)
+	{
+		statistics->RecordDeath();
+		statistics->Capture(snapshot.Statistics);
+	}
+	else
+	{
+		UE_LOG(LogLostRunicSave, Warning, TEXT("Memory snapshot could not resolve statistics subsystem."));
+		return false;
+	}
+	if (ULRDialogueSubsystem* dialogue = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<ULRDialogueSubsystem>() : nullptr)
+	{
+		dialogue->CaptureMemoryEventIds(snapshot.Story.MemoryEventIds);
+	}
+	HomeResumeSnapshot = snapshot;
+	CurrentData = snapshot;
+	bHasHomeResumeSnapshot = true;
 	SetMemoryPhase(ELRMemoryTransactionPhase::AwaitingMemoryWorld);
 	SetTransitionInput(true);
 	if (TravelToMap(LRSaveIds::MemoryMapId))
 	{
 		return true;
 	}
+	bHasHomeResumeSnapshot = false;
 	SetMemoryPhase(ELRMemoryTransactionPhase::None);
 	SetTransitionInput(false);
 	return false;
 }
 
-/**
- * @brief 在 Memory 事务中记录一次调查事件并排队关键进度写入，不覆盖恢复锚点。
- * @param eventId 剧情事件的稳定 FName ID，用于一次性判定和存档。
- * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
- */
 bool ULRSaveSubsystem::CommitMemoryEvent(const FName eventId)
 {
-	if (MemoryPhase != ELRMemoryTransactionPhase::InMemory || eventId.IsNone() || !WorkingSave)
+	if (bPersistenceBlocked || MemoryPhase != ELRMemoryTransactionPhase::InMemory
+		|| !bHasHomeResumeSnapshot || eventId.IsNone())
 	{
 		return false;
 	}
-	if (WorkingSave->Narrative.MemoryEventIds.Contains(eventId))
+	ULRDialogueSubsystem* dialogue = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<ULRDialogueSubsystem>() : nullptr;
+	if (!dialogue || !dialogue->RecordMemoryEvent(eventId))
 	{
 		return false;
 	}
-	WorkingSave->Narrative.MemoryEventIds.Add(eventId);
-	return QueueWrite(LRSaveRules::MakeSlotName(ELRSaveSlotType::Auto), eventId, ELRSaveWriteKind::MemoryEvent)
-		== ELRSaveRequestResult::Queued;
+	FLRSaveDataV2 captured = HomeResumeSnapshot;
+	dialogue->CaptureMemoryEventIds(captured.Story.MemoryEventIds);
+	HomeResumeSnapshot = captured;
+	CurrentData = captured;
+	const FLRSaveOperationResult result = EnqueueOperation(ELRSaveOperationType::CriticalSave,
+		MakeMemoryAutoSlotId(), eventId, &captured, ELRSaveMemoryPurpose::Event);
+	return result.Code == ELRSaveResultCode::Queued;
 }
 
-/**
- * @brief 结束 Memory 调查并切回恢复锚点地图，等待世界应用完毕后提交关键存档 B。
- * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
- */
 bool ULRSaveSubsystem::RequestReturnFromMemory()
 {
-	if (!WorkingSave || MemoryPhase != ELRMemoryTransactionPhase::InMemory || !WorkingSave->ResumeAnchor.IsValid())
+	if (bPersistenceBlocked || MemoryPhase != ELRMemoryTransactionPhase::InMemory
+		|| !bHasHomeResumeSnapshot || !HomeResumeSnapshot.Player.ResumeAnchor.IsValid())
 	{
 		return false;
 	}
 	SetMemoryPhase(ELRMemoryTransactionPhase::AwaitingResumeWorld);
 	SetTransitionInput(true);
-	if (TravelToMap(WorkingSave->ResumeAnchor.MapId))
+	if (TravelToMap(HomeResumeSnapshot.Player.ResumeAnchor.MapId))
 	{
 		return true;
 	}
@@ -88,144 +107,78 @@ bool ULRSaveSubsystem::RequestReturnFromMemory()
 	return false;
 }
 
-/**
- * @brief 处理 Handle World Ready 事件，将引擎回调转换为对应领域状态更新。
- * @param character 参与本次操作的运行时对象 `character`；函数会检查空值和所需接口。
- */
 void ULRSaveSubsystem::HandleWorldReady(ALRCharacter* character)
 {
-	const FName currentMapId = GetCurrentMapId();
-	if (bAwaitingLoadedResume && WorkingSave && currentMapId == WorkingSave->ResumeAnchor.MapId)
+	if (!character || !bHasHomeResumeSnapshot)
 	{
-		bAwaitingLoadedResume = false;
-		ApplyRuntimeState(character);
 		return;
 	}
-	if (LRSaveRules::IsMemoryEntryWorld(MemoryPhase, currentMapId))
+	if (MemoryPhase == ELRMemoryTransactionPhase::AwaitingMemoryWorld
+		&& GetCurrentMapId() == LRSaveIds::MemoryMapId)
 	{
 		ApplyMemoryState(character);
 		SetMemoryPhase(ELRMemoryTransactionPhase::SavingEntry);
-		QueueWrite(LRSaveRules::MakeSlotName(ELRSaveSlotType::Auto), LRSaveIds::MemoryEntryReason,
-			ELRSaveWriteKind::MemoryEntry);
+		EnqueueOperation(ELRSaveOperationType::CriticalSave, MakeMemoryAutoSlotId(),
+			LRSaveIds::MemoryEntryReason, &HomeResumeSnapshot, ELRSaveMemoryPurpose::Entry);
 		return;
 	}
-	if (WorkingSave && LRSaveRules::IsResumeWorld(MemoryPhase, currentMapId, WorkingSave->ResumeAnchor))
+	if (MemoryPhase != ELRMemoryTransactionPhase::AwaitingResumeWorld
+		|| GetCurrentMapId() != HomeResumeSnapshot.Player.ResumeAnchor.MapId || !GetGameInstance())
 	{
-		ApplyRuntimeState(character);
-		SetMemoryPhase(ELRMemoryTransactionPhase::SavingReturn);
-		QueueWrite(LRSaveRules::MakeSlotName(ELRSaveSlotType::Auto), LRSaveIds::MemoryReturnReason,
-			ELRSaveWriteKind::MemoryReturn);
+		return;
 	}
+	FString error;
+	if (!LRSaveProviders::RestoreNonPlayer(SaveProviders, *GetGameInstance(), HomeResumeSnapshot, error)
+		|| !LRSaveProviders::RestorePlayer(SaveProviders, *GetGameInstance(), HomeResumeSnapshot, error))
+	{
+		UE_LOG(LogLostRunicSave, Warning, TEXT("Memory resume restore failed: %s"), *error);
+		SetMemoryPhase(ELRMemoryTransactionPhase::InMemory);
+		SetTransitionInput(false);
+		return;
+	}
+	FLRSaveDataV2 resumeSnapshot = HomeResumeSnapshot;
+	if (ULRDialogueSubsystem* dialogue = GetGameInstance()->GetSubsystem<ULRDialogueSubsystem>())
+	{
+		dialogue->CaptureMemoryEventIds(resumeSnapshot.Story.MemoryEventIds);
+	}
+	if (ULRGameStatisticsSubsystem* statistics = GetGameInstance()->GetSubsystem<ULRGameStatisticsSubsystem>())
+	{
+		statistics->Capture(resumeSnapshot.Statistics);
+	}
+	HomeResumeSnapshot = resumeSnapshot;
+	CurrentData = resumeSnapshot;
+	SetMemoryPhase(ELRMemoryTransactionPhase::SavingReturn);
+	EnqueueOperation(ELRSaveOperationType::CriticalSave, MakeMemoryAutoSlotId(),
+		LRSaveIds::MemoryReturnReason, &resumeSnapshot, ELRSaveMemoryPurpose::Return);
 }
 
-/**
- * @brief 根据最新领域状态刷新 Update Memory Phase After Write，并仅在值变化时通知订阅者。
- * @param writeKind 本次操作使用的 `writeKind` 枚举或模式值。
- * @param bSuccess 布尔开关 `bSuccess`；true 表示启用或条件成立，false 表示禁用或条件不成立。
- */
-void ULRSaveSubsystem::UpdateMemoryPhaseAfterWrite(const ELRSaveWriteKind writeKind, const bool bSuccess)
+void ULRSaveSubsystem::UpdateMemoryPhaseAfterOperation(const FLRQueuedSaveOperation& operation,
+	const bool bSuccess)
 {
-	ELRMemoryTransactionPhase nextPhase = LRSaveRules::ResolveAfterWrite(MemoryPhase, writeKind, bSuccess);
-	if (!bSuccess && writeKind == ELRSaveWriteKind::MemoryEntry)
-	{
-		nextPhase = ELRMemoryTransactionPhase::InMemory;
-	}
-	if (!bSuccess && writeKind == ELRSaveWriteKind::MemoryReturn)
-	{
-		nextPhase = ELRMemoryTransactionPhase::None;
-	}
-	if (nextPhase == MemoryPhase)
+	if (operation.Type != ELRSaveOperationType::CriticalSave)
 	{
 		return;
 	}
-	SetMemoryPhase(nextPhase);
-	if (nextPhase == ELRMemoryTransactionPhase::InMemory || nextPhase == ELRMemoryTransactionPhase::None)
+	if (bSuccess)
 	{
+		CurrentData = operation.CapturedData;
+	}
+	if (operation.MemoryPurpose == ELRSaveMemoryPurpose::Entry)
+	{
+		SetMemoryPhase(ELRMemoryTransactionPhase::InMemory);
 		SetTransitionInput(false);
 	}
-}
-
-/**
- * @brief 查询 Current Map Id；不修改领域状态。
- * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
- */
-FName ULRSaveSubsystem::GetCurrentMapId() const
-{
-	const ULRGameInstanceSubsystem* dataSubsystem = GetGameInstance()->GetSubsystem<ULRGameInstanceSubsystem>();
-	const ULRGameContentSet* contentSet = dataSubsystem ? dataSubsystem->GetContentSet() : nullptr;
-	return contentSet ? contentSet->FindMapIdForWorld(GetCurrentWorld()) : NAME_None;
-}
-
-/**
- * @brief 按 LRGameContentSet 中注册的地图 ID 异步/同步发起关卡切换，不拼接硬编码资产路径。
- * @param mapId 稳定标识 `mapId`；用于内容查询和存档，不依赖显示名或数组序号。
- * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
- */
-bool ULRSaveSubsystem::TravelToMap(const FName mapId)
-{
-	const ULRGameInstanceSubsystem* dataSubsystem = GetGameInstance()->GetSubsystem<ULRGameInstanceSubsystem>();
-	const ULRGameContentSet* contentSet = dataSubsystem ? dataSubsystem->GetContentSet() : nullptr;
-	const TSoftObjectPtr<UWorld> map = contentSet ? contentSet->FindMap(mapId) : TSoftObjectPtr<UWorld>();
-	if (map.IsNull())
+	else if (operation.MemoryPurpose == ELRSaveMemoryPurpose::Return)
 	{
-		UE_LOG(LogLostRunicSave, Warning, TEXT("Save travel rejected map=%s is not registered."), *mapId.ToString());
-		return false;
+		if (bSuccess)
+		{
+			bHasHomeResumeSnapshot = false;
+			SetMemoryPhase(ELRMemoryTransactionPhase::None);
+		}
+		else
+		{
+			SetMemoryPhase(ELRMemoryTransactionPhase::InMemory);
+		}
+		SetTransitionInput(false);
 	}
-	UGameplayStatics::OpenLevelBySoftObjectPtr(this, map);
-	return true;
-}
-
-/**
- * @brief 更新 Memory Phase，并在需要时同步组件状态或广播变化事件。
- * @param newPhase 本次操作使用的 `newPhase` 枚举或模式值。
- */
-void ULRSaveSubsystem::SetMemoryPhase(const ELRMemoryTransactionPhase newPhase)
-{
-	if (MemoryPhase == newPhase)
-	{
-		return;
-	}
-	MemoryPhase = newPhase;
-	OnMemoryTransactionChanged.Broadcast(MemoryPhase);
-	UE_LOG(LogLostRunicSave, Log, TEXT("Memory transaction phase=%d"), static_cast<int32>(MemoryPhase));
-}
-
-/**
- * @brief 更新 Transition Input，并在需要时同步组件状态或广播变化事件。
- * @param bVisible 布尔开关 `bVisible`；true 表示启用或条件成立，false 表示禁用或条件不成立。
- */
-void ULRSaveSubsystem::SetTransitionInput(const bool bVisible) const
-{
-	ALRPlayerController* controller = Cast<ALRPlayerController>(UGameplayStatics::GetPlayerController(GetCurrentWorld(), 0));
-	if (!controller)
-	{
-		return;
-	}
-	if (ALRHUD* hud = controller->GetHUD<ALRHUD>())
-	{
-		hud->ShowTransition(bVisible);
-	}
-	// Transition 输入层由 PlayerUIComponent 仲裁：关闭后恢复仍然有效的下层，而不是无条件回 Gameplay。
-	if (ULRPlayerUIComponent* playerUI = controller->GetPlayerUI())
-	{
-		playerUI->SetTransitionLayer(bVisible);
-	}
-}
-
-/**
- * @brief 把 Apply Memory State 数据应用到运行时对象，并显式处理缺失依赖。
- * @param character 参与本次操作的运行时对象 `character`；函数会检查空值和所需接口。
- */
-void ULRSaveSubsystem::ApplyMemoryState(ALRCharacter* character) const
-{
-	ULRStateComponent* state = character ? character->GetStateComponent() : nullptr;
-	if (!state || state->GetCurrentMode() == ELRPerceptionMode::Memory)
-	{
-		return;
-	}
-	FLRStateChangeRequest request;
-	request.TargetMode = ELRPerceptionMode::Memory;
-	request.RequestType = ELRStateRequestType::Death;
-	request.Source = LRGameplayTags::StateSourceDeath;
-	state->RequestStateChange(request);
 }

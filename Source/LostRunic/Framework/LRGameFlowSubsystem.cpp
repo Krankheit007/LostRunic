@@ -127,7 +127,7 @@ void ULRGameFlowSubsystem::NotifyWorldReady(ALRCharacter* character)
 	if (save && map && map->bPlayableMap && tuning && tuning->bAutoSaveAfterMapReady
 		&& !PendingLoadOperationId.IsValid() && !PendingNewGameOperationId.IsValid())
 	{
-		save->RequestAutoSaveV2(TEXT("MapReady"));
+				save->RequestAutoSave(TEXT("MapReady"));
 	}
 }
 

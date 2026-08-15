@@ -54,9 +54,7 @@ ULRSaveCatalog* FLRSaveCatalogStore::LoadBestCatalog(UObject* outer, FLRCatalogR
 	outResult.bCatalogAvailable = true;
 	if (catalog->PendingOperation.IsSet())
 	{
-		FString recoveryError;
-		outResult.bCatalogChanged = RecoverPendingOperation(*catalog, recoveryError);
-		outResult.Diagnostic = recoveryError;
+		outResult.Diagnostic = TEXT("Catalog bootstrap found a pending transaction; recovery is queued.");
 	}
 	return catalog;
 }
