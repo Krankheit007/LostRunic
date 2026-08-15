@@ -11,6 +11,7 @@
 #include "Components/ActorComponent.h"
 #include "GameplayTagContainer.h"
 #include "Save/LRSaveTypes.h"
+#include "Save/LRSaveV2Types.h"
 
 #include "LRInventoryComponent.generated.h"
 
@@ -228,6 +229,13 @@ public:
 	 * @param savedInventory 参与本次操作的运行时对象 `savedInventory`；函数会检查空值和所需接口。
 	 */
 	void RestoreSaveState(const FLRSaveInventoryChunk& savedInventory);
+
+	void CaptureInventorySaveState(FLRSaveInventoryChunkV2& outInventory) const;
+	void RestoreInventorySaveState(const FLRSaveInventoryChunkV2& savedInventory);
+	void CaptureNotebookSaveState(FLRSaveNotebookChunk& outNotebook) const;
+	void RestoreNotebookSaveState(const FLRSaveNotebookChunk& savedNotebook);
+	void CaptureCollectibleSaveState(FLRSaveCollectibleChunk& outCollectible) const;
+	void RestoreCollectibleSaveState(const FLRSaveCollectibleChunk& savedCollectible);
 
 	/** 当 Inventory Changed 发生时广播；蓝图可绑定该委托以更新表现，不应在回调中改写核心规则。  */
 	UPROPERTY(BlueprintAssignable, Category = "Lost Runic|Inventory")

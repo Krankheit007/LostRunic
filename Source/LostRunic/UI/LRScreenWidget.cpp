@@ -9,6 +9,7 @@
 #include "UI/LRScreenWidget.h"
 
 #include "UI/LRHUDWidgetController.h"
+#include "UI/LRSaveWidgetController.h"
 #include "Blueprint/WidgetTree.h"
 #include "Framework/Application/SlateApplication.h"
 #include "Framework/Application/SlateUser.h"
@@ -59,6 +60,12 @@ void ULRScreenWidget::SetHUDWidgetController(ULRHUDWidgetController* controller)
 {
 	HUDWidgetController = controller;
 	OnHUDWidgetControllerReady(HUDWidgetController);
+}
+
+void ULRScreenWidget::SetSaveWidgetController(ULRSaveWidgetController* controller)
+{
+	SaveWidgetController = controller;
+	OnSaveWidgetControllerReady(SaveWidgetController);
 }
 
 /**

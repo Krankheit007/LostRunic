@@ -16,6 +16,9 @@
 #include "Framework/LRGameInstanceSubsystem.h"
 #include "Narrative/LRDialogueSubsystem.h"
 #include "Save/LRSaveGame.h"
+#include "Save/LRSaveCatalog.h"
+#include "Save/LRSaveCatalogStore.h"
+#include "Save/LRSaveProvider.h"
 #include "Save/LRSaveRules.h"
 #include "TimerManager.h"
 
@@ -31,6 +34,13 @@ void ULRSaveSubsystem::Initialize(FSubsystemCollectionBase& collection)
 	const ULRGameInstanceSubsystem* dataSubsystem = GetGameInstance()->GetSubsystem<ULRGameInstanceSubsystem>();
 	Tuning = dataSubsystem && dataSubsystem->GetTuningSet() ? dataSubsystem->GetTuningSet()->Save : nullptr;
 	WorkingSave = NewObject<ULRSaveGame>(this);
+	FLRCatalogRecoveryResult recovery;
+	SaveCatalog = FLRSaveCatalogStore::LoadBestCatalog(this, recovery);
+	LRSaveProviders::CreateRequired(SaveProviders);
+	if (!recovery.Diagnostic.IsEmpty())
+	{
+		UE_LOG(LogLostRunicSave, Log, TEXT("V2 catalog startup: %s"), *recovery.Diagnostic);
+	}
 	if (ULRDialogueSubsystem* dialogueSubsystem = GetGameInstance()->GetSubsystem<ULRDialogueSubsystem>())
 	{
 		dialogueSubsystem->OnEventCommitted.AddDynamic(this, &ULRSaveSubsystem::HandleNarrativeEventCommitted);
@@ -52,6 +62,12 @@ void ULRSaveSubsystem::Deinitialize()
 		world->GetTimerManager().ClearTimer(RetryTimer);
 	}
 	RequestQueue.Reset();
+	V2OperationQueue.Reset();
+	ActiveV2Operation = FLRQueuedSaveOperation();
+	LoadedV2Payload = nullptr;
+	SaveCatalog = nullptr;
+	SaveProviders.Reset();
+	V2OperationState = ELRSaveOperationState::Idle;
 	ActiveRequest = FLRQueuedSaveRequest();
 	WorkingSave = nullptr;
 	Tuning = nullptr;
@@ -114,7 +130,7 @@ ELRSaveRequestResult ULRSaveSubsystem::RequestAutoSave(const FName reasonId)
  */
 ELRSaveRequestResult ULRSaveSubsystem::RequestManualSave(const int32 manualSlotIndex, const FName reasonId)
 {
-	if (!LRSaveRules::IsManualSaveAllowed(MemoryPhase))
+	if (!IsManualSaveAllowed())
 	{
 		return ELRSaveRequestResult::RejectedMemoryManual;
 	}
@@ -141,7 +157,8 @@ ELRSaveRequestResult ULRSaveSubsystem::RequestCriticalSave(const FName reasonId)
  */
 bool ULRSaveSubsystem::IsManualSaveAllowed() const
 {
-	return LRSaveRules::IsManualSaveAllowed(MemoryPhase);
+	const UWorld* world = GetCurrentWorld();
+	return LRSaveRules::IsManualSaveAllowed(MemoryPhase, world && world->IsPaused());
 }
 
 /**
@@ -176,7 +193,7 @@ const ULRSaveTuning& ULRSaveSubsystem::GetEffectiveTuning() const
  */
 int32 ULRSaveSubsystem::GetManualSlotCount() const
 {
-	return GetEffectiveTuning().ManualSlotCount;
+	return GetEffectiveTuning().MaxManualSaveSlots;
 }
 
 /**

@@ -23,12 +23,14 @@ bool ULRSaveTuning::Validate(FString& outError) const
 		return false;
 	}
 
-	if (ManualSlotCount < 1 || ManualSlotCount > 100)
+	if (MaxManualSaveSlots < 1 || MaxManualSaveSlots > 100)
 	{
-		outError = FString::Printf(TEXT("ManualSlotCount must be in [1, 100]; actual %d."), ManualSlotCount);
+		outError = FString::Printf(TEXT("MaxManualSaveSlots must be in [1, 100]; actual %d."), MaxManualSaveSlots);
 		return false;
 	}
 
 	return LRValidation::RequireRange(TEXT("AutoSaveDebounceSeconds"), AutoSaveDebounceSeconds, 0.0f, 60.0f, outError)
-		&& LRValidation::RequireRange(TEXT("RetryDelaySeconds"), RetryDelaySeconds, 0.0f, 10.0f, outError);
+		&& LRValidation::RequireRange(TEXT("RetryDelaySeconds"), RetryDelaySeconds, 0.0f, 10.0f, outError)
+		&& LRValidation::RequireRange(TEXT("OperationTimeoutSeconds"), OperationTimeoutSeconds, 1.0f, 120.0f, outError)
+		&& LRValidation::RequireRange(TEXT("AsyncWatchdogSeconds"), AsyncWatchdogSeconds, 1.0f, 120.0f, outError);
 }

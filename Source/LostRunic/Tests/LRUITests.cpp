@@ -27,6 +27,7 @@
 #include "UI/LRInventoryScreenWidget.h"
 #include "UI/LRMenuWidgetController.h"
 #include "UI/LRPlayerUIComponent.h"
+#include "UI/LRSaveWidgetController.h"
 #include "InputAction.h"
 #include "InputMappingContext.h"
 
@@ -582,6 +583,53 @@ bool FLRContentCapacityValidationTest::RunTest(const FString& parameters)
 		MakeCollectible(TEXT("Col.13"), 12)
 	};
 	TestFalse(TEXT("Thirteen collectibles never pass content validation"), contentSet->Validate(error));
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLRSaveUISnapshotRulesTest, "LostRunic.UI.SaveSnapshotRules",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FLRSaveUISnapshotRulesTest::RunTest(const FString& parameters)
+{
+	FLRSaveSlotMetadata manualTwo;
+	manualTwo.SlotId.Type = ELRSaveSlotType::Manual;
+	manualTwo.SlotId.Guid = FGuid::NewGuid();
+	manualTwo.DisplayIndex = 2;
+	manualTwo.Health = ELRSaveSlotHealth::Healthy;
+
+	FLRSaveSlotMetadata automatic;
+	automatic.SlotId.Type = ELRSaveSlotType::Auto;
+	automatic.SlotId.Guid = LRSaveV2Ids::AutoSlotGuid;
+	automatic.DisplayIndex = 0;
+	automatic.Health = ELRSaveSlotHealth::Healthy;
+
+	FLRSaveSlotMetadata manualOne = manualTwo;
+	manualOne.SlotId.Guid = FGuid::NewGuid();
+	manualOne.DisplayIndex = 1;
+	manualOne.Health = ELRSaveSlotHealth::CorruptPayload;
+
+	const FLRSaveUISnapshot save = ULRSaveWidgetController::BuildSnapshot(
+		{manualTwo, automatic, manualOne}, ELRSaveSelectionMode::Save, ELRSaveUIState::Idle,
+		true, 2, nullptr);
+	TestEqual(TEXT("Automatic slot sorts first"), save.Slots[0].SlotId.Type, ELRSaveSlotType::Auto);
+	TestEqual(TEXT("Manual slots sort by display index"), save.Slots[1].DisplayIndex, 1);
+	TestEqual(TEXT("Second manual slot follows"), save.Slots[2].DisplayIndex, 2);
+	TestFalse(TEXT("Automatic slot cannot be overwritten"), save.Slots[0].bCanOverwrite);
+	TestFalse(TEXT("Automatic slot cannot be deleted"), save.Slots[0].bCanDelete);
+	TestFalse(TEXT("Corrupt slot cannot be loaded"), save.Slots[1].bCanLoad);
+	TestFalse(TEXT("Capacity prevents creation"), save.bCanCreateManualSlot);
+
+	const FLRSaveUISnapshot unpaused = ULRSaveWidgetController::BuildSnapshot(
+		{automatic, manualOne}, ELRSaveSelectionMode::Save, ELRSaveUIState::Idle,
+		false, 3, nullptr);
+	TestFalse(TEXT("Unpaused world prevents creation"), unpaused.bCanCreateManualSlot);
+	TestFalse(TEXT("Unpaused world prevents overwrite"), unpaused.Slots[1].bCanOverwrite);
+
+	const FLRSaveUISnapshot load = ULRSaveWidgetController::BuildSnapshot(
+		{automatic, manualOne}, ELRSaveSelectionMode::Load, ELRSaveUIState::Idle,
+		true, 3, nullptr);
+	TestFalse(TEXT("Load mode never offers create"), load.bCanCreateManualSlot);
+	TestTrue(TEXT("Healthy automatic slot can load"), load.Slots[0].bCanLoad);
 	return true;
 }
 

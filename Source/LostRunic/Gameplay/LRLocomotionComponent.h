@@ -108,7 +108,7 @@ public:
 
 private:
 	/**
-	 * @brief 处理 Handle State Changed 事件，将引擎回调转换为对应领域状态更新；清空掩体覆盖并按状态默认步态应用。
+	 * @brief 处理 Handle State Changed 事件，将引擎回调转换为对应领域状态更新；保留临时步态覆盖（掩体强制潜行不变量），仅将基础步态更新为状态默认。
 	 * @param currentMode 本次操作使用的 `currentMode` 枚举或模式值。
 	 * @param reason Gameplay Tag 原因，用于状态转换、日志和自动化测试追踪。
 	 */

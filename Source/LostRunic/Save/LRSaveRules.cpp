@@ -38,9 +38,9 @@ bool LRSaveRules::IsManualSlotValid(const int32 manualSlotIndex, const int32 man
  * @param phase 本次操作使用的 `phase` 枚举或模式值。
  * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
  */
-bool LRSaveRules::IsManualSaveAllowed(const ELRMemoryTransactionPhase phase)
+bool LRSaveRules::IsManualSaveAllowed(const ELRMemoryTransactionPhase phase, const bool bWorldPaused)
 {
-	return phase == ELRMemoryTransactionPhase::None;
+	return phase == ELRMemoryTransactionPhase::None && bWorldPaused;
 }
 
 /**

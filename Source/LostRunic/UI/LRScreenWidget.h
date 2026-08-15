@@ -14,6 +14,7 @@
 #include "LRScreenWidget.generated.h"
 
 class ULRHUDWidgetController;
+class ULRSaveWidgetController;
 
 /**
  * @brief 由 Widget Blueprint 的 Navigation 元数据驱动的通用 UI 输入宿主。
@@ -104,12 +105,16 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, Category = "Lost Runic|UI")
 	void OnHUDWidgetControllerReady(ULRHUDWidgetController* controller);
 
+	UFUNCTION(BlueprintImplementableEvent, Category = "Lost Runic|Save UI")
+	void OnSaveWidgetControllerReady(ULRSaveWidgetController* controller);
+
 	/** Returns the controller injected by ALRHUD for this local player's screen. */
 	UFUNCTION(BlueprintPure, Category = "Lost Runic|UI")
 	ULRHUDWidgetController* GetHUDWidgetController() const { return HUDWidgetController; }
 
 	/** Injects the local HUD event source before the widget is exposed to gameplay. */
 	void SetHUDWidgetController(ULRHUDWidgetController* controller);
+	void SetSaveWidgetController(ULRSaveWidgetController* controller);
 
 protected:
 	/**
@@ -137,6 +142,9 @@ protected:
 	/** Runtime controller reference; the HUD owns the controller and the widget never owns gameplay state. */
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "Screen", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<ULRHUDWidgetController> HUDWidgetController;
+
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Screen", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<ULRSaveWidgetController> SaveWidgetController;
 
 private:
 	/**

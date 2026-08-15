@@ -27,6 +27,10 @@ class LOSTRUNIC_API ULRGameContentSet : public UDataAsset
 	GENERATED_BODY()
 
 public:
+	/** Stable map ID used by New Game; the map registration supplies its default start anchor. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Content|Maps")
+	FName NewGameMapId = NAME_None;
+
 	/** Dialogue Table DataTable 引用；行以稳定 FName ID 查询。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Content|Tables")
 	TObjectPtr<UDataTable> DialogueTable;
@@ -83,6 +87,9 @@ public:
 	 */
 	UFUNCTION(BlueprintPure, Category = "Lost Runic|Content")
 	TSoftObjectPtr<UWorld> FindMap(FName mapId) const;
+
+	/** Returns the full registration used for display metadata and default anchors. */
+	const FLRMapRegistration* FindMapRegistration(FName mapId) const;
 
 	/** Finds an item definition by its stable ItemId. */
 	UFUNCTION(BlueprintPure, Category = "Lost Runic|Content")

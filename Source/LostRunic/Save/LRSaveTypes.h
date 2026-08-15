@@ -1,6 +1,6 @@
 /**
  * @file LRSaveTypes.h
- * @brief 声明可恢复锚点、库存/叙事分块、槽位类型、写入类型、请求结果与 Memory 事务阶段；磁盘字段使用稳定 FName ID。
+ * @brief 声明 V2 Catalog、Payload、Provider 与 UI 共享的持久化契约。
  *
  * 关联文件：LRSaveTypes.cpp；所属领域：Save。
  * 设计依据：Docs/Design/01_GameDesignSummary.md 与 Docs/Technical/04_TechnicalDesign.md。

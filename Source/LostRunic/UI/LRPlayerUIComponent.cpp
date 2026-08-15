@@ -9,14 +9,19 @@
 #include "UI/LRPlayerUIComponent.h"
 
 #include "Core/LRGameplayTags.h"
+#include "Data/LRGameContentSet.h"
 #include "Framework/LRCharacter.h"
+#include "Framework/LRGameInstanceSubsystem.h"
 #include "Framework/LRPlayerController.h"
 #include "Interaction/LRInteractionComponent.h"
 #include "Items/LRItemActionComponent.h"
 #include "Narrative/LRDialogueSubsystem.h"
+#include "Save/LRGameStatisticsSubsystem.h"
 #include "UI/LRDialogueWidgetController.h"
 #include "UI/LRHUD.h"
 #include "UI/LRScreenWidget.h"
+#include "Engine/World.h"
+#include "Kismet/GameplayStatics.h"
 
 /**
  * @brief 创建对象并设置默认子对象、能力开关和安全初值；需要 World、资产或玩家的依赖延迟到初始化阶段解析。
@@ -34,10 +39,11 @@ void ULRPlayerUIComponent::EndPlay(const EEndPlayReason::Type endPlayReason)
 {
 	UnbindNarrative();
 	ItemSelectorTarget.Reset();
-	OwnerController.Reset();
 	bTransitionActive = false;
 	bDialogueActive = false;
 	bMenuActive = false;
+	SetWorldPaused(false);
+	OwnerController.Reset();
 	Super::EndPlay(endPlayReason);
 }
 
@@ -249,6 +255,10 @@ void ULRPlayerUIComponent::OpenMenuScreen(const ELRScreenType screen)
 	{
 		hud->ShowMenu(screen, true);
 	}
+	if (screen == ELRScreenType::Pause)
+	{
+		SetWorldPaused(true);
+	}
 	bMenuActive = true;
 	ApplyArbitratedInputMode();
 }
@@ -283,7 +293,39 @@ void ULRPlayerUIComponent::CloseMenuScreen()
 	}
 	ItemSelectorTarget.Reset();
 	bMenuActive = false;
+	SetWorldPaused(false);
 	ApplyArbitratedInputMode();
+}
+
+void ULRPlayerUIComponent::SetWorldPaused(const bool bPaused)
+{
+	if (bWorldPaused == bPaused)
+	{
+		return;
+	}
+	if (UWorld* world = GetWorld())
+	{
+		UGameplayStatics::SetGamePaused(world, bPaused);
+	}
+	bWorldPaused = bPaused;
+
+	UGameInstance* gameInstance = GetWorld() ? GetWorld()->GetGameInstance() : nullptr;
+	ULRGameStatisticsSubsystem* statistics = gameInstance
+		? gameInstance->GetSubsystem<ULRGameStatisticsSubsystem>() : nullptr;
+	if (!statistics)
+	{
+		return;
+	}
+	bool bResumePlayTime = false;
+	if (!bPaused)
+	{
+		const ULRGameInstanceSubsystem* data = gameInstance->GetSubsystem<ULRGameInstanceSubsystem>();
+		const ULRGameContentSet* content = data ? data->GetContentSet() : nullptr;
+		const FLRMapRegistration* map = content
+			? content->FindMapRegistration(content->FindMapIdForWorld(GetWorld())) : nullptr;
+		bResumePlayTime = map && map->bPlayableMap;
+	}
+	statistics->SetPlayTimeActive(bResumePlayTime);
 }
 
 /**

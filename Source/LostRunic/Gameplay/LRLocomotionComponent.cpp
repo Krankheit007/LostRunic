@@ -178,10 +178,8 @@ void ULRLocomotionComponent::ClearPaceOverride(const FGameplayTag source)
  */
 void ULRLocomotionComponent::HandleStateChanged(const ELRPerceptionMode currentMode, const FGameplayTag reason)
 {
-	if (PaceOverrideSource.IsValid())
-	{
-		ClearPaceOverride(PaceOverrideSource);
-	}
+	// 掩体强制潜行不变量：状态变化不清除临时步态覆盖（如 Movement.Override.Hidden）；
+	// 基础步态仍按状态默认更新，退出掩体时 ClearPaceOverride 会按当前状态重新求值。
 	ApplyPace(LRMovementRules::GetDefaultPace(currentMode), reason);
 }
 

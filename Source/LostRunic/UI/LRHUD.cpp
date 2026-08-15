@@ -20,7 +20,9 @@
 #include "UI/LRInventoryScreenWidget.h"
 #include "UI/LRMenuWidgetController.h"
 #include "UI/LRScreenWidget.h"
+#include "UI/LRSaveWidgetController.h"
 #include "UI/LRTransitionWidgetController.h"
+#include "Save/LRSaveSubsystem.h"
 
 /**
  * @brief 解除委托并清理计时器或缓存，避免关卡切换和对象销毁后继续收到回调。
@@ -35,6 +37,10 @@ void ALRHUD::EndPlay(const EEndPlayReason::Type endPlayReason)
 	if (HUDController)
 	{
 		HUDController->Deinitialize();
+	}
+	if (SaveController)
+	{
+		SaveController->Deinitialize();
 	}
 	Super::EndPlay(endPlayReason);
 }
@@ -73,6 +79,11 @@ void ALRHUD::InitializeForController(ALRPlayerController* playerController)
 		TransitionController = NewObject<ULRTransitionWidgetController>(this);
 		TransitionController->OnTransitionVisibilityChanged.AddDynamic(this, &ALRHUD::HandleTransitionVisibilityChanged);
 	}
+	if (!SaveController)
+	{
+		SaveController = NewObject<ULRSaveWidgetController>(this);
+		SaveController->Initialize(GetGameInstance()->GetSubsystem<ULRSaveSubsystem>(), GetContentSet());
+	}
 	// 菜单控制器绑定库存与内容定义；Possess 尚未发生时在此尽力绑定，SetObservedCharacter 会兜底。
 	BindMenuControllerToCharacter(playerController);
 	if (!HUDScreenClass)
@@ -88,6 +99,10 @@ void ALRHUD::InitializeForController(ALRPlayerController* playerController)
 	if (ULRInventoryScreenWidget* inventoryScreen = Cast<ULRInventoryScreenWidget>(GetScreen(ELRScreenType::Inventory)))
 	{
 		inventoryScreen->SetMenuWidgetController(MenuController);
+	}
+	if (ULRScreenWidget* saveScreen = GetScreen(ELRScreenType::SaveSlots))
+	{
+		saveScreen->SetSaveWidgetController(SaveController);
 	}
 	SetObservedCharacter(Cast<ALRCharacter>(playerController->GetPawn()));
 	SetScreenVisible(ELRScreenType::HUD, true);
@@ -326,6 +341,10 @@ void ALRHUD::HandleNarrativePresentationChanged(const FLRNarrativePresentation p
  */
 void ALRHUD::HandleMenuScreenChanged(const ELRScreenType previousScreen, const ELRScreenType currentScreen)
 {
+	if (previousScreen == ELRScreenType::SaveSlots && currentScreen != ELRScreenType::SaveSlots && SaveController)
+	{
+		SaveController->Close();
+	}
 	HideMenuScreens();
 	if (currentScreen == ELRScreenType::None)
 	{
@@ -333,6 +352,10 @@ void ALRHUD::HandleMenuScreenChanged(const ELRScreenType previousScreen, const E
 	}
 	if (currentScreen == ELRScreenType::Pause || currentScreen == ELRScreenType::SaveSlots)
 	{
+		if (currentScreen == ELRScreenType::SaveSlots && SaveController)
+		{
+			SaveController->Open(ELRSaveSelectionMode::Save);
+		}
 		SetScreenVisible(currentScreen, true);
 		return;
 	}

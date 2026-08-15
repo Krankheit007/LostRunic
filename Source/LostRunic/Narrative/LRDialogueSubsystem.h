@@ -10,6 +10,7 @@
 
 #include "Narrative/LRNarrativeTypes.h"
 #include "Subsystems/GameInstanceSubsystem.h"
+#include "Save/LRSaveV2Types.h"
 
 #include "LRDialogueSubsystem.generated.h"
 
@@ -140,6 +141,12 @@ public:
 	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
 	 */
 	const TSet<FName>& GetCompletedEvents() const { return CompletedEventIds; }
+
+	/** V2 save adapter. Memory events remain a separate durable chunk. */
+	void CaptureStorySaveState(FLRSaveStoryChunk& outStory) const;
+	void RestoreStorySaveState(const FLRSaveStoryChunk& savedStory);
+	/** Clears transient narrative presentation state when a New Game begins. */
+	void ResetForNewGame();
 
 	/** 当 Page Changed 发生时广播；蓝图可绑定该委托以更新表现，不应在回调中改写核心规则。  */
 	UPROPERTY(BlueprintAssignable, Category = "Lost Runic|Narrative")

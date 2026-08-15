@@ -45,9 +45,10 @@ void ALRRoomVolume::FindRoomsAtLocation(const UWorld* world, const FVector locat
 		{
 			continue;
 		}
-		// 局部空间 + extent 判定，支持旋转体积；AABB 近似会保守误报，注释说明。
+		// 局部空间 + extent 判定，支持旋转与缩放：InverseTransformPosition 已包含 Scale 逆变换，
+		// 局部坐标直接与 UnscaledBoxExtent 比较，不再乘 GetComponentScale（避免双重缩放）。
 		const FVector local = bounds->GetComponentTransform().InverseTransformPosition(location);
-		const FVector halfExtent = bounds->GetUnscaledBoxExtent() * bounds->GetComponentScale();
+		const FVector halfExtent = bounds->GetUnscaledBoxExtent();
 		if (FMath::Abs(local.X) <= halfExtent.X && FMath::Abs(local.Y) <= halfExtent.Y
 			&& FMath::Abs(local.Z) <= halfExtent.Z)
 		{

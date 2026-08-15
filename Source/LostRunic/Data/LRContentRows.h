@@ -116,6 +116,18 @@ struct LOSTRUNIC_API FLRMapRegistration
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Map")
 	FName MapId = NAME_None;
 
+	/** Localized name shown by save slot metadata. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Map")
+	FText DisplayName;
+
+	/** Only playable maps accumulate play time and request post-travel autosaves. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Map")
+	bool bPlayableMap = true;
+
+	/** Stable fallback anchor used for new games and saves without a usable transform. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Map")
+	FName DefaultStartAnchorId = NAME_None;
+
 	/** World 的领域数据，由所属类型负责维护和校验。 可在对应资产、DataTable 行或蓝图实例中配置。 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Map")
 	TSoftObjectPtr<UWorld> World;

@@ -181,12 +181,18 @@ bool ULRGameContentSet::Validate(FString& outError) const
 	TSet<FName> mapIds;
 	for (const FLRMapRegistration& map : Maps)
 	{
-		if (map.MapId.IsNone() || map.World.IsNull() || mapIds.Contains(map.MapId))
+		if (map.MapId.IsNone() || map.World.IsNull() || mapIds.Contains(map.MapId)
+			|| (map.bPlayableMap && map.DefaultStartAnchorId.IsNone()))
 		{
 			outError = FString::Printf(TEXT("Map registration '%s' is empty, missing its world, or duplicated."), *map.MapId.ToString());
 			return false;
 		}
 		mapIds.Add(map.MapId);
+	}
+	if (NewGameMapId.IsNone() || !mapIds.Contains(NewGameMapId))
+	{
+		outError = TEXT("NewGameMapId must resolve to a registered map.");
+		return false;
 	}
 
 	return true;
@@ -224,6 +230,11 @@ TSoftObjectPtr<UWorld> ULRGameContentSet::FindMap(const FName mapId) const
 		return map.MapId == mapId;
 	});
 	return found ? found->World : TSoftObjectPtr<UWorld>();
+}
+
+const FLRMapRegistration* ULRGameContentSet::FindMapRegistration(const FName mapId) const
+{
+	return Maps.FindByPredicate([mapId](const FLRMapRegistration& map) { return map.MapId == mapId; });
 }
 
 ULRItemDefinition* ULRGameContentSet::FindItemDefinition(const FName itemId) const

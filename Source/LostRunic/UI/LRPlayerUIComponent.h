@@ -176,6 +176,7 @@ private:
 	 * @brief 把仲裁出的唯一输入层应用到 Controller；只在值变化时调用 SetLRInputMode。
 	 */
 	void ApplyArbitratedInputMode();
+	void SetWorldPaused(bool bPaused);
 
 	/** Owner Controller 的内部运行时数据；不参与蓝图配置。 */
 	TWeakObjectPtr<ALRPlayerController> OwnerController;
@@ -189,4 +190,6 @@ private:
 	bool bDialogueActive = false;
 	/** Menu 输入层激活状态；由菜单开关驱动。 */
 	bool bMenuActive = false;
+	/** True while Pause or its Save page owns the real world pause. */
+	bool bWorldPaused = false;
 };

@@ -43,8 +43,12 @@ bool FLRSaveSlotRulesTest::RunTest(const FString& parameters)
 	TestEqual(TEXT("First manual slot has a stable name"), LRSaveRules::MakeSlotName(ELRSaveSlotType::Manual, 0), FString(TEXT("LostRunic_Manual_01")));
 	TestTrue(TEXT("Tenth manual slot is valid"), LRSaveRules::IsManualSlotValid(9, 10));
 	TestFalse(TEXT("Eleventh manual slot is rejected"), LRSaveRules::IsManualSlotValid(10, 10));
-	TestTrue(TEXT("Manual saves are legal outside Memory"), LRSaveRules::IsManualSaveAllowed(ELRMemoryTransactionPhase::None));
-	TestFalse(TEXT("Manual saves are blocked during Memory"), LRSaveRules::IsManualSaveAllowed(ELRMemoryTransactionPhase::InMemory));
+	TestTrue(TEXT("Manual saves are legal while paused outside Memory"),
+		LRSaveRules::IsManualSaveAllowed(ELRMemoryTransactionPhase::None, true));
+	TestFalse(TEXT("Manual saves are blocked while unpaused"),
+		LRSaveRules::IsManualSaveAllowed(ELRMemoryTransactionPhase::None, false));
+	TestFalse(TEXT("Manual saves are blocked during Memory"),
+		LRSaveRules::IsManualSaveAllowed(ELRMemoryTransactionPhase::InMemory, true));
 	return true;
 }
 

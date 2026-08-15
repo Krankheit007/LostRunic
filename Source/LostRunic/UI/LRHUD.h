@@ -19,6 +19,7 @@ class ULRDialogueWidgetController;
 class ULRHUDWidgetController;
 class ULRMenuWidgetController;
 class ULRScreenWidget;
+class ULRSaveWidgetController;
 class ULRTransitionWidgetController;
 
 /** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
@@ -91,6 +92,9 @@ public:
 	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
 	 */
 	ULRTransitionWidgetController* GetTransitionController() const { return TransitionController; }
+
+	UFUNCTION(BlueprintPure, Category = "Lost Runic|Save UI")
+	ULRSaveWidgetController* GetSaveWidgetController() const { return SaveController; }
 
 	/**
 	 * @brief 查询统一菜单 Screen 类；权威配置在 HUD 蓝图默认值，自动化测试用于断言其派生自 ULRInventoryScreenWidget。
@@ -216,4 +220,7 @@ private:
 	/** Transition Controller 的领域数据，由所属类型负责维护和校验。 该字段仅为运行时缓存，不进入存档。 */
 	UPROPERTY(Transient)
 	TObjectPtr<ULRTransitionWidgetController> TransitionController;
+
+	UPROPERTY(Transient)
+	TObjectPtr<ULRSaveWidgetController> SaveController;
 };

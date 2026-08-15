@@ -10,6 +10,7 @@
 
 #include "Core/LRGameplayTags.h"
 #include "Core/LRLog.h"
+#include "Data/LRSaveTuning.h"
 #include "Engine/World.h"
 #include "Framework/LRCharacter.h"
 #include "Items/LRInventoryComponent.h"

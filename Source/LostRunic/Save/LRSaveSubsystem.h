@@ -9,18 +9,25 @@
 #pragma once
 
 #include "Save/LRSaveTypes.h"
+#include "Save/LRSaveV2Types.h"
+#include "Save/LRSaveProvider.h"
 #include "Subsystems/GameInstanceSubsystem.h"
 
 #include "LRSaveSubsystem.generated.h"
 
 class ALRCharacter;
 class ULRSaveGame;
+class ULRSaveCatalog;
+class ULRSavePayload;
 class ULRSaveTuning;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FLRSaveWriteQueued, FName, reasonId, ELRSaveWriteKind, writeKind);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FLRSaveWriteCompleted, FName, reasonId, bool, bSuccess);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FLRSaveLoadCompleted, FString, slotName, bool, bSuccess, FString, error);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FLRMemoryTransactionChanged, ELRMemoryTransactionPhase, phase);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FLRSaveOperationCompleted, FLRSaveOperationResult, result);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FLRSaveLoadRequested, FGuid, operationId, FName, mapId);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FLRSaveNewGameRequested, FGuid, operationId, FName, mapId);
 
 /** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
 UCLASS(meta = (DisplayName = "Lost Runic Save Subsystem"))
@@ -38,6 +45,50 @@ public:
 	 * @brief 释放子系统事件绑定和运行时缓存。
 	 */
 	virtual void Deinitialize() override;
+
+	UFUNCTION(BlueprintPure, Category = "Lost Runic|Save|V2")
+	TArray<FLRSaveSlotMetadata> GetSaveSlots() const;
+
+	UFUNCTION(BlueprintPure, Category = "Lost Runic|Save|V2")
+	int32 GetMaxManualSaveSlots() const { return GetManualSlotCount(); }
+
+	UFUNCTION(BlueprintCallable, Category = "Lost Runic|Save|V2")
+	FLRSaveOperationResult RequestCreateManualSave(FName reasonId);
+
+	UFUNCTION(BlueprintCallable, Category = "Lost Runic|Save|V2")
+	FLRSaveOperationResult RequestOverwriteSave(FLRSaveSlotId slotId, FName reasonId);
+
+	UFUNCTION(BlueprintCallable, Category = "Lost Runic|Save|V2")
+	FLRSaveOperationResult RequestAutoSaveV2(FName reasonId);
+
+	UFUNCTION(BlueprintCallable, Category = "Lost Runic|Save|V2")
+	FLRSaveOperationResult RequestLoadSave(FLRSaveSlotId slotId);
+
+	UFUNCTION(BlueprintCallable, Category = "Lost Runic|Save|V2")
+	FLRSaveOperationResult RequestDeleteSave(FLRSaveSlotId slotId);
+
+	UFUNCTION(BlueprintCallable, Category = "Lost Runic|Save|V2")
+	FLRSaveOperationResult RequestContinue();
+
+	UFUNCTION(BlueprintCallable, Category = "Lost Runic|Save|V2")
+	FLRSaveOperationResult RequestNewGame();
+
+	/** Called by GameFlow after travel and provider initialization, never from Save itself. */
+	void NotifyLoadWorldReady(FGuid operationId);
+	void NotifyLoadPreparationFailed(FGuid operationId, const FString& diagnostic);
+	void NotifyNewGameWorldReady(FGuid operationId);
+
+	UFUNCTION(BlueprintPure, Category = "Lost Runic|Save|V2")
+	ELRSaveOperationState GetOperationState() const { return V2OperationState; }
+
+	UPROPERTY(BlueprintAssignable, Category = "Lost Runic|Save|V2")
+	FLRSaveOperationCompleted OnSaveOperationCompleted;
+
+	UPROPERTY(BlueprintAssignable, Category = "Lost Runic|Save|V2")
+	FLRSaveLoadRequested OnSaveLoadRequested;
+
+	UPROPERTY(BlueprintAssignable, Category = "Lost Runic|Save|V2")
+	FLRSaveNewGameRequested OnSaveNewGameRequested;
 
 	/**
 	 * @brief 更新 Resume Anchor，并在需要时同步组件状态或广播变化事件。
@@ -160,6 +211,19 @@ public:
 	FLRMemoryTransactionChanged OnMemoryTransactionChanged;
 
 private:
+	FLRSaveOperationResult EnqueueV2Operation(ELRSaveOperationType type, const FLRSaveSlotId& slotId,
+		FName reasonId = NAME_None);
+	void StartNextV2Operation();
+	void StartV2Write();
+	void HandleV2PayloadWritten(const FString& slotName, int32 userIndex, bool bSuccess);
+	void StartV2Load();
+	void StartV2NewGame();
+	void StartV2Delete();
+	void CompleteV2Operation(ELRSaveResultCode code, const FString& diagnostic = FString());
+	bool PersistDeterministicHealth(const FLRSaveSlotId& slotId, ELRSaveSlotHealth health);
+	FLRSaveSlotMetadata BuildV2Metadata(const FLRSaveSlotId& slotId, int32 displayIndex,
+		int64 saveSequence, const ULRSavePayload& payload) const;
+	bool PrepareV2Payload(FLRQueuedSaveOperation& operation, int32 displayIndex, FString& outError);
 	/**
 	 * @brief 处理 Handle Narrative Event Committed 事件，将引擎回调转换为对应领域状态更新。
 	 * @param eventId 剧情事件的稳定 FName ID，用于一次性判定和存档。
@@ -280,6 +344,17 @@ private:
 	UPROPERTY(Transient)
 	TObjectPtr<ULRSaveTuning> Tuning;
 
+	UPROPERTY(Transient)
+	TObjectPtr<ULRSaveCatalog> SaveCatalog;
+
+	UPROPERTY(Transient)
+	TObjectPtr<ULRSavePayload> LoadedV2Payload;
+
+	TArray<TUniquePtr<ILRSaveProvider>> SaveProviders;
+	TArray<FLRQueuedSaveOperation> V2OperationQueue;
+	FLRQueuedSaveOperation ActiveV2Operation;
+	ELRSaveOperationState V2OperationState = ELRSaveOperationState::Idle;
+
 	/** Request Queue 的领域数据，由所属类型负责维护和校验。 该字段仅为运行时缓存，不进入存档。 */
 	UPROPERTY(Transient)
 	TArray<FLRQueuedSaveRequest> RequestQueue;
@@ -296,6 +371,7 @@ private:
 	bool bWriteInProgress = false;
 	/** Awaiting Loaded Resume 的运行时状态；由所属类型维护，不在蓝图中配置。 */
 	bool bAwaitingLoadedResume = false;
+	FGuid PendingNewGameOperationId;
 	/** Auto Save Debounce Timer 的运行时句柄，用于取消回调并避免 Tick；不在蓝图中配置。 */
 	FTimerHandle AutoSaveDebounceTimer;
 	/** Retry Timer 的运行时句柄，用于取消回调并避免 Tick；不在蓝图中配置。 */

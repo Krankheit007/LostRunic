@@ -38,6 +38,11 @@ namespace
 		contentSet->DialogueTable->RowStruct = FLRDialogueRow::StaticStruct();
 		contentSet->ReadingTable = NewObject<UDataTable>(contentSet);
 		contentSet->ReadingTable->RowStruct = FLRReadingRow::StaticStruct();
+		// 地图注册校验：NewGameMapId 必须解析到已注册地图（内容集校验的一部分）。
+		FLRMapRegistration mapRegistration;
+		mapRegistration.MapId = TEXT("Map.Test");
+		contentSet->Maps.Add(mapRegistration);
+		contentSet->NewGameMapId = mapRegistration.MapId;
 		return contentSet;
 	}
 

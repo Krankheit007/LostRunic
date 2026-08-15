@@ -23,6 +23,15 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Save|Autosave", meta = (ClampMin = "0.0", ClampMax = "60.0", Units = "s"))
 	float AutoSaveDebounceSeconds = 7.5f;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Save|Autosave")
+	bool bAutoSaveAfterMapReady = true;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Save|Autosave")
+	bool bAutoSaveImportantStoryEvents = true;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Save|Autosave")
+	bool bAutoSaveSuccessfulInteractions = false;
+
 	/** Retry Count 的领域数据，由所属类型负责维护和校验。 C++ 安全默认值为 `2`。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。编辑器约束：最小值 `0`，最大值 `10`。 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Save|Retry", meta = (ClampMin = "0", ClampMax = "10"))
 	int32 RetryCount = 2;
@@ -31,8 +40,17 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Save|Retry", meta = (ClampMin = "0.0", ClampMax = "10.0", Units = "s"))
 	float RetryDelaySeconds = 0.5f;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Save|Reliability", meta = (ClampMin = "1.0", ClampMax = "120.0", Units = "s"))
+	float OperationTimeoutSeconds = 30.0f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Save|Reliability", meta = (ClampMin = "1.0", ClampMax = "120.0", Units = "s"))
+	float AsyncWatchdogSeconds = 15.0f;
+
 	/** Manual Slot Count 的领域数据，由所属类型负责维护和校验。 C++ 安全默认值为 `10`。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。编辑器约束：最小值 `1`，最大值 `100`。 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Save|Slots", meta = (ClampMin = "1", ClampMax = "100"))
+	int32 MaxManualSaveSlots = 20;
+
+	UPROPERTY(meta = (DeprecatedProperty, DeprecationMessage = "Use MaxManualSaveSlots."))
 	int32 ManualSlotCount = 10;
 
 	/**

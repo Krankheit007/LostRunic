@@ -66,7 +66,7 @@ struct LOSTRUNIC_API FLRNPCBehaviorTask : public FStateTreeTaskCommonBase
 
 /** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
 USTRUCT(meta = (DisplayName = "NPC Behavior Is", Category = "Lost Runic|AI"))
-struct LOSTRUNIC_API FLRNPCStateCondition : public FStateTreeConditionBase
+struct LOSTRUNIC_API FLRNPCStateCondition : public FStateTreeConditionCommonBase
 {
 	GENERATED_BODY()
 

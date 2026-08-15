@@ -11,6 +11,7 @@
 #include "Core/LRLog.h"
 #include "Framework/LRCharacter.h"
 #include "Framework/LRGameInstanceSubsystem.h"
+#include "Framework/LRGameFlowSubsystem.h"
 #include "Framework/LRGameState.h"
 #include "Framework/LRPlayerController.h"
 #include "Kismet/GameplayStatics.h"
@@ -48,12 +49,12 @@ void ALRGameMode::BeginPlay()
 
 	if (UGameInstance* gameInstance = GetGameInstance())
 	{
-		if (ULRSaveSubsystem* saveSubsystem = gameInstance->GetSubsystem<ULRSaveSubsystem>())
+		if (ULRGameFlowSubsystem* gameFlow = gameInstance->GetSubsystem<ULRGameFlowSubsystem>())
 		{
 			ALRCharacter* character = Cast<ALRCharacter>(UGameplayStatics::GetPlayerCharacter(this, 0));
 			if (character)
 			{
-				saveSubsystem->HandleWorldReady(character);
+				gameFlow->NotifyWorldReady(character);
 			}
 			else
 			{

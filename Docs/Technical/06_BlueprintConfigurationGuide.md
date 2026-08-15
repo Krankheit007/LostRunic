@@ -124,10 +124,12 @@
 - **配置步骤**：
   1. 创建 `ALRGuardCharacter` 派生蓝图，指定网格、动画和守卫定义；`AlertWidget`（WidgetComponent）的 WidgetClass 指定为 `WBP_GuardAlertBar`，绘制位置与样式在蓝图配置。
   2. 在实例上填写允许的巡逻点；移动速度、视野、听觉和警戒阈值填写到定义或 Tuning 资产。
-  3. **StateTree 接线**：`ST_Guard` 包含 `IdlePatrol / Suspicious / Investigate / Search / Chase / Stunned` 六个状态，条件节点 `FLRGuardStateCondition` 比较控制器的 `GetResolvedBehavior()`（StateTree 不自行推导警戒语义），任务节点 `FLRGuardBehaviorTask` 执行 `EnterBehavior`；树**仅由 `AI.Event.BehaviorChanged` 驱动**（`AI.Event.AlertChanged` 只表示数据变化，不驱动树）。`DA_LRGuardDefinition.Behavior` 硬引用 `ST_Guard`，控制器 `OnPossess` 自动 `SetStateTree` + `StartLogic`（无需在 AIController 默认值手动指定）。
-  4. 绑定警戒快照（`OnAlertSnapshotChanged` / `GetAlertSnapshot`）到 UI、音效或动画表现。
+  3. **StateTree 接线**：`ST_Guard` 使用 `StateTreeAIComponentSchema`，`ContextActorClass=ALRGuardCharacter`、`AIControllerClass=ALRGuardAIController`。树根必须是无任务的 `Root` Group，下面按 `IdlePatrol / Suspicious / Investigate / Search / Chase / Stunned` 顺序放六个平级行为状态；每个状态恰有一个 `FLRGuardStateCondition`、一个 `FLRGuardBehaviorTask`，两者的行为枚举一致，Controller 通过绑定的 `AIController` 上下文提供 `GetResolvedBehavior()`（StateTree 不自行推导警戒语义）。`DA_LRGuardDefinition.Behavior` 硬引用 `ST_Guard`，控制器 `OnPossess` 自动 `SetStateTree` + `StartLogic`（无需在 AIController 默认值手动指定）。
+  4. **行为变化重选**：六个行为状态各添加 `On Event: AI.Event.BehaviorChanged -> Goto Root`，Normal 优先级、无延迟、消费事件，并将 `Reactivate Target State` 设为 `ForceChanged`。`ForceChanged` 是必需契约：事件必须离开当前行为状态、从 Root 重新按六个 `Guard Behavior Is` 条件顺序短路选择，再进入当前 `GetResolvedBehavior()` 唯一对应的子状态；仅配置普通 `Goto Root` 若 Root 被 Sustained、没有重新求值，不算完成。
+  5. **持续任务与同状态 Investigate**：`FLRGuardBehaviorTask` 继承 `FStateTreeTaskCommonBase`，有效 Controller 的 `EnterState()` 必须返回 `Running`，`bShouldCallTick=false`；任务不能自行完成，只能由 `BehaviorChanged` 转换退出。新刺激若解析结果和 `ActiveBehavior` 都是 `Investigate`，Controller 直接再次 `EnterBehavior(Investigate)` 更新导航目标，不发送 `BehaviorChanged`，不触发 Root 重选，也不退出/重新进入 Investigate；只有解析后的行为枚举真正变化才发送事件。
+  6. 绑定警戒快照（`OnAlertSnapshotChanged` / `GetAlertSnapshot`）到 UI、音效或动画表现。
 - **参数要求**：警戒范围、导航速度、感知参数、吸引 CD（`AlertIncreaseCooldownSeconds`/`InvestigateIncreaseCooldownSeconds`）、房间警戒（`RoomRunAlertLevel`/`AdjacentRoomRunAlertAmount`）必须来自 Tuning/定义资产；蓝图不能通过 Tick 改写警戒值或直接决定状态转换。`AttractAlertAmount` 已重命名为语义值（资产中必须为 1），`SearchDurationSeconds` 已废弃（搜索由观察+自然衰减驱动）。
-- **验收**：PIE 中验证 IdlePatrol、Suspicious、Investigate、Search、Chase、Stunned 的进入/运行/退出，眩晕后按当前警戒恢复，`LR.Debug.Alert` 可诊断；检查 Visual Logger/Output Log。
+- **验收**：在 `/Game/LostRunic/Levels/PIE_Test/L_PIE_Test` 用六种目标行为分别验证 Root 重选，不只确认最终状态，还要在 StateTree Debugger 看到当前状态离开、Root 重新求值并进入目标状态；在无行为事件下连续至少三个 StateTree 更新机会，确认同一行为仍 Active、组件仍 `Running`、没有自动完成/跳转。先进入 Investigate，再提交新异常位置且仍解析为 Investigate，确认导航目标更新而 Investigate 始终 Active、无额外 `BehaviorChanged`；随后切到 Search/Chase，确认事件触发 Root 重选；最后验证 Stunned 恢复。检查 `LR.Debug.Alert`、Visual Logger 与 Output Log。
 
 ### UI 屏幕与输入配置
 
@@ -195,8 +197,8 @@
 
 - **行为语义**（C++ 权威）：吸引噪声 +1（1-5 档 CD 0.5s；首次进入 6-10 档 0.5s、其后 0.2s；CD 内刺激完全忽略）；看见玩家 警戒<6→6、6-10→11、11 丢失→10；观察 3s（0→1 与抵达调查点）与衰减 0.5s/-1 由 `ULRAlertComponent` 计时器驱动；`ResolveTargetBehavior` 为行为唯一权威（眩晕优先）。警戒条 UI 只读 `FLRAlertSnapshot`（Level/Fraction/Tier/Behavior/bFullAlert）+ `OnAlertSnapshotChanged`，绑定后立即推送初值。
 - **`WBP_GuardAlertBar`**：继承 `ULRWorldAlertBarWidgetBase`；覆盖 `HandleAlertSnapshotChanged` 只做表现：`Tier=Hidden` 隐藏、`White` 白色进度条、`Red` 红色、`Full` 满值+额外红色特效（样式需重新设计）。由 `BP_Guard` 的 `AlertWidget` 组件初始化，Widget 不自行猜测所属守卫。
-- **`ALRRoomVolume` 摆放**：在关卡中摆放 Box 体积（Trigger profile），填写 `RoomId`（稳定 FName），`AdjacentRooms` 连线到相邻房间体积（门/窗拓扑）；守卫进入体积自动注册。室内奔跑：当前房间守卫警戒至少提升到 `RoomRunAlertLevel`(5)、相邻房间 +1；同一守卫属多房间时取最大效果、不累加；无房间体积时回退 1200 半径听觉事件。房间体积必须早于守卫生成。
-- **`ST_Guard` 资产（编辑器人工创建 + MCP 检查）**：见「守卫 AI 与 StateTree」小节接线要求。
+- **`ALRRoomVolume` 摆放**：在关卡中摆放 Box 体积（Trigger profile），填写 `RoomId`（稳定 FName），`AdjacentRooms` 连线到相邻房间体积（门/窗拓扑）；守卫进入体积自动注册。**支持旋转与缩放**（包含判定用局部空间 + UnscaledBoxExtent，缩放由变换逆变换处理）。室内奔跑：当前房间守卫警戒至少提升到 `RoomRunAlertLevel`(5)、相邻房间 +1；同一守卫属多房间时取最大效果、不累加；无房间体积时回退 1200 半径听觉事件。房间体积必须早于守卫生成。
+- **`ST_Guard` 资产（编辑器人工创建 + MCP 检查）**：见「守卫 AI 与 StateTree」小节接线要求；自动化契约覆盖 AI Schema、上下文类型、Root + 六状态、节点枚举和 `ForceChanged` 重选转换。
 
 ### 通用 NPC
 
@@ -218,7 +220,7 @@
 - `SneakAction` 已废弃（`DeprecatedProperty`，移出 Validate 必填）；潜行切换继续使用 `ToggleCrouchAction`（C / B 切换）。
 - 调优重命名（PropertyRedirects 已配置）：`HearingAlertAmount`→`AttractAlertAmount`（**资产值需改为 1**）、`SightAlertLevel`→`SightChaseLevel`(11)、移动噪声半径两项；`SearchDurationSeconds` 废弃。
 - 新建资产清单（StateTree 需编辑器人工创建，其余可 MCP）：`ST_Guard`、`ST_NPC`、`DA_LRGuardDefinition`、`DA_LRNPCDefinition`、`DA_LRNPCTuning`、`BP_Guard`、`WBP_GuardAlertBar`、`BP_NPC`；`DA_LRGameTuningSet` 登记 `DA_LRNPCTuning`。
-- **PIE 验收（`/Game/LostRunic/Levels/PIE_Test/L_PIE_Test`，键鼠+手柄，Output Log 无项目级 Warning/Error）**：状态步态（Perception 强制潜行、Courage 拒潜行、Memory 仅走路）；掩体进入强制潜行/固定掩体不可移动/掩体内不可见；噪声区域进入退出与重叠优先级、7 行步态×环境噪声、房间传播（本房→5、邻房+1、多房间取最大、无房间兜底）；完整警戒流程（0→吸引→1 观察 3s、CD 内忽略、看见→6 前往、抵达 Search 观察→衰减→0 巡逻、6-10 看见→11 追逐、丢失→10、追上死亡→Memory）；世界警戒条四档表现与首帧同步；击退眩晕 0.6s 恢复（`LR.Debug.Alert` 显示 Stunned）；NPC 巡逻/站立/对话开合/噪声限时反应/Idle 朝向玩家/对话结束回默认；`LR.Debug.Tuning` 确认重命名后来源。
+- **PIE 验收（`/Game/LostRunic/Levels/PIE_Test/L_PIE_Test`，键鼠+手柄，Output Log 无项目级 Warning/Error）**：状态步态（Perception 强制潜行、Courage 拒潜行、Memory 仅走路）；掩体进入强制潜行/固定掩体不可移动/掩体内不可见/**掩体中发生状态变化（死亡或调试强制切换）仍保持潜行，退出后为当前状态默认步态**；噪声区域进入退出与重叠优先级、7 行步态×环境噪声、房间传播（本房→5、邻房+1、多房间取最大、无房间兜底、**缩放体积（Scale≠1）包含判定正确**）；完整警戒流程（0→吸引→1 观察 3s、CD 内忽略、看见→6 前往、抵达 Search 观察→衰减→0 巡逻、6-10 看见→11 追逐、丢失→10、追上死亡→Memory）；`ST_Guard` 六行为覆盖、持续 `Running`、Investigate 同状态重定位、Search/Chase 真实变化重选、Stunned 恢复；世界警戒条四档表现与首帧同步；击退眩晕 0.6s 恢复（`LR.Debug.Alert` 显示 Stunned）；NPC 巡逻/站立/对话开合/噪声限时反应/Idle 朝向玩家/对话结束回默认；`LR.Debug.Tuning` 确认重命名后来源。
 
 ## 更新记录
 

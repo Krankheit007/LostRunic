@@ -32,7 +32,7 @@ namespace LRSaveRules
 	 * @param phase 本次操作使用的 `phase` 枚举或模式值。
 	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
 	 */
-	LOSTRUNIC_API bool IsManualSaveAllowed(ELRMemoryTransactionPhase phase);
+	LOSTRUNIC_API bool IsManualSaveAllowed(ELRMemoryTransactionPhase phase, bool bWorldPaused);
 	/**
 	 * @brief 判断 Can Begin Memory Transaction 对应条件；不产生玩法副作用。
 	 * @param phase 本次操作使用的 `phase` 枚举或模式值。
