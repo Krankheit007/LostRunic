@@ -15,6 +15,37 @@ bool LRSaveRules::IsProtectedOverwrite(const FLRSaveSlotId& slotId)
 	return slotId.Type == ELRSaveSlotType::Auto;
 }
 
+bool LRSaveRules::ResolveContinueCandidate(const TArray<FLRSaveSlotMetadata>& slots,
+	FLRSaveSlotId& outSlotId)
+{
+	const FLRSaveSlotMetadata* candidate = nullptr;
+	for (const FLRSaveSlotMetadata& slot : slots)
+	{
+		if (slot.Health != ELRSaveSlotHealth::Healthy)
+		{
+			continue;
+		}
+		if (!candidate || slot.SavedAtUtc > candidate->SavedAtUtc
+			|| (slot.SavedAtUtc == candidate->SavedAtUtc && slot.SaveSequence > candidate->SaveSequence))
+		{
+			candidate = &slot;
+		}
+	}
+	if (!candidate)
+	{
+		outSlotId = FLRSaveSlotId();
+		return false;
+	}
+	outSlotId = candidate->SlotId;
+	return true;
+}
+
+bool LRSaveRules::CanContinue(const TArray<FLRSaveSlotMetadata>& slots)
+{
+	FLRSaveSlotId candidate;
+	return ResolveContinueCandidate(slots, candidate);
+}
+
 /**
  * @brief 根据当前领域状态构建 Make Slot Name 所需的数据，不把临时对象作为长期存档标识。
  * @param slotType 本次操作使用的 `slotType` 枚举或模式值。

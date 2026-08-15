@@ -15,6 +15,7 @@
 #include "LRGameContentSet.generated.h"
 
 class UDataTable;
+class UStringTable;
 class ULRCollectibleDefinition;
 class ULRGuardDefinition;
 class ULRItemDefinition;
@@ -38,6 +39,10 @@ public:
 	/** Reading Table DataTable 引用；行以稳定 FName ID 查询。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Content|Tables")
 	TObjectPtr<UDataTable> ReadingTable;
+
+	/** Native UI string table. zh-Hans is the native source; localized targets are supplied by PO/Target data. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Content|Localization")
+	TObjectPtr<UStringTable> UIStringTable;
 
 	/** Items 的领域数据，由所属类型负责维护和校验。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Content|Definitions")
@@ -90,6 +95,18 @@ public:
 
 	/** Returns the full registration used for display metadata and default anchors. */
 	const FLRMapRegistration* FindMapRegistration(FName mapId) const;
+
+	/** Resolves a UI key from the configured string table without putting localized literals in gameplay code. */
+	UFUNCTION(BlueprintPure, Category = "Lost Runic|Localization")
+	FText ResolveUIText(FName textKey) const;
+
+	/** Resolves a registered map's localized display name with a stable fallback. */
+	UFUNCTION(BlueprintPure, Category = "Lost Runic|Localization")
+	FText GetMapDisplayName(FName mapId) const;
+
+	/** Returns the authoritative total collectible count for save-slot progress display. */
+	UFUNCTION(BlueprintPure, Category = "Lost Runic|Content")
+	int32 GetTotalCollectibleCount() const { return Collectibles.Num(); }
 
 	/** Finds an item definition by its stable ItemId. */
 	UFUNCTION(BlueprintPure, Category = "Lost Runic|Content")

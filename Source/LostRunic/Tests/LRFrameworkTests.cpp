@@ -15,6 +15,8 @@
 #include "Framework/LRGameMode.h"
 #include "Framework/LRPlayerController.h"
 #include "UI/LRHUD.h"
+#include "UI/LRMainMenuGameMode.h"
+#include "UI/LRMainMenuHUD.h"
 #include "Gameplay/LRLocomotionComponent.h"
 #include "Input/LRInputConfig.h"
 
@@ -46,6 +48,19 @@ bool FLRInputConfigTest::RunTest(const FString& parameters)
 		TestTrue(TEXT("Required contexts and actions are assigned"), inputConfig->Validate(error));
 	}
 	TestTrue(TEXT("Project HUD screen class is configured"), !GetDefault<ULRProjectSettings>()->HUDScreenClass.IsNull());
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLRMainMenuFrameworkDefaultsTest, "LostRunic.Framework.MainMenuHasNoPawn",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FLRMainMenuFrameworkDefaultsTest::RunTest(const FString& parameters)
+{
+	const ALRMainMenuGameMode* gameMode = GetDefault<ALRMainMenuGameMode>();
+	TestNull(TEXT("Main menu does not spawn a pawn"), gameMode->DefaultPawnClass.Get());
+	TestTrue(TEXT("Main menu reuses the LR player controller"),
+		gameMode->PlayerControllerClass == ALRPlayerController::StaticClass());
+	TestTrue(TEXT("Main menu uses the dedicated host HUD"), gameMode->HUDClass == ALRMainMenuHUD::StaticClass());
 	return true;
 }
 

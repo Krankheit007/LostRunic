@@ -140,6 +140,17 @@ void ALRPlayerController::HandleUIPrimaryAction()
 }
 
 /**
+ * @brief 处理 Handle UI Delete 事件，将删除语义交给当前菜单 Screen。
+ */
+void ALRPlayerController::HandleUIDelete()
+{
+	if (PlayerUI)
+	{
+		PlayerUI->HandleUIDelete();
+	}
+}
+
+/**
  * @brief 根据 Gameplay、Dialogue、Menu、Transition 模式设置鼠标、焦点和输入捕获。
  * @param newMode 本次操作使用的 `newMode` 枚举或模式值。
  */

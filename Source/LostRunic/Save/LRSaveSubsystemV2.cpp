@@ -196,6 +196,16 @@ void ULRSaveSubsystem::CompleteOperation(const ELRSaveResultCode code, const FSt
 	if (bRecoveryOperation && !bSucceeded)
 	{
 		bPersistenceBlocked = true;
+		SetCatalogState(ELRSaveCatalogState::Blocked);
+	}
+	else if (bRecoveryOperation && bSucceeded)
+	{
+		bPersistenceBlocked = false;
+		SetCatalogState(ELRSaveCatalogState::Ready);
+	}
+	else if (bSucceeded)
+	{
+		PublishCatalogSnapshot();
 	}
 	const FLRSaveOperationResult result = MakeOperationResult(completedOperation.OperationId,
 		completedOperation.Type, completedOperation.SlotId, code, diagnostic);
@@ -230,7 +240,7 @@ void ULRSaveSubsystem::CompleteOperation(const ELRSaveResultCode code, const FSt
 
 FLRSaveOperationResult ULRSaveSubsystem::RequestCreateManualSave(const FName reasonId)
 {
-	if (bPersistenceBlocked)
+	if (!IsCatalogReady() || bPersistenceBlocked)
 	{
 		return MakeRejected(ELRSaveOperationType::CreateManual, FLRSaveSlotId(), ELRSaveResultCode::RejectedBusy,
 			TEXT("Persistence is blocked until catalog recovery succeeds."));
@@ -260,15 +270,15 @@ FLRSaveOperationResult ULRSaveSubsystem::RequestCreateManualSave(const FName rea
 
 FLRSaveOperationResult ULRSaveSubsystem::RequestOverwriteSave(const FLRSaveSlotId slotId, const FName reasonId)
 {
+	if (!IsCatalogReady() || bPersistenceBlocked)
+	{
+		return MakeRejected(ELRSaveOperationType::OverwriteManual, slotId, ELRSaveResultCode::RejectedBusy,
+			TEXT("Catalog is not ready for user persistence operations."));
+	}
 	if (LRSaveRules::IsProtectedOverwrite(slotId))
 	{
 		return MakeRejected(ELRSaveOperationType::OverwriteManual, slotId,
 			ELRSaveResultCode::RejectedProtectedSlot, TEXT("Automatic slot can only be written by AutoSave, CriticalSave, or NewGame."));
-	}
-	if (bPersistenceBlocked)
-	{
-		return MakeRejected(ELRSaveOperationType::OverwriteManual, slotId, ELRSaveResultCode::RejectedBusy,
-			TEXT("Persistence is blocked until catalog recovery succeeds."));
 	}
 	if (!IsManualSaveAllowed())
 	{
@@ -292,7 +302,7 @@ FLRSaveOperationResult ULRSaveSubsystem::RequestOverwriteSave(const FLRSaveSlotI
 
 FLRSaveOperationResult ULRSaveSubsystem::RequestLoadSave(const FLRSaveSlotId slotId)
 {
-	if (bPersistenceBlocked)
+	if (!IsCatalogReady() || bPersistenceBlocked)
 	{
 		return MakeRejected(ELRSaveOperationType::Load, slotId, ELRSaveResultCode::RejectedBusy,
 			TEXT("Persistence is blocked until catalog recovery succeeds."));
@@ -307,15 +317,15 @@ FLRSaveOperationResult ULRSaveSubsystem::RequestLoadSave(const FLRSaveSlotId slo
 
 FLRSaveOperationResult ULRSaveSubsystem::RequestDeleteSave(const FLRSaveSlotId slotId)
 {
+	if (!IsCatalogReady() || bPersistenceBlocked)
+	{
+		return MakeRejected(ELRSaveOperationType::Delete, slotId, ELRSaveResultCode::RejectedBusy,
+			TEXT("Catalog is not ready for user persistence operations."));
+	}
 	if (slotId.Type == ELRSaveSlotType::Auto)
 	{
 		return MakeRejected(ELRSaveOperationType::Delete, slotId, ELRSaveResultCode::RejectedProtectedSlot,
 			TEXT("Automatic slot cannot be deleted."));
-	}
-	if (bPersistenceBlocked)
-	{
-		return MakeRejected(ELRSaveOperationType::Delete, slotId, ELRSaveResultCode::RejectedBusy,
-			TEXT("Persistence is blocked until catalog recovery succeeds."));
 	}
 	if (!slotId.IsValid() || !SaveCatalog || !SaveCatalog->FindSlot(slotId))
 	{
@@ -327,20 +337,26 @@ FLRSaveOperationResult ULRSaveSubsystem::RequestDeleteSave(const FLRSaveSlotId s
 
 FLRSaveOperationResult ULRSaveSubsystem::RequestContinue()
 {
-	if (bPersistenceBlocked)
+	if (!IsCatalogReady() || bPersistenceBlocked)
 	{
 		return MakeRejected(ELRSaveOperationType::Continue, FLRSaveSlotId(), ELRSaveResultCode::RejectedBusy,
-			TEXT("Persistence is blocked until catalog recovery succeeds."));
+			TEXT("Catalog is not ready for Continue."));
 	}
-	return EnqueueOperation(ELRSaveOperationType::Continue, FLRSaveSlotId(), TEXT("Continue"));
+	FLRSaveSlotId candidate;
+	if (!LRSaveRules::ResolveContinueCandidate(SaveCatalog->Slots, candidate))
+	{
+		return MakeRejected(ELRSaveOperationType::Continue, FLRSaveSlotId(), ELRSaveResultCode::RejectedNotEligible,
+			TEXT("No healthy save slot is available for Continue."));
+	}
+	return EnqueueOperation(ELRSaveOperationType::Continue, candidate, TEXT("Continue"));
 }
 
 FLRSaveOperationResult ULRSaveSubsystem::RequestNewGame()
 {
-	if (bPersistenceBlocked)
+	if (!IsCatalogReady() || bPersistenceBlocked)
 	{
 		return MakeRejected(ELRSaveOperationType::NewGame, MakeAutoSlotId(), ELRSaveResultCode::RejectedBusy,
-			TEXT("Persistence is blocked until catalog recovery succeeds."));
+			TEXT("Catalog is not ready for New Game."));
 	}
 	const ULRGameInstanceSubsystem* data = GetGameInstance()
 		? GetGameInstance()->GetSubsystem<ULRGameInstanceSubsystem>() : nullptr;

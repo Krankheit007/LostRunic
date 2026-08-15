@@ -17,6 +17,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FLRSaveOperationCompleted, FLRSaveOp
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FLRSaveLoadRequested, FGuid, operationId, FName, mapId);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FLRSaveNewGameRequested, FGuid, operationId, FName, mapId);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FLRMemoryTransactionChanged, ELRMemoryTransactionPhase, phase);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FLRSaveCatalogStateChanged, ELRSaveCatalogState, state);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FLRSaveCatalogSnapshotChanged, FLRSaveCatalogSnapshot, snapshot);
 
 UCLASS(meta = (DisplayName = "Lost Runic Save Subsystem"))
 class LOSTRUNIC_API ULRSaveSubsystem : public UGameInstanceSubsystem
@@ -29,6 +31,21 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Lost Runic|Save")
 	TArray<FLRSaveSlotMetadata> GetSaveSlots() const;
+
+	UFUNCTION(BlueprintPure, Category = "Lost Runic|Save|Catalog")
+	ELRSaveCatalogState GetCatalogState() const { return CatalogState; }
+
+	UFUNCTION(BlueprintPure, Category = "Lost Runic|Save|Catalog")
+	bool IsCatalogReady() const { return CatalogState == ELRSaveCatalogState::Ready; }
+
+	UFUNCTION(BlueprintPure, Category = "Lost Runic|Save|Catalog")
+	bool HasAnyCatalogEntry() const;
+
+	UFUNCTION(BlueprintPure, Category = "Lost Runic|Save|Catalog")
+	bool CanContinue() const;
+
+	UFUNCTION(BlueprintPure, Category = "Lost Runic|Save|Catalog")
+	FLRSaveCatalogSnapshot GetCatalogSnapshot() const { return CatalogSnapshot; }
 
 	UFUNCTION(BlueprintPure, Category = "Lost Runic|Save")
 	int32 GetMaxManualSaveSlots() const;
@@ -90,6 +107,12 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Lost Runic|Save|Memory")
 	FLRMemoryTransactionChanged OnMemoryTransactionChanged;
 
+	UPROPERTY(BlueprintAssignable, Category = "Lost Runic|Save|Catalog")
+	FLRSaveCatalogStateChanged OnCatalogStateChanged;
+
+	UPROPERTY(BlueprintAssignable, Category = "Lost Runic|Save|Catalog")
+	FLRSaveCatalogSnapshotChanged OnCatalogSnapshotChanged;
+
 private:
 	FLRSaveOperationResult EnqueueOperation(ELRSaveOperationType type, const FLRSaveSlotId& slotId,
 		FName reasonId, const FLRSaveDataV2* capturedData = nullptr,
@@ -115,6 +138,8 @@ private:
 	void CancelQueuedOperations(const FString& diagnostic);
 	void EnqueueHealthRepair(const FLRSaveSlotId& slotId, ELRSaveSlotHealth health);
 	void EnqueuePendingCatalogRepair();
+	void SetCatalogState(ELRSaveCatalogState newState);
+	void PublishCatalogSnapshot();
 
 	UFUNCTION()
 	void HandleNarrativeEventCommitted(FName eventId, ELRSavePolicy savePolicy);
@@ -143,6 +168,8 @@ private:
 	TArray<FLRQueuedSaveOperation> OperationQueue;
 	FLRQueuedSaveOperation ActiveOperation;
 	ELRSaveOperationState OperationState = ELRSaveOperationState::Idle;
+	ELRSaveCatalogState CatalogState = ELRSaveCatalogState::Initializing;
+	FLRSaveCatalogSnapshot CatalogSnapshot;
 	FLRSaveDataV2 CurrentData;
 	FLRSaveDataV2 HomeResumeSnapshot;
 	ELRMemoryTransactionPhase MemoryPhase = ELRMemoryTransactionPhase::None;

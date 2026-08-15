@@ -114,7 +114,7 @@ public:
 
 	/** Injects the local HUD event source before the widget is exposed to gameplay. */
 	void SetHUDWidgetController(ULRHUDWidgetController* controller);
-	void SetSaveWidgetController(ULRSaveWidgetController* controller);
+	virtual void SetSaveWidgetController(ULRSaveWidgetController* controller);
 
 protected:
 	/**

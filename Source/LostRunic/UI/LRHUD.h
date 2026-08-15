@@ -39,7 +39,7 @@ public:
 	 * @brief 为本地 PlayerController 创建控制器对象、绑定角色及叙事事件，并建立初始 HUD。
 	 * @param playerController 参与本次操作的运行时对象 `playerController`；函数会检查空值和所需接口。
 	 */
-	void InitializeForController(ALRPlayerController* playerController);
+	virtual void InitializeForController(ALRPlayerController* playerController);
 	/**
 	 * @brief 更新 Observed Character，并在需要时同步组件状态或广播变化事件。
 	 * @param character 参与本次操作的运行时对象 `character`；函数会检查空值和所需接口。

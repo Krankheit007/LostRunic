@@ -27,6 +27,7 @@ FLRSaveSlotMetadata ULRSaveSubsystem::BuildMetadata(const FLRSaveSlotId& slotId,
 	metadata.PlayTimeSeconds = data.Statistics.PlayTimeSeconds;
 	metadata.SaveSequence = saveSequence;
 	metadata.Health = ELRSaveSlotHealth::Healthy;
+	metadata.CollectedCount = data.Collectible.CollectibleIds.Num();
 	return metadata;
 }
 

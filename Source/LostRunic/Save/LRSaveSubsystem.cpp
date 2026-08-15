@@ -38,6 +38,8 @@ namespace
 void ULRSaveSubsystem::Initialize(FSubsystemCollectionBase& collection)
 {
 	Super::Initialize(collection);
+	CatalogState = ELRSaveCatalogState::Initializing;
+	CatalogSnapshot = FLRSaveCatalogSnapshot();
 	collection.InitializeDependency<ULRGameInstanceSubsystem>();
 	collection.InitializeDependency<ULRDialogueSubsystem>();
 
@@ -53,7 +55,18 @@ void ULRSaveSubsystem::Initialize(FSubsystemCollectionBase& collection)
 	}
 	if (SaveCatalog && SaveCatalog->PendingOperation.IsSet())
 	{
+		SetCatalogState(ELRSaveCatalogState::Recovering);
 		EnqueuePendingCatalogRepair();
+	}
+	else if (SaveCatalog)
+	{
+		bPersistenceBlocked = false;
+		SetCatalogState(ELRSaveCatalogState::Ready);
+	}
+	else
+	{
+		bPersistenceBlocked = true;
+		SetCatalogState(ELRSaveCatalogState::Blocked);
 	}
 	if (ULRDialogueSubsystem* dialogue = GetGameInstance()
 		? GetGameInstance()->GetSubsystem<ULRDialogueSubsystem>() : nullptr)
@@ -81,6 +94,8 @@ void ULRSaveSubsystem::Deinitialize()
 	ActiveOperation = FLRQueuedSaveOperation();
 	ActivePayload = nullptr;
 	SaveCatalog = nullptr;
+	CatalogSnapshot = FLRSaveCatalogSnapshot();
+	CatalogState = ELRSaveCatalogState::Initializing;
 	SaveProviders.Reset();
 	OperationState = ELRSaveOperationState::Idle;
 	PendingAutoSaveOperationId.Invalidate();
@@ -91,7 +106,48 @@ void ULRSaveSubsystem::Deinitialize()
 
 TArray<FLRSaveSlotMetadata> ULRSaveSubsystem::GetSaveSlots() const
 {
-	return SaveCatalog ? SaveCatalog->Slots : TArray<FLRSaveSlotMetadata>();
+	return IsCatalogReady() ? CatalogSnapshot.Slots : TArray<FLRSaveSlotMetadata>();
+}
+
+bool ULRSaveSubsystem::HasAnyCatalogEntry() const
+{
+	return IsCatalogReady() && !CatalogSnapshot.Slots.IsEmpty();
+}
+
+bool ULRSaveSubsystem::CanContinue() const
+{
+	return IsCatalogReady() && LRSaveRules::CanContinue(CatalogSnapshot.Slots);
+}
+
+void ULRSaveSubsystem::SetCatalogState(const ELRSaveCatalogState newState)
+{
+	if (CatalogState == newState)
+	{
+		return;
+	}
+	CatalogState = newState;
+	CatalogSnapshot.State = newState;
+	CatalogSnapshot.Slots.Reset();
+	if (newState == ELRSaveCatalogState::Ready && SaveCatalog)
+	{
+		CatalogSnapshot.Slots = SaveCatalog->Slots;
+	}
+	OnCatalogStateChanged.Broadcast(newState);
+	if (newState == ELRSaveCatalogState::Ready)
+	{
+		OnCatalogSnapshotChanged.Broadcast(CatalogSnapshot);
+	}
+}
+
+void ULRSaveSubsystem::PublishCatalogSnapshot()
+{
+	if (!IsCatalogReady() || !SaveCatalog)
+	{
+		return;
+	}
+	CatalogSnapshot.State = ELRSaveCatalogState::Ready;
+	CatalogSnapshot.Slots = SaveCatalog->Slots;
+	OnCatalogSnapshotChanged.Broadcast(CatalogSnapshot);
 }
 
 int32 ULRSaveSubsystem::GetMaxManualSaveSlots() const
@@ -142,7 +198,8 @@ FLRResumeAnchor ULRSaveSubsystem::GetResumeAnchor() const
 bool ULRSaveSubsystem::IsManualSaveAllowed() const
 {
 	const UWorld* world = GetCurrentWorld();
-	return !bPersistenceBlocked && LRSaveRules::IsManualSaveAllowed(MemoryPhase, world && world->IsPaused());
+	return IsCatalogReady() && !bPersistenceBlocked
+		&& LRSaveRules::IsManualSaveAllowed(MemoryPhase, world && world->IsPaused());
 }
 
 void ULRSaveSubsystem::HandleNarrativeEventCommitted(const FName eventId, const ELRSavePolicy savePolicy)
@@ -174,7 +231,7 @@ void ULRSaveSubsystem::HandleNarrativeEventCommitted(const FName eventId, const 
 
 FLRSaveOperationResult ULRSaveSubsystem::RequestAutoSave(const FName reasonId)
 {
-	if (bPersistenceBlocked)
+	if (!IsCatalogReady() || bPersistenceBlocked)
 	{
 		FLRSaveSlotId autoSlot;
 		autoSlot.Type = ELRSaveSlotType::Auto;

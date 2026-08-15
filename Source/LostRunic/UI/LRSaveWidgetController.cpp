@@ -31,6 +31,8 @@ void ULRSaveWidgetController::Initialize(ULRSaveSubsystem* saveSubsystem, const 
 	SaveSubsystem = saveSubsystem;
 	ContentSet = contentSet;
 	SaveSubsystem->OnSaveOperationCompleted.AddDynamic(this, &ULRSaveWidgetController::HandleOperationCompleted);
+	SaveSubsystem->OnCatalogStateChanged.AddDynamic(this, &ULRSaveWidgetController::HandleCatalogStateChanged);
+	SaveSubsystem->OnCatalogSnapshotChanged.AddDynamic(this, &ULRSaveWidgetController::HandleCatalogSnapshotChanged);
 }
 
 void ULRSaveWidgetController::Deinitialize()
@@ -38,10 +40,15 @@ void ULRSaveWidgetController::Deinitialize()
 	if (SaveSubsystem)
 	{
 		SaveSubsystem->OnSaveOperationCompleted.RemoveDynamic(this, &ULRSaveWidgetController::HandleOperationCompleted);
+		SaveSubsystem->OnCatalogStateChanged.RemoveDynamic(this, &ULRSaveWidgetController::HandleCatalogStateChanged);
+		SaveSubsystem->OnCatalogSnapshotChanged.RemoveDynamic(this, &ULRSaveWidgetController::HandleCatalogSnapshotChanged);
 	}
 	SaveSubsystem = nullptr;
 	ContentSet = nullptr;
 	bOpen = false;
+	PendingOperationId.Invalidate();
+	PendingSlotId = FLRSaveSlotId();
+	ExpectedOperation = ELRSaveOperationType::None;
 }
 
 void ULRSaveWidgetController::Open(const ELRSaveSelectionMode mode)
@@ -49,9 +56,14 @@ void ULRSaveWidgetController::Open(const ELRSaveSelectionMode mode)
 	bOpen = true;
 	Snapshot.Mode = mode;
 	Snapshot.State = PendingOperationId.IsValid() || bSubmittingRequest
-		? StateForOperation(ExpectedOperation) : ELRSaveUIState::Idle;
+		? StateForOperation(ExpectedOperation)
+		: (SaveSubsystem && SaveSubsystem->GetCatalogState() == ELRSaveCatalogState::Blocked
+			? ELRSaveUIState::Error
+			: (SaveSubsystem && !SaveSubsystem->IsCatalogReady() ? ELRSaveUIState::LoadingCatalog : ELRSaveUIState::Idle));
 	Snapshot.Confirmation = ELRSaveUIConfirmation::None;
 	Snapshot.StatusMessage = FText::GetEmpty();
+	Snapshot.FocusTarget = FLRSaveFocusTarget::MakeRoot();
+	UpdateConfirmationViewModel();
 	Refresh();
 }
 
@@ -60,6 +72,8 @@ void ULRSaveWidgetController::Close()
 	bOpen = false;
 	Snapshot.Confirmation = ELRSaveUIConfirmation::None;
 	Snapshot.SelectedSlotId = FLRSaveSlotId();
+	Snapshot.FocusTarget = FLRSaveFocusTarget::MakeRoot();
+	UpdateConfirmationViewModel();
 }
 
 void ULRSaveWidgetController::RequestCreateManualSave()
@@ -67,6 +81,7 @@ void ULRSaveWidgetController::RequestCreateManualSave()
 	if (Snapshot.Mode == ELRSaveSelectionMode::Save && Snapshot.State == ELRSaveUIState::Idle
 		&& Snapshot.bCanCreateManualSlot)
 	{
+		Snapshot.FocusTarget = FLRSaveFocusTarget::MakeCreate(Snapshot.CreateDisplayIndex);
 		SubmitOperation(ELRSaveOperationType::CreateManual);
 	}
 }
@@ -78,6 +93,7 @@ void ULRSaveWidgetController::RequestPrimarySlotAction(const FLRSaveSlotId slotI
 	{
 		return;
 	}
+	Snapshot.FocusTarget = FLRSaveFocusTarget::MakeExisting(slotId);
 	if (Snapshot.Mode == ELRSaveSelectionMode::Load && slot.Health == ELRSaveSlotHealth::Healthy)
 	{
 		SubmitOperation(ELRSaveOperationType::Load, slotId);
@@ -87,6 +103,7 @@ void ULRSaveWidgetController::RequestPrimarySlotAction(const FLRSaveSlotId slotI
 		Snapshot.State = ELRSaveUIState::Confirming;
 		Snapshot.Confirmation = ELRSaveUIConfirmation::Overwrite;
 		Snapshot.SelectedSlotId = slotId;
+		UpdateConfirmationViewModel();
 		OnSnapshotChanged.Broadcast(Snapshot);
 	}
 }
@@ -102,6 +119,8 @@ void ULRSaveWidgetController::RequestDelete(const FLRSaveSlotId slotId)
 	Snapshot.State = ELRSaveUIState::Confirming;
 	Snapshot.Confirmation = ELRSaveUIConfirmation::Delete;
 	Snapshot.SelectedSlotId = slotId;
+	Snapshot.FocusTarget = FLRSaveFocusTarget::MakeExisting(slotId);
+	UpdateConfirmationViewModel();
 	OnSnapshotChanged.Broadcast(Snapshot);
 }
 
@@ -125,6 +144,7 @@ void ULRSaveWidgetController::CancelPendingAction()
 	Snapshot.State = ELRSaveUIState::Idle;
 	Snapshot.Confirmation = ELRSaveUIConfirmation::None;
 	Snapshot.SelectedSlotId = FLRSaveSlotId();
+	UpdateConfirmationViewModel();
 	OnSnapshotChanged.Broadcast(Snapshot);
 }
 
@@ -154,13 +174,14 @@ FLRSaveUISnapshot ULRSaveWidgetController::BuildSnapshot(const TArray<FLRSaveSlo
 		view.DisplayIndex = metadata.DisplayIndex;
 		view.SavedAtUtc = metadata.SavedAtUtc;
 		view.PlayTimeSeconds = metadata.PlayTimeSeconds;
+		view.CollectedCount = metadata.CollectedCount;
+		view.TotalCollectibleCount = contentSet ? contentSet->GetTotalCollectibleCount() : 0;
 		view.Health = metadata.Health;
 		view.bAutomatic = metadata.SlotId.Type == ELRSaveSlotType::Auto;
 		view.bCanLoad = metadata.Health == ELRSaveSlotHealth::Healthy;
 		view.bCanOverwrite = !view.bAutomatic && bManualSaveAllowed;
 		view.bCanDelete = !view.bAutomatic;
-		const FLRMapRegistration* map = contentSet ? contentSet->FindMapRegistration(metadata.MapId) : nullptr;
-		view.MapDisplayName = map && !map->DisplayName.IsEmpty() ? map->DisplayName : FText::FromName(metadata.MapId);
+		view.MapDisplayName = contentSet ? contentSet->GetMapDisplayName(metadata.MapId) : FText::FromName(metadata.MapId);
 		manualCount += view.bAutomatic ? 0 : 1;
 	}
 	result.Slots.Sort([](const FLRSaveSlotView& a, const FLRSaveSlotView& b)
@@ -173,6 +194,7 @@ FLRSaveUISnapshot ULRSaveWidgetController::BuildSnapshot(const TArray<FLRSaveSlo
 	});
 	result.bCanCreateManualSlot = mode == ELRSaveSelectionMode::Save && state == ELRSaveUIState::Idle
 		&& bManualSaveAllowed && manualCount < maxManualSlots;
+	result.CreateDisplayIndex = manualCount + 1;
 	return result;
 }
 
@@ -182,12 +204,39 @@ void ULRSaveWidgetController::Refresh()
 	{
 		return;
 	}
+	if (SaveSubsystem->GetCatalogState() == ELRSaveCatalogState::Blocked)
+	{
+		Snapshot.Slots.Reset();
+		Snapshot.State = ELRSaveUIState::Error;
+		Snapshot.bIsBusy = false;
+		Snapshot.StatusMessage = NSLOCTEXT("LRSaveUI", "CatalogBlocked", "Save data is unavailable.");
+		UpdateConfirmationViewModel();
+		OnSnapshotChanged.Broadcast(Snapshot);
+		return;
+	}
+	if (!SaveSubsystem->IsCatalogReady())
+	{
+		Snapshot.Slots.Reset();
+		Snapshot.State = ELRSaveUIState::LoadingCatalog;
+		Snapshot.bIsBusy = true;
+		Snapshot.StatusMessage = FText::GetEmpty();
+		UpdateConfirmationViewModel();
+		OnSnapshotChanged.Broadcast(Snapshot);
+		return;
+	}
 	const ELRSaveSelectionMode mode = Snapshot.Mode;
 	const ELRSaveUIState state = Snapshot.State;
 	const FText status = Snapshot.StatusMessage;
+	const FLRSaveFocusTarget focusTarget = Snapshot.FocusTarget;
+	const FLRSaveSlotId selectedSlotId = Snapshot.SelectedSlotId;
+	const ELRSaveUIConfirmation confirmation = Snapshot.Confirmation;
 	Snapshot = BuildSnapshot(SaveSubsystem->GetSaveSlots(), mode, state, SaveSubsystem->IsManualSaveAllowed(),
 		SaveSubsystem->GetMaxManualSaveSlots(), ContentSet);
 	Snapshot.StatusMessage = status;
+	Snapshot.FocusTarget = focusTarget.IsValid() ? focusTarget : FLRSaveFocusTarget::MakeRoot();
+	Snapshot.SelectedSlotId = selectedSlotId;
+	Snapshot.Confirmation = confirmation;
+	UpdateConfirmationViewModel();
 	OnSnapshotChanged.Broadcast(Snapshot);
 }
 
@@ -199,6 +248,7 @@ void ULRSaveWidgetController::SubmitOperation(const ELRSaveOperationType operati
 	}
 	Snapshot.State = StateForOperation(operation);
 	Snapshot.Confirmation = ELRSaveUIConfirmation::None;
+	UpdateConfirmationViewModel();
 	Snapshot.bIsBusy = true;
 	ExpectedOperation = operation;
 	bSubmittingRequest = true;
@@ -231,6 +281,7 @@ void ULRSaveWidgetController::AcceptSubmission(const FLRSaveOperationResult& res
 		return;
 	}
 	PendingOperationId = result.OperationId;
+	PendingSlotId = result.SlotId;
 	if (SubmissionCompletion.IsSet())
 	{
 		const FLRSaveOperationResult completed = SubmissionCompletion.GetValue();
@@ -250,7 +301,9 @@ void ULRSaveWidgetController::SetError(const ELRSaveResultCode code)
 	Snapshot.StatusMessage = code == ELRSaveResultCode::RejectedAtCapacity
 		? NSLOCTEXT("LRSaveUI", "Capacity", "No manual save slots are available.")
 		: NSLOCTEXT("LRSaveUI", "OperationFailed", "The save operation could not be completed.");
+	UpdateConfirmationViewModel();
 	PendingOperationId.Invalidate();
+	PendingSlotId = FLRSaveSlotId();
 	ExpectedOperation = ELRSaveOperationType::None;
 	OnSnapshotChanged.Broadcast(Snapshot);
 }
@@ -283,12 +336,17 @@ void ULRSaveWidgetController::HandleOperationCompleted(const FLRSaveOperationRes
 	{
 		return;
 	}
+	if (PendingSlotId.IsValid() && result.SlotId.IsValid() && result.SlotId != PendingSlotId)
+	{
+		return;
+	}
 	ApplyCompletion(result);
 }
 
 void ULRSaveWidgetController::ApplyCompletion(const FLRSaveOperationResult& result)
 {
 	PendingOperationId.Invalidate();
+	PendingSlotId = FLRSaveSlotId();
 	ExpectedOperation = ELRSaveOperationType::None;
 	if (result.Code != ELRSaveResultCode::Succeeded)
 	{
@@ -300,4 +358,40 @@ void ULRSaveWidgetController::ApplyCompletion(const FLRSaveOperationResult& resu
 	Snapshot.SelectedSlotId = FLRSaveSlotId();
 	Snapshot.StatusMessage = FText::GetEmpty();
 	Refresh();
+}
+
+void ULRSaveWidgetController::UpdateConfirmationViewModel()
+{
+	Snapshot.ConfirmationViewModel.Confirmation = Snapshot.Confirmation;
+	Snapshot.ConfirmationViewModel.SlotId = Snapshot.SelectedSlotId;
+	Snapshot.ConfirmationViewModel.bVisible = Snapshot.Confirmation != ELRSaveUIConfirmation::None;
+	Snapshot.ConfirmationViewModel.Message = Snapshot.Confirmation == ELRSaveUIConfirmation::Overwrite
+		? NSLOCTEXT("LRSaveUI", "ConfirmOverwrite", "Overwrite this save slot?")
+		: (Snapshot.Confirmation == ELRSaveUIConfirmation::Delete
+			? NSLOCTEXT("LRSaveUI", "ConfirmDelete", "Delete this save slot?") : FText::GetEmpty());
+}
+
+void ULRSaveWidgetController::HandleCatalogStateChanged(const ELRSaveCatalogState state)
+{
+	if (!bOpen || PendingOperationId.IsValid() || bSubmittingRequest)
+	{
+		return;
+	}
+	if (state == ELRSaveCatalogState::Blocked)
+	{
+		Snapshot.State = ELRSaveUIState::Error;
+	}
+	else if (state != ELRSaveCatalogState::Ready)
+	{
+		Snapshot.State = ELRSaveUIState::LoadingCatalog;
+	}
+	Refresh();
+}
+
+void ULRSaveWidgetController::HandleCatalogSnapshotChanged(const FLRSaveCatalogSnapshot snapshot)
+{
+	if (bOpen && snapshot.State == ELRSaveCatalogState::Ready && !PendingOperationId.IsValid())
+	{
+		Refresh();
+	}
 }

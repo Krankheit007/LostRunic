@@ -10,6 +10,7 @@
 #include "Save/LRSaveCatalogStore.h"
 #include "Save/LRSavePayload.h"
 #include "Save/LRSaveProvider.h"
+#include "Save/LRSaveRules.h"
 
 void ULRSaveSubsystem::StartLoad()
 {
@@ -17,12 +18,14 @@ void ULRSaveSubsystem::StartLoad()
 	TArray<FLRSaveSlotMetadata> candidates;
 	if (ActiveOperation.Type == ELRSaveOperationType::Continue)
 	{
-		candidates = SaveCatalog->Slots;
-		candidates.Sort([](const FLRSaveSlotMetadata& left, const FLRSaveSlotMetadata& right)
+		FLRSaveSlotId candidateId;
+		if (LRSaveRules::ResolveContinueCandidate(SaveCatalog->Slots, candidateId))
 		{
-			return left.SavedAtUtc == right.SavedAtUtc
-				? left.SaveSequence > right.SaveSequence : left.SavedAtUtc > right.SavedAtUtc;
-		});
+			if (const FLRSaveSlotMetadata* candidate = SaveCatalog->FindSlot(candidateId))
+			{
+				candidates.Add(*candidate);
+			}
+		}
 	}
 	else if (const FLRSaveSlotMetadata* target = SaveCatalog->FindSlot(ActiveOperation.SlotId))
 	{

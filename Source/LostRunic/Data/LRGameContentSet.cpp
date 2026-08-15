@@ -13,6 +13,7 @@
 #include "Data/LRItemDefinition.h"
 #include "Data/LRLevelEventDefinition.h"
 #include "Engine/DataTable.h"
+#include "Internationalization/StringTable.h"
 #include "Items/LRInventoryComponent.h"
 #if WITH_EDITOR
 #include "Misc/DataValidation.h"
@@ -156,6 +157,11 @@ namespace
  */
 bool ULRGameContentSet::Validate(FString& outError) const
 {
+	if (!UIStringTable)
+	{
+		outError = TEXT("UIStringTable must be assigned for localized content.");
+		return false;
+	}
 	if (!DialogueTable || DialogueTable->GetRowStruct() != FLRDialogueRow::StaticStruct())
 	{
 		outError = TEXT("DialogueTable must use FLRDialogueRow.");
@@ -181,10 +187,10 @@ bool ULRGameContentSet::Validate(FString& outError) const
 	TSet<FName> mapIds;
 	for (const FLRMapRegistration& map : Maps)
 	{
-		if (map.MapId.IsNone() || map.World.IsNull() || mapIds.Contains(map.MapId)
+		if (map.MapId.IsNone() || map.DisplayNameTextKey.IsNone() || map.World.IsNull() || mapIds.Contains(map.MapId)
 			|| (map.bPlayableMap && map.DefaultStartAnchorId.IsNone()))
 		{
-			outError = FString::Printf(TEXT("Map registration '%s' is empty, missing its world, or duplicated."), *map.MapId.ToString());
+			outError = FString::Printf(TEXT("Map registration '%s' is missing a world, localized DisplayNameTextKey, or valid identity."), *map.MapId.ToString());
 			return false;
 		}
 		mapIds.Add(map.MapId);
@@ -235,6 +241,29 @@ TSoftObjectPtr<UWorld> ULRGameContentSet::FindMap(const FName mapId) const
 const FLRMapRegistration* ULRGameContentSet::FindMapRegistration(const FName mapId) const
 {
 	return Maps.FindByPredicate([mapId](const FLRMapRegistration& map) { return map.MapId == mapId; });
+}
+
+FText ULRGameContentSet::ResolveUIText(const FName textKey) const
+{
+	if (UIStringTable && !textKey.IsNone())
+	{
+		return FText::FromStringTable(UIStringTable->GetStringTableId(), textKey.ToString());
+	}
+	return FText::FromName(textKey);
+}
+
+FText ULRGameContentSet::GetMapDisplayName(const FName mapId) const
+{
+	const FLRMapRegistration* map = FindMapRegistration(mapId);
+	if (!map)
+	{
+		return FText::FromName(mapId);
+	}
+	if (!map->DisplayNameTextKey.IsNone() && UIStringTable)
+	{
+		return ResolveUIText(map->DisplayNameTextKey);
+	}
+	return FText::FromName(mapId);
 }
 
 ULRItemDefinition* ULRGameContentSet::FindItemDefinition(const FName itemId) const

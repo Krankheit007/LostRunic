@@ -20,6 +20,7 @@
 #include "Data/LRUITuning.h"
 #include "Engine/DataTable.h"
 #include "Engine/GameInstance.h"
+#include "Internationalization/StringTable.h"
 #include "Narrative/LRDialogueSubsystem.h"
 #include "Narrative/LRNarrativeRules.h"
 #include "UI/LRDialogueWidgetController.h"
@@ -38,9 +39,13 @@ namespace
 		contentSet->DialogueTable->RowStruct = FLRDialogueRow::StaticStruct();
 		contentSet->ReadingTable = NewObject<UDataTable>(contentSet);
 		contentSet->ReadingTable->RowStruct = FLRReadingRow::StaticStruct();
+		contentSet->UIStringTable = NewObject<UStringTable>(contentSet);
 		// 地图注册校验：NewGameMapId 必须解析到已注册地图（内容集校验的一部分）。
 		FLRMapRegistration mapRegistration;
 		mapRegistration.MapId = TEXT("Map.Test");
+		mapRegistration.DisplayNameTextKey = TEXT("Map.Test.DisplayName");
+		mapRegistration.DefaultStartAnchorId = TEXT("Map.Test.Start");
+		mapRegistration.World = TSoftObjectPtr<UWorld>(FSoftObjectPath(TEXT("/Game/LostRunic/Levels/PIE_Test/L_PIE_Test.L_PIE_Test")));
 		contentSet->Maps.Add(mapRegistration);
 		contentSet->NewGameMapId = mapRegistration.MapId;
 		return contentSet;
@@ -113,6 +118,10 @@ bool FLRContentRegistryTest::RunTest(const FString& parameters)
 
 	FString error;
 	TestTrue(TEXT("Content definitions validate"), contentSet->Validate(error));
+	contentSet->Maps[0].DisplayNameTextKey = NAME_None;
+	error.Reset();
+	TestFalse(TEXT("Map registrations require a localized display-name TextKey"), contentSet->Validate(error));
+	contentSet->Maps[0].DisplayNameTextKey = TEXT("Map.Test.DisplayName");
 	TestTrue(TEXT("Item definition is found by stable ID"), contentSet->FindItemDefinition(TEXT("Key.Home")) == item);
 	TestTrue(TEXT("Collectible definition is found by stable ID"),
 		contentSet->FindCollectibleDefinition(TEXT("Collectible.Doll")) == collectible);

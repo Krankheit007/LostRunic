@@ -15,6 +15,18 @@ namespace LRSaveRules
 {
 	LOSTRUNIC_API bool IsProtectedOverwrite(const FLRSaveSlotId& slotId);
 	/**
+	 * @brief 从已验证的内存 Catalog 中解析 Continue 的唯一候选，不访问磁盘或 Payload。
+	 * @param slots 当前已完成 Catalog 验证的元数据快照。
+	 * @param outSlotId 输出候选槽位身份；失败时保持默认值。
+	 */
+	LOSTRUNIC_API bool ResolveContinueCandidate(const TArray<FLRSaveSlotMetadata>& slots,
+		FLRSaveSlotId& outSlotId);
+	/**
+	 * @brief 判断已验证 Catalog 是否存在可供 Continue 的健康候选，不访问磁盘。
+	 * @param slots 当前已完成 Catalog 验证的元数据快照。
+	 */
+	LOSTRUNIC_API bool CanContinue(const TArray<FLRSaveSlotMetadata>& slots);
+	/**
 	 * @brief 根据当前领域状态构建 Make Slot Name 所需的数据，不把临时对象作为长期存档标识。
 	 * @param slotType 本次操作使用的 `slotType` 枚举或模式值。
 	 * @param manualSlotIndex 本次操作使用的计数、增量或索引 `manualSlotIndex`；由函数校验合法范围。

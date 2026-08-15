@@ -116,9 +116,9 @@ struct LOSTRUNIC_API FLRMapRegistration
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Map")
 	FName MapId = NAME_None;
 
-	/** Localized name shown by save slot metadata. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Map")
-	FText DisplayName;
+	/** Stable key in the ContentSet UI string table; the only authored source for the localized map name. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Map|Localization")
+	FName DisplayNameTextKey = NAME_None;
 
 	/** Only playable maps accumulate play time and request post-travel autosaves. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Map")

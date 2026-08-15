@@ -28,6 +28,15 @@ enum class ELRSaveOperationState : uint8
 	Restoring, DeletingPayload, RepairingHealth
 };
 
+UENUM(BlueprintType, meta = (DisplayName = "Lost Runic Save Catalog State"))
+enum class ELRSaveCatalogState : uint8
+{
+	Initializing UMETA(DisplayName = "Initializing"),
+	Recovering UMETA(DisplayName = "Recovering"),
+	Ready UMETA(DisplayName = "Ready"),
+	Blocked UMETA(DisplayName = "Blocked")
+};
+
 UENUM(BlueprintType)
 enum class ELRSaveMemoryPurpose : uint8
 {
@@ -84,6 +93,19 @@ struct LOSTRUNIC_API FLRSaveSlotMetadata
 	UPROPERTY(BlueprintReadOnly, SaveGame, Category = "Save|Slot") double PlayTimeSeconds = 0.0;
 	UPROPERTY(BlueprintReadOnly, SaveGame, Category = "Save|Slot") int64 SaveSequence = 0;
 	UPROPERTY(BlueprintReadOnly, SaveGame, Category = "Save|Slot") ELRSaveSlotHealth Health = ELRSaveSlotHealth::Healthy;
+	UPROPERTY(BlueprintReadOnly, SaveGame, Category = "Save|Slot") int32 CollectedCount = 0;
+};
+
+USTRUCT(BlueprintType, meta = (DisplayName = "Lost Runic Save Catalog Snapshot"))
+struct LOSTRUNIC_API FLRSaveCatalogSnapshot
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category = "Save|Catalog")
+	ELRSaveCatalogState State = ELRSaveCatalogState::Initializing;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Save|Catalog")
+	TArray<FLRSaveSlotMetadata> Slots;
 };
 
 USTRUCT()

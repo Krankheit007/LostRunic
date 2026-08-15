@@ -104,6 +104,10 @@ void ALRPlayerController::SetupInputComponent()
 	enhancedInput->BindAction(InputConfig->PreviousTabAction, ETriggerEvent::Started, this, &ALRPlayerController::HandlePreviousTab);
 	enhancedInput->BindAction(InputConfig->NextTabAction, ETriggerEvent::Started, this, &ALRPlayerController::HandleNextTab);
 	enhancedInput->BindAction(InputConfig->UIPrimaryAction, ETriggerEvent::Started, this, &ALRPlayerController::HandleUIPrimaryAction);
+	if (InputConfig->UIDeleteAction)
+	{
+		enhancedInput->BindAction(InputConfig->UIDeleteAction, ETriggerEvent::Started, this, &ALRPlayerController::HandleUIDelete);
+	}
 }
 
 /**

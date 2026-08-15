@@ -22,6 +22,7 @@
 #include "Input/LRInputConfig.h"
 #include "Items/LRInventoryComponent.h"
 #include "Save/LRSaveTypes.h"
+#include "Save/LRSaveFormatting.h"
 #include "Tests/LRTestUIHelpers.h"
 #include "UI/LRHUD.h"
 #include "UI/LRInventoryScreenWidget.h"
@@ -102,6 +103,7 @@ namespace
 			config->PreviousTabAction = NewObject<UInputAction>();
 			config->NextTabAction = NewObject<UInputAction>();
 			config->UIPrimaryAction = NewObject<UInputAction>();
+			config->UIDeleteAction = NewObject<UInputAction>();
 		}
 		return config;
 	}
@@ -618,6 +620,7 @@ bool FLRSaveUISnapshotRulesTest::RunTest(const FString& parameters)
 	TestFalse(TEXT("Automatic slot cannot be deleted"), save.Slots[0].bCanDelete);
 	TestFalse(TEXT("Corrupt slot cannot be loaded"), save.Slots[1].bCanLoad);
 	TestFalse(TEXT("Capacity prevents creation"), save.bCanCreateManualSlot);
+	TestEqual(TEXT("Create target uses the next manual display index"), save.CreateDisplayIndex, 3);
 
 	const FLRSaveUISnapshot unpaused = ULRSaveWidgetController::BuildSnapshot(
 		{automatic, manualOne}, ELRSaveSelectionMode::Save, ELRSaveUIState::Idle,
@@ -630,6 +633,41 @@ bool FLRSaveUISnapshotRulesTest::RunTest(const FString& parameters)
 		true, 3, nullptr);
 	TestFalse(TEXT("Load mode never offers create"), load.bCanCreateManualSlot);
 	TestTrue(TEXT("Healthy automatic slot can load"), load.Slots[0].bCanLoad);
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLRSaveFocusTargetRulesTest, "LostRunic.UI.SaveFocusTargetRules",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FLRSaveFocusTargetRulesTest::RunTest(const FString& parameters)
+{
+	const FLRSaveFocusTarget root = FLRSaveFocusTarget::MakeRoot();
+	TestTrue(TEXT("Root focus target is valid"), root.IsValid());
+	const FLRSaveFocusTarget create = FLRSaveFocusTarget::MakeCreate(2);
+	TestTrue(TEXT("Create focus target carries its display index"), create.IsValid() && create.CreateDisplayIndex == 2);
+	FLRSaveSlotId slotId;
+	slotId.Type = ELRSaveSlotType::Manual;
+	slotId.Guid = FGuid::NewGuid();
+	const FLRSaveFocusTarget existing = FLRSaveFocusTarget::MakeExisting(slotId);
+	TestTrue(TEXT("Existing-slot focus target carries its stable slot id"), existing.IsValid() && existing.SlotId == slotId);
+	TestFalse(TEXT("Zero-index create target is invalid"), FLRSaveFocusTarget::MakeCreate(0).IsValid());
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLRSaveFormattingRulesTest, "LostRunic.UI.SaveFormattingRules",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FLRSaveFormattingRulesTest::RunTest(const FString& parameters)
+{
+	TestEqual(TEXT("Play time keeps hours beyond one day"),
+		LRSaveFormatting::FormatPlayTime(90061.9).ToString(), FString(TEXT("25:01:01")));
+	TestEqual(TEXT("Negative play time clamps to zero"),
+		LRSaveFormatting::FormatPlayTime(-1.0).ToString(), FString(TEXT("00:00:00")));
+	const FDateTime utc(2024, 1, 2, 3, 4, 5);
+	const FText expected = FText::AsDateTime(utc + FTimespan::FromHours(8), EDateTimeStyle::Short,
+		EDateTimeStyle::Short, FText::GetInvariantTimeZone());
+	TestEqual(TEXT("Saved-at formatting applies the supplied local offset"),
+		LRSaveFormatting::FormatSavedAtWithOffset(utc, FTimespan::FromHours(8)), expected);
 	return true;
 }
 

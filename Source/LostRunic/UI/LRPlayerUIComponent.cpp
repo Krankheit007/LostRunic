@@ -240,6 +240,19 @@ void ULRPlayerUIComponent::HandleUIPrimaryAction()
 	}
 }
 
+void ULRPlayerUIComponent::HandleUIDelete()
+{
+	const ALRPlayerController* controller = OwnerController.Get();
+	if (!controller || controller->GetLRInputMode() != ELRInputMode::Menu)
+	{
+		return;
+	}
+	if (ULRScreenWidget* screen = GetFocusableScreen())
+	{
+		screen->HandleUICommand(ELRUICommand::Delete);
+	}
+}
+
 /**
  * @brief 打开指定背包、笔记、收藏、暂停或存档页面，并切换到 Menu 输入上下文。
  * @param screen 本次操作使用的 `screen` 枚举或模式值。

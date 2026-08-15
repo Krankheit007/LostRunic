@@ -87,6 +87,10 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Actions|UI")
 	TObjectPtr<UInputAction> UIPrimaryAction;
 
+	/** UI Delete Action（Bool）删除当前存档槽动作；键鼠与手柄映射由 Menu Context 资产配置。 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Actions|UI")
+	TObjectPtr<UInputAction> UIDeleteAction;
+
 	/** Attack Action Enhanced Input Action 资产；C++ 绑定其语义，具体键位在 Mapping Context 中配置（沿用原 UseQuickSlot 键位）。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Actions|Gameplay")
 	TObjectPtr<UInputAction> AttackAction;

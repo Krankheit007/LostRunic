@@ -1,6 +1,9 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "Misc/FileHelper.h"
+#include "Misc/Paths.h"
+#include "Engine/GameInstance.h"
 #include "Kismet/GameplayStatics.h"
 
 #include "Narrative/LRDialogueSubsystem.h"
@@ -10,6 +13,8 @@
 #include "Save/LRSaveOperationQueue.h"
 #include "Save/LRSavePayload.h"
 #include "Save/LRSaveRules.h"
+#include "Save/LRSaveSubsystem.h"
+#include "HAL/FileManager.h"
 
 namespace
 {
@@ -262,6 +267,107 @@ bool FLRSaveCatalogRecoveryDispatchTest::RunTest(const FString& parameters)
 
 	UGameplayStatics::DeleteGameInSlot(metadata.PayloadKey, SaveTestUserIndex);
 	RestoreCatalogs(backup);
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLRSaveContinueCandidateRuleTest,
+	"LostRunic.Save.Catalog.ContinueUsesHealthyCandidateRule",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FLRSaveContinueCandidateRuleTest::RunTest(const FString& parameters)
+{
+	FLRSaveSlotMetadata newestHealthy = MakeMetadata(2, 3);
+	newestHealthy.SavedAtUtc = FDateTime(2026, 8, 16, 12, 0, 0, 0);
+	FLRSaveSlotMetadata olderHealthy = MakeMetadata(1, 2);
+	olderHealthy.SavedAtUtc = FDateTime(2026, 8, 16, 11, 0, 0, 0);
+	FLRSaveSlotMetadata newestCorrupt = MakeMetadata(3, 4);
+	newestCorrupt.SavedAtUtc = FDateTime(2026, 8, 16, 13, 0, 0, 0);
+	newestCorrupt.Health = ELRSaveSlotHealth::CorruptPayload;
+
+	FLRSaveSlotId candidate;
+	TestTrue(TEXT("Continue resolves a healthy candidate"),
+		LRSaveRules::ResolveContinueCandidate({ newestCorrupt, olderHealthy, newestHealthy }, candidate));
+	TestEqual(TEXT("Continue uses the newest healthy metadata"), candidate, newestHealthy.SlotId);
+	TestTrue(TEXT("CanContinue is true when a healthy candidate exists"),
+		LRSaveRules::CanContinue({ newestCorrupt, olderHealthy, newestHealthy }));
+	TestFalse(TEXT("CanContinue is false when every metadata entry is unhealthy"),
+		LRSaveRules::CanContinue({ newestCorrupt }));
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLRSaveCatalogNotReadyGateTest,
+	"LostRunic.Save.Catalog.NotReadyQueriesAndRequestsAreGated",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FLRSaveCatalogNotReadyGateTest::RunTest(const FString& parameters)
+{
+	UGameInstance* gameInstance = NewObject<UGameInstance>();
+	ULRSaveSubsystem* subsystem = NewObject<ULRSaveSubsystem>(gameInstance);
+	TestEqual(TEXT("Fresh subsystem starts Initializing"), subsystem->GetCatalogState(), ELRSaveCatalogState::Initializing);
+	TestTrue(TEXT("Non-ready slot query is empty"), subsystem->GetSaveSlots().IsEmpty());
+	TestFalse(TEXT("Non-ready catalog has no formal entry"), subsystem->HasAnyCatalogEntry());
+	TestFalse(TEXT("Non-ready catalog cannot Continue"), subsystem->CanContinue());
+	TestEqual(TEXT("Create is rejected busy before catalog Ready"),
+		subsystem->RequestCreateManualSave(TEXT("Test")).Code, ELRSaveResultCode::RejectedBusy);
+	TestEqual(TEXT("Continue is rejected busy before catalog Ready"),
+		subsystem->RequestContinue().Code, ELRSaveResultCode::RejectedBusy);
+	TestEqual(TEXT("New Game is rejected busy before catalog Ready"),
+		subsystem->RequestNewGame().Code, ELRSaveResultCode::RejectedBusy);
+	FLRSaveSlotId slotId;
+	slotId.Type = ELRSaveSlotType::Manual;
+	slotId.Guid = FGuid::NewGuid();
+	TestEqual(TEXT("Load is rejected busy before catalog Ready"),
+		subsystem->RequestLoadSave(slotId).Code, ELRSaveResultCode::RejectedBusy);
+	TestEqual(TEXT("Delete is rejected busy before catalog Ready"),
+		subsystem->RequestDeleteSave(slotId).Code, ELRSaveResultCode::RejectedBusy);
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLRSaveCatalogV1FixtureLoadTest,
+	"LostRunic.Save.Catalog.LoadsFrozenV1Fixture",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FLRSaveCatalogV1FixtureLoadTest::RunTest(const FString& parameters)
+{
+	const FString fixturePath = FPaths::ProjectDir() / TEXT("Source/LostRunic/Tests/Fixtures/CatalogV1_NoCollectedCount.bin");
+	TArray<uint8> bytes;
+	TestTrue(TEXT("Frozen V1 fixture exists"), FFileHelper::LoadFileToArray(bytes, *fixturePath));
+	if (bytes.IsEmpty())
+	{
+		return false;
+	}
+
+	const FString temporarySlot = TEXT("LostRunic_Test_CatalogV1_Load");
+	const FString saveDirectory = FPaths::ProjectSavedDir() / TEXT("SaveGames");
+	IFileManager::Get().MakeDirectory(*saveDirectory, true);
+	const FString savedFile = saveDirectory / (temporarySlot + TEXT(".sav"));
+	TestTrue(TEXT("Frozen V1 fixture is copied to a SaveGame slot"), FFileHelper::SaveArrayToFile(bytes, *savedFile));
+	ULRSaveCatalog* catalog = Cast<ULRSaveCatalog>(UGameplayStatics::LoadGameFromSlot(temporarySlot, SaveTestUserIndex));
+	TestNotNull(TEXT("Frozen V1 catalog loads"), catalog);
+	if (!catalog)
+	{
+		UGameplayStatics::DeleteGameInSlot(temporarySlot, SaveTestUserIndex);
+		return false;
+	}
+
+	TestEqual(TEXT("Frozen V1 catalog keeps generation"), catalog->Generation, int64(7));
+	TestEqual(TEXT("Frozen V1 catalog has one slot"), catalog->Slots.Num(), 1);
+	if (catalog->Slots.Num() == 1)
+	{
+		const FLRSaveSlotMetadata& metadata = catalog->Slots[0];
+		const FGuid expectedGuid(0xA1B2C3D4, 0x01020304, 0x55667788, 0x99AABBCC);
+		TestTrue(TEXT("Frozen V1 slot keeps identity"), metadata.SlotId.Guid == expectedGuid);
+		TestEqual(TEXT("Frozen V1 slot keeps display index"), metadata.DisplayIndex, 2);
+		TestEqual(TEXT("Frozen V1 slot keeps payload key"), metadata.PayloadKey, FString(TEXT("LostRunic_V1_Fixture_Payload")));
+		TestEqual(TEXT("Frozen V1 slot keeps map"), metadata.MapId, FName(TEXT("Home")));
+		TestEqual(TEXT("Frozen V1 slot keeps UTC timestamp"), metadata.SavedAtUtc, FDateTime(2024, 1, 2, 3, 4, 5, 6));
+		TestEqual(TEXT("Frozen V1 slot keeps play time"), metadata.PlayTimeSeconds, 3723.5);
+		TestEqual(TEXT("Frozen V1 slot keeps save sequence"), metadata.SaveSequence, int64(42));
+		TestEqual(TEXT("Frozen V1 slot keeps health"), metadata.Health, ELRSaveSlotHealth::Healthy);
+		TestEqual(TEXT("New collected count defaults for V1 data"), metadata.CollectedCount, 0);
+	}
+
+	UGameplayStatics::DeleteGameInSlot(temporarySlot, SaveTestUserIndex);
 	return true;
 }
 

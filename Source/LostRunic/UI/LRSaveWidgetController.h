@@ -47,6 +47,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Lost Runic|Save UI")
 	const FLRSaveUISnapshot& GetSnapshot() const { return Snapshot; }
 
+	UFUNCTION(BlueprintPure, Category = "Lost Runic|Save UI|Focus")
+	FLRSaveFocusTarget GetFocusTarget() const { return Snapshot.FocusTarget; }
+
 	UPROPERTY(BlueprintAssignable, Category = "Lost Runic|Save UI")
 	FLRSaveUISnapshotChanged OnSnapshotChanged;
 
@@ -61,14 +64,22 @@ private:
 	void ApplyCompletion(const FLRSaveOperationResult& result);
 	void SetError(ELRSaveResultCode code);
 	bool FindSlot(const FLRSaveSlotId& slotId, FLRSaveSlotMetadata& outSlot) const;
+	void UpdateConfirmationViewModel();
 
 	UFUNCTION()
 	void HandleOperationCompleted(FLRSaveOperationResult result);
+
+	UFUNCTION()
+	void HandleCatalogStateChanged(ELRSaveCatalogState state);
+
+	UFUNCTION()
+	void HandleCatalogSnapshotChanged(FLRSaveCatalogSnapshot snapshot);
 
 	UPROPERTY(Transient) TObjectPtr<ULRSaveSubsystem> SaveSubsystem;
 	UPROPERTY(Transient) TObjectPtr<const ULRGameContentSet> ContentSet;
 	FLRSaveUISnapshot Snapshot;
 	FGuid PendingOperationId;
+	FLRSaveSlotId PendingSlotId;
 	ELRSaveOperationType ExpectedOperation = ELRSaveOperationType::None;
 	TOptional<FLRSaveOperationResult> SubmissionCompletion;
 	bool bOpen = false;

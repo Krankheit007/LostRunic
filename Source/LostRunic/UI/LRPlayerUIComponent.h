@@ -82,6 +82,8 @@ public:
 	 * @brief 处理 Handle UI Primary Action 事件：对当前 UI 条目执行主要业务动作（本界面为装备焦点武器）。
 	 */
 	void HandleUIPrimaryAction();
+	/** 处理 UI Delete 语义；具体是否可删除由当前 Screen 与存档控制器判定。 */
+	void HandleUIDelete();
 
 	/**
 	 * @brief 打开指定背包、笔记、收藏、暂停或存档页面，并切换到 Menu 输入上下文。

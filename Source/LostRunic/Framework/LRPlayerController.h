@@ -175,6 +175,8 @@ private:
 	 * @brief 处理 Handle UI Primary Action 事件：对当前 UI 条目执行主要业务动作（本界面为装备焦点武器）。
 	 */
 	void HandleUIPrimaryAction();
+	/** 处理 UI Delete 语义并转发到当前 Menu Screen。 */
+	void HandleUIDelete();
 	/**
 	 * @brief 执行 Resolve Context 的纯规则或事务判定，失败时提供结构化原因。
 	 * @param mode 本次操作使用的 `mode` 枚举或模式值。
