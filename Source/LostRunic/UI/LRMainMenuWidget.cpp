@@ -87,7 +87,7 @@ void ULRMainMenuWidget::HandleContinueClicked()
 
 void ULRMainMenuWidget::HandleLoadClicked()
 {
-	OnLoadRequested();
+	OnLoadRequested.Broadcast();
 }
 
 void ULRMainMenuWidget::HandleExitClicked()
@@ -96,4 +96,35 @@ void ULRMainMenuWidget::HandleExitClicked()
 	{
 		MainMenuWidgetController->RequestExit();
 	}
+}
+
+bool ULRMainMenuWidget::HandleUICommand_Implementation(const ELRUICommand command)
+{
+	if (command == ELRUICommand::Confirm || command == ELRUICommand::PrimaryAction)
+	{
+		return ExecuteFocusedAction();
+	}
+	return Super::HandleUICommand_Implementation(command);
+}
+
+bool ULRMainMenuWidget::SetInitialFocus()
+{
+	for (UButton* button : { NewGameButton.Get(), ContinueButton.Get(), LoadButton.Get(), ExitButton.Get() })
+	{
+		if (button && button->GetIsEnabled())
+		{
+			return SetFocusToWidget(button);
+		}
+	}
+	return Super::SetInitialFocus();
+}
+
+bool ULRMainMenuWidget::ExecuteFocusedAction()
+{
+	if (NewGameButton->HasUserFocus(GetOwningPlayer())) HandleNewGameClicked();
+	else if (ContinueButton->HasUserFocus(GetOwningPlayer())) HandleContinueClicked();
+	else if (LoadButton->HasUserFocus(GetOwningPlayer())) HandleLoadClicked();
+	else if (ExitButton->HasUserFocus(GetOwningPlayer())) HandleExitClicked();
+	else return false;
+	return true;
 }

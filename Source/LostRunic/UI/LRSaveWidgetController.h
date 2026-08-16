@@ -50,12 +50,19 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Lost Runic|Save UI|Focus")
 	FLRSaveFocusTarget GetFocusTarget() const { return Snapshot.FocusTarget; }
 
+	void UpdateFocusTarget(const FLRSaveFocusTarget& focusTarget);
+
 	UPROPERTY(BlueprintAssignable, Category = "Lost Runic|Save UI")
 	FLRSaveUISnapshotChanged OnSnapshotChanged;
 
 	static FLRSaveUISnapshot BuildSnapshot(const TArray<FLRSaveSlotMetadata>& slots,
 		ELRSaveSelectionMode mode, ELRSaveUIState state, bool bManualSaveAllowed,
 		int32 maxManualSlots, const ULRGameContentSet* contentSet);
+	static FLRSaveFocusTarget ReconcileFocusTarget(const FLRSaveUISnapshot& snapshot,
+		const FLRSaveFocusTarget& requestedTarget);
+	/** Resolves Primary/Delete semantics without performing storage I/O. */
+	static ELRSaveOperationType ResolveSlotAction(ELRSaveSelectionMode mode,
+		const FLRSaveSlotMetadata& slot, bool bDeleteRequest, bool bManualSaveAllowed = true);
 
 private:
 	void Refresh();
@@ -64,6 +71,7 @@ private:
 	void ApplyCompletion(const FLRSaveOperationResult& result);
 	void SetError(ELRSaveResultCode code);
 	bool FindSlot(const FLRSaveSlotId& slotId, FLRSaveSlotMetadata& outSlot) const;
+	FText ResolveText(FName textKey) const;
 	void UpdateConfirmationViewModel();
 
 	UFUNCTION()

@@ -32,6 +32,10 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Content|Maps")
 	FName NewGameMapId = NAME_None;
 
+	/** Stable registered map ID used by Pause -> Main Menu travel. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Content|Maps")
+	FName MainMenuMapId = NAME_None;
+
 	/** Dialogue Table DataTable 引用；行以稳定 FName ID 查询。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Content|Tables")
 	TObjectPtr<UDataTable> DialogueTable;

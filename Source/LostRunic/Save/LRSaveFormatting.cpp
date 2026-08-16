@@ -27,7 +27,7 @@ namespace LRSaveFormatting
 
 	FText FormatCollectedCount(const int32 collectedCount, const int32 totalCount)
 	{
-		return FText::Format(NSLOCTEXT("LRSaveUI", "CollectedCount", "{0}/{1}"),
-			FText::AsNumber(FMath::Max(0, collectedCount)), FText::AsNumber(FMath::Max(0, totalCount)));
+		return FText::FromString(FString::Printf(TEXT("%d/%d"),
+			FMath::Max(0, collectedCount), FMath::Max(0, totalCount)));
 	}
 }

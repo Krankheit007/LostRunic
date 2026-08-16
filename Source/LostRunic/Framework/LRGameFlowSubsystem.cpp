@@ -145,6 +145,13 @@ void ULRGameFlowSubsystem::HandleSaveOperationCompleted(const FLRSaveOperationRe
 	}
 }
 
+bool ULRGameFlowSubsystem::TravelToMainMenu()
+{
+	const ULRGameInstanceSubsystem* data = GetGameInstance()->GetSubsystem<ULRGameInstanceSubsystem>();
+	const ULRGameContentSet* content = data ? data->GetContentSet() : nullptr;
+	return content && !content->MainMenuMapId.IsNone() && TravelToMap(content->MainMenuMapId);
+}
+
 bool ULRGameFlowSubsystem::TravelToMap(const FName mapId)
 {
 	const ULRGameInstanceSubsystem* data = GetGameInstance()->GetSubsystem<ULRGameInstanceSubsystem>();

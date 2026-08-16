@@ -200,6 +200,11 @@ bool ULRGameContentSet::Validate(FString& outError) const
 		outError = TEXT("NewGameMapId must resolve to a registered map.");
 		return false;
 	}
+	if (MainMenuMapId.IsNone() || !mapIds.Contains(MainMenuMapId))
+	{
+		outError = TEXT("MainMenuMapId must resolve to a registered map.");
+		return false;
+	}
 
 	return true;
 }
@@ -247,7 +252,11 @@ FText ULRGameContentSet::ResolveUIText(const FName textKey) const
 {
 	if (UIStringTable && !textKey.IsNone())
 	{
-		return FText::FromStringTable(UIStringTable->GetStringTableId(), textKey.ToString());
+		const FText localizedText = FText::FromStringTable(UIStringTable->GetStringTableId(), textKey.ToString());
+		if (!localizedText.IsEmpty())
+		{
+			return localizedText;
+		}
 	}
 	return FText::FromName(textKey);
 }

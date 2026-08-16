@@ -12,7 +12,7 @@
 
 namespace
 {
-	constexpr int32 SaveUserIndex = 0;
+	constexpr int32 V2SaveUserIndex = 0;
 }
 
 FLRSaveSlotMetadata ULRSaveSubsystem::BuildMetadata(const FLRSaveSlotId& slotId, const int32 displayIndex,
@@ -42,7 +42,7 @@ void ULRSaveSubsystem::StartWrite()
 			{
 				HandlePayloadWritten(operationId, slotName, userIndex, bSuccess);
 			});
-		UGameplayStatics::AsyncSaveGameToSlot(ActivePayload, ActiveOperation.PayloadKey, SaveUserIndex, saveDelegate);
+		UGameplayStatics::AsyncSaveGameToSlot(ActivePayload, ActiveOperation.PayloadKey, V2SaveUserIndex, saveDelegate);
 		if (UWorld* world = GetCurrentWorld())
 		{
 			const FGuid operationId = ActiveOperation.OperationId;
@@ -111,7 +111,7 @@ void ULRSaveSubsystem::StartWrite()
 		{
 			HandlePayloadWritten(operationId, slotName, userIndex, bSuccess);
 		});
-	UGameplayStatics::AsyncSaveGameToSlot(ActivePayload, ActiveOperation.PayloadKey, SaveUserIndex, saveDelegate);
+	UGameplayStatics::AsyncSaveGameToSlot(ActivePayload, ActiveOperation.PayloadKey, V2SaveUserIndex, saveDelegate);
 	const FGuid operationId = ActiveOperation.OperationId;
 	if (UWorld* world = GetCurrentWorld())
 	{
@@ -126,7 +126,7 @@ void ULRSaveSubsystem::HandlePayloadWritten(const FGuid operationId, const FStri
 	const int32 userIndex, const bool bSuccess)
 {
 	if (ActiveOperation.OperationId != operationId || OperationState != ELRSaveOperationState::WritingPayload
-		|| !ActivePayload || slotName != ActiveOperation.PayloadKey || userIndex != SaveUserIndex)
+		|| !ActivePayload || slotName != ActiveOperation.PayloadKey || userIndex != V2SaveUserIndex)
 	{
 		UE_LOG(LogLostRunicSave, VeryVerbose, TEXT("Ignored late save callback operation=%s slot=%s"),
 			*operationId.ToString(), *slotName);
@@ -206,8 +206,8 @@ void ULRSaveSubsystem::StartDelete()
 	}
 	OperationState = ELRSaveOperationState::DeletingPayload;
 	if (!targetMetadata.PayloadKey.IsEmpty()
-		&& UGameplayStatics::DoesSaveGameExist(targetMetadata.PayloadKey, SaveUserIndex)
-		&& !UGameplayStatics::DeleteGameInSlot(targetMetadata.PayloadKey, SaveUserIndex))
+		&& UGameplayStatics::DoesSaveGameExist(targetMetadata.PayloadKey, V2SaveUserIndex)
+		&& !UGameplayStatics::DeleteGameInSlot(targetMetadata.PayloadKey, V2SaveUserIndex))
 	{
 		EnqueuePendingCatalogRepair();
 		CompleteOperation(ELRSaveResultCode::DeleteFailed,

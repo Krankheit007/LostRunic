@@ -617,6 +617,7 @@ bool FLRSaveUISnapshotRulesTest::RunTest(const FString& parameters)
 	TestEqual(TEXT("Manual slots sort by display index"), save.Slots[1].DisplayIndex, 1);
 	TestEqual(TEXT("Second manual slot follows"), save.Slots[2].DisplayIndex, 2);
 	TestFalse(TEXT("Automatic slot cannot be overwritten"), save.Slots[0].bCanOverwrite);
+	TestFalse(TEXT("Save mode does not expose automatic slots as load actions"), save.Slots[0].bCanLoad);
 	TestFalse(TEXT("Automatic slot cannot be deleted"), save.Slots[0].bCanDelete);
 	TestFalse(TEXT("Corrupt slot cannot be loaded"), save.Slots[1].bCanLoad);
 	TestFalse(TEXT("Capacity prevents creation"), save.bCanCreateManualSlot);
@@ -633,6 +634,17 @@ bool FLRSaveUISnapshotRulesTest::RunTest(const FString& parameters)
 		true, 3, nullptr);
 	TestFalse(TEXT("Load mode never offers create"), load.bCanCreateManualSlot);
 	TestTrue(TEXT("Healthy automatic slot can load"), load.Slots[0].bCanLoad);
+	TestFalse(TEXT("Load mode never offers manual overwrite"), load.Slots[1].bCanOverwrite);
+
+	const FLRSaveUISnapshot noAuto = ULRSaveWidgetController::BuildSnapshot(
+		{manualOne}, ELRSaveSelectionMode::Save, ELRSaveUIState::Idle, true, 3, nullptr);
+	TestEqual(TEXT("Missing automatic slot is injected as the first row"), noAuto.Slots.Num(), 2);
+	TestTrue(TEXT("Injected row is automatic"), noAuto.Slots[0].bAutomatic);
+	TestFalse(TEXT("Injected empty row has no data"), noAuto.Slots[0].bHasData);
+	TestFalse(TEXT("Injected empty automatic row cannot be overwritten"), noAuto.Slots[0].bCanOverwrite);
+	TestFalse(TEXT("Injected empty automatic row cannot be loaded"), noAuto.Slots[0].bCanLoad);
+	TestFalse(TEXT("Injected empty automatic row cannot be deleted"), noAuto.Slots[0].bCanDelete);
+	TestEqual(TEXT("Injected row keeps manual display indices intact"), noAuto.Slots[1].DisplayIndex, 1);
 	return true;
 }
 
@@ -651,6 +663,73 @@ bool FLRSaveFocusTargetRulesTest::RunTest(const FString& parameters)
 	const FLRSaveFocusTarget existing = FLRSaveFocusTarget::MakeExisting(slotId);
 	TestTrue(TEXT("Existing-slot focus target carries its stable slot id"), existing.IsValid() && existing.SlotId == slotId);
 	TestFalse(TEXT("Zero-index create target is invalid"), FLRSaveFocusTarget::MakeCreate(0).IsValid());
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLRSaveFocusReconciliationTest, "LostRunic.UI.SaveFocusRestoresAfterRefresh",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FLRSaveFocusReconciliationTest::RunTest(const FString& parameters)
+{
+	FLRSaveUISnapshot snapshot;
+	FLRSaveSlotView first;
+	first.SlotId.Type = ELRSaveSlotType::Manual;
+	first.SlotId.Guid = FGuid::NewGuid();
+	first.DisplayIndex = 1;
+	first.bCanLoad = true;
+	FLRSaveSlotView second = first;
+	second.SlotId.Guid = FGuid::NewGuid();
+	second.DisplayIndex = 2;
+	snapshot.Slots = { first, second };
+
+	const FLRSaveFocusTarget requestedSecond = FLRSaveFocusTarget::MakeExisting(second.SlotId);
+	TestEqual(TEXT("Refresh preserves a surviving focused slot"),
+		ULRSaveWidgetController::ReconcileFocusTarget(snapshot, requestedSecond).SlotId, second.SlotId);
+
+	snapshot.Slots.RemoveAt(1);
+	const FLRSaveFocusTarget afterDelete = ULRSaveWidgetController::ReconcileFocusTarget(snapshot, requestedSecond);
+	TestEqual(TEXT("Deleting the focused slot falls back to the first remaining slot"), afterDelete.SlotId, first.SlotId);
+
+	snapshot.Slots.Reset();
+	snapshot.bCanCreateManualSlot = true;
+	snapshot.CreateDisplayIndex = 1;
+	TestEqual(TEXT("Empty Save mode falls back to the create row"),
+		ULRSaveWidgetController::ReconcileFocusTarget(snapshot, requestedSecond).Kind,
+		ELRSaveFocusTargetKind::CreateSlot);
+
+	snapshot.bCanCreateManualSlot = false;
+	TestEqual(TEXT("Empty Load mode falls back to the page root"),
+		ULRSaveWidgetController::ReconcileFocusTarget(snapshot, requestedSecond).Kind,
+		ELRSaveFocusTargetKind::Root);
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLRSaveSlotActionRulesTest, "LostRunic.UI.SaveSlotActionRules",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FLRSaveSlotActionRulesTest::RunTest(const FString& parameters)
+{
+	FLRSaveSlotMetadata manual;
+	manual.SlotId.Type = ELRSaveSlotType::Manual;
+	manual.SlotId.Guid = FGuid::NewGuid();
+	manual.Health = ELRSaveSlotHealth::Healthy;
+	FLRSaveSlotMetadata automatic = manual;
+	automatic.SlotId.Type = ELRSaveSlotType::Auto;
+	automatic.SlotId.Guid = FGuid();
+
+	TestEqual(TEXT("Load Primary reads a healthy slot"),
+		ULRSaveWidgetController::ResolveSlotAction(ELRSaveSelectionMode::Load, manual, false), ELRSaveOperationType::Load);
+	TestEqual(TEXT("Save Primary opens overwrite for a manual slot"),
+		ULRSaveWidgetController::ResolveSlotAction(ELRSaveSelectionMode::Save, manual, false), ELRSaveOperationType::OverwriteManual);
+	TestEqual(TEXT("Save Primary rejects overwrite while manual saving is unavailable"),
+		ULRSaveWidgetController::ResolveSlotAction(ELRSaveSelectionMode::Save, manual, false, false), ELRSaveOperationType::None);
+	TestEqual(TEXT("Delete accepts a manual slot"),
+		ULRSaveWidgetController::ResolveSlotAction(ELRSaveSelectionMode::Save, manual, true), ELRSaveOperationType::Delete);
+	TestEqual(TEXT("Delete rejects the automatic slot"),
+		ULRSaveWidgetController::ResolveSlotAction(ELRSaveSelectionMode::Save, automatic, true), ELRSaveOperationType::None);
+	manual.Health = ELRSaveSlotHealth::CorruptPayload;
+	TestEqual(TEXT("Load Primary rejects a corrupt slot"),
+		ULRSaveWidgetController::ResolveSlotAction(ELRSaveSelectionMode::Load, manual, false), ELRSaveOperationType::None);
 	return true;
 }
 

@@ -23,6 +23,10 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Lost Runic|Game Flow")
 	bool IsTravelOrRestoreInProgress() const { return PendingLoadOperationId.IsValid(); }
 
+	/** Travels through the registered content map ID; no map package path is embedded in UI code. */
+	UFUNCTION(BlueprintCallable, Category = "Lost Runic|Game Flow")
+	bool TravelToMainMenu();
+
 private:
 	UFUNCTION()
 	void HandleLoadRequested(FGuid operationId, FName mapId);

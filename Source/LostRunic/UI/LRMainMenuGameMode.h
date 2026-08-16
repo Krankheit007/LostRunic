@@ -12,4 +12,7 @@ class LOSTRUNIC_API ALRMainMenuGameMode : public AGameModeBase
 
 public:
 	ALRMainMenuGameMode();
+
+	virtual AActor* FindPlayerStart_Implementation(AController* player, const FString& incomingName) override;
+	virtual void RestartPlayer(AController* newPlayer) override;
 };

@@ -19,25 +19,26 @@ class LOSTRUNIC_API ULRSaveSlotWidget : public UUserWidget
 
 public:
 	virtual void NativeOnInitialized() override;
+	virtual void NativeOnAddedToFocusPath(const FFocusEvent& inFocusEvent) override;
 
 	UFUNCTION(BlueprintCallable, Category = "Lost Runic|Save UI")
 	void ApplyView(const FLRSaveSlotView& view);
 
 	UFUNCTION(BlueprintPure, Category = "Lost Runic|Save UI")
 	const FLRSaveSlotView& GetView() const { return View; }
+	bool SetSlotFocus();
 
 	UPROPERTY(BlueprintAssignable, Category = "Lost Runic|Save UI")
 	FLRSaveSlotActionRequested OnPrimaryRequested;
 
 	UPROPERTY(BlueprintAssignable, Category = "Lost Runic|Save UI")
-	FLRSaveSlotActionRequested OnDeleteRequested;
+	FLRSaveSlotActionRequested OnFocused;
 
 protected:
 	UFUNCTION(BlueprintImplementableEvent, Category = "Lost Runic|Save UI")
 	void OnViewChanged(const FLRSaveSlotView& view);
 
-	UPROPERTY(BlueprintReadOnly, meta = (BindWidget)) TObjectPtr<UButton> PrimaryButton;
-	UPROPERTY(BlueprintReadOnly, meta = (BindWidget)) TObjectPtr<UButton> DeleteButton;
+	UPROPERTY(BlueprintReadOnly, meta = (BindWidget)) TObjectPtr<UButton> SlotButton;
 	UPROPERTY(BlueprintReadOnly, meta = (BindWidget)) TObjectPtr<UTextBlock> SlotNameText;
 	UPROPERTY(BlueprintReadOnly, meta = (BindWidget)) TObjectPtr<UTextBlock> MapNameText;
 	UPROPERTY(BlueprintReadOnly, meta = (BindWidget)) TObjectPtr<UTextBlock> SavedAtText;
@@ -51,7 +52,4 @@ protected:
 
 	UFUNCTION()
 	void HandlePrimaryClicked();
-
-	UFUNCTION()
-	void HandleDeleteClicked();
 };

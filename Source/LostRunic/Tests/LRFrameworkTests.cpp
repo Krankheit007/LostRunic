@@ -10,15 +10,24 @@
 
 #include "Misc/AutomationTest.h"
 
+#include "Data/LRGameContentSet.h"
+#include "Data/LRGameTuningSet.h"
 #include "Data/LRProjectSettings.h"
+#include "Data/LRNPCTuning.h"
 #include "Framework/LRCharacter.h"
 #include "Framework/LRGameMode.h"
 #include "Framework/LRPlayerController.h"
 #include "UI/LRHUD.h"
 #include "UI/LRMainMenuGameMode.h"
 #include "UI/LRMainMenuHUD.h"
+#include "UI/LRMainMenuWidget.h"
+#include "UI/LRPauseWidget.h"
+#include "UI/LRSaveConfirmDialogWidget.h"
+#include "UI/LRSaveSelectionWidget.h"
+#include "UI/LRSaveSlotWidget.h"
 #include "Gameplay/LRLocomotionComponent.h"
 #include "Input/LRInputConfig.h"
+#include "InputAction.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLRFrameworkDefaultsTest, "LostRunic.Framework.CharacterDoesNotTick",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
@@ -61,6 +70,90 @@ bool FLRMainMenuFrameworkDefaultsTest::RunTest(const FString& parameters)
 	TestTrue(TEXT("Main menu reuses the LR player controller"),
 		gameMode->PlayerControllerClass == ALRPlayerController::StaticClass());
 	TestTrue(TEXT("Main menu uses the dedicated host HUD"), gameMode->HUDClass == ALRMainMenuHUD::StaticClass());
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLRSaveUIAssetContractTest, "LostRunic.UI.SaveAssetsMatchDesignerContract",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FLRSaveUIAssetContractTest::RunTest(const FString& parameters)
+{
+	const UInputAction* cancelAction = LoadObject<UInputAction>(nullptr,
+		TEXT("/Game/LostRunic/Input/Actions/IA_LRCancel.IA_LRCancel"));
+	TestNotNull(TEXT("Save-screen cancel input action loads"), cancelAction);
+	TestTrue(TEXT("Cancel input remains available while the pause save screen is open"),
+		cancelAction && cancelAction->bTriggerWhenPaused);
+
+	const UClass* pauseClass = LoadClass<ULRPauseWidget>(nullptr,
+		TEXT("/Game/LostRunic/UI/Save/WBP_Pause.WBP_Pause_C"));
+	TestNotNull(TEXT("Pause widget uses the native pause contract"), pauseClass);
+
+	const UClass* slotClass = LoadClass<ULRSaveSlotWidget>(nullptr,
+		TEXT("/Game/LostRunic/UI/Save/WBP_SaveSlot.WBP_SaveSlot_C"));
+	TestNotNull(TEXT("Save slot widget loads"), slotClass);
+	if (slotClass)
+	{
+		TestNotNull(TEXT("Save slot exposes the designer-authored SlotButton contract"),
+			FindFProperty<FObjectPropertyBase>(slotClass, TEXT("SlotButton")));
+	}
+
+	const UClass* selectionClass = LoadClass<ULRSaveSelectionWidget>(nullptr,
+		TEXT("/Game/LostRunic/UI/Save/WBP_SaveSelection.WBP_SaveSelection_C"));
+	TestNotNull(TEXT("Save selection widget loads"), selectionClass);
+	// Row extent is owned by the row blueprints (WBP_SaveSlot / WBP_CreateSaveSlot root canvas),
+	// not by a runtime SizeBox wrapper; the removed SlotRowHeight override must not come back.
+
+	const UClass* dialogClass = LoadClass<ULRSaveConfirmDialogWidget>(nullptr,
+		TEXT("/Game/LostRunic/UI/Save/WBP_SaveConfirmDialog.WBP_SaveConfirmDialog_C"));
+	TestNotNull(TEXT("Save confirmation widget loads"), dialogClass);
+	for (const FName propertyName : { FName(TEXT("Cover")), FName(TEXT("Delete")),
+		FName(TEXT("Cover_Confirm")), FName(TEXT("Cover_Cancel")),
+		FName(TEXT("Delete_Confirm")), FName(TEXT("Delete_Cancel")) })
+	{
+		TestNotNull(*FString::Printf(TEXT("Confirmation widget binds %s"), *propertyName.ToString()),
+			dialogClass ? FindFProperty<FObjectPropertyBase>(dialogClass, propertyName) : nullptr);
+	}
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLRPIEContentContractTest, "LostRunic.Framework.PIEContentContracts",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FLRPIEContentContractTest::RunTest(const FString& parameters)
+{
+	const UClass* gameModeClass = LoadClass<ALRGameMode>(nullptr,
+		TEXT("/Game/LostRunic/Blueprints/Character/BP_LRGameMode.BP_LRGameMode_C"));
+	const UClass* ruthClass = LoadClass<ALRCharacter>(nullptr,
+		TEXT("/Game/LostRunic/Blueprints/Character/BP_Ruth.BP_Ruth_C"));
+	TestNotNull(TEXT("Gameplay GameMode loads"), gameModeClass);
+	TestNotNull(TEXT("Ruth character loads"), ruthClass);
+	if (gameModeClass && ruthClass)
+	{
+		TestTrue(TEXT("Gameplay GameMode spawns BP_Ruth"),
+			gameModeClass->GetDefaultObject<ALRGameMode>()->DefaultPawnClass == ruthClass);
+	}
+
+	const UClass* mainMenuModeClass = LoadClass<ALRMainMenuGameMode>(nullptr,
+		TEXT("/Game/LostRunic/Blueprints/UI/BP_LRMainMenuGameMode.BP_LRMainMenuGameMode_C"));
+	TestNotNull(TEXT("Dedicated main-menu GameMode exists"), mainMenuModeClass);
+	if (mainMenuModeClass)
+	{
+		const ALRMainMenuGameMode* menuMode = mainMenuModeClass->GetDefaultObject<ALRMainMenuGameMode>();
+		TestNull(TEXT("Dedicated main-menu mode never spawns a Pawn"), menuMode->DefaultPawnClass.Get());
+		TestTrue(TEXT("Dedicated main-menu mode uses a MainMenu HUD"),
+			menuMode->HUDClass && menuMode->HUDClass->IsChildOf(ALRMainMenuHUD::StaticClass()));
+	}
+
+	const ULRGameTuningSet* tuningSet = LoadObject<ULRGameTuningSet>(nullptr,
+		TEXT("/Game/LostRunic/Data/Tuning/DA_LRGameTuningSet.DA_LRGameTuningSet"));
+	TestNotNull(TEXT("Project tuning set loads"), tuningSet);
+	TestNotNull(TEXT("Project tuning set assigns NPC tuning"), tuningSet ? tuningSet->NPC.Get() : nullptr);
+
+	const ULRGameContentSet* contentSet = LoadObject<ULRGameContentSet>(nullptr,
+		TEXT("/Game/LostRunic/Data/DA_LRGameContentSet.DA_LRGameContentSet"));
+	TestNotNull(TEXT("Project content set loads"), contentSet);
+	TestEqual(TEXT("Project content set registers the main-menu destination"),
+		contentSet ? contentSet->MainMenuMapId : NAME_None, FName(TEXT("Menu")));
 	return true;
 }
 

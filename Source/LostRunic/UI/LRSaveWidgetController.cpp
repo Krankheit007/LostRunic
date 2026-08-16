@@ -1,5 +1,6 @@
 #include "UI/LRSaveWidgetController.h"
 
+#include "Core/LRLog.h"
 #include "Data/LRGameContentSet.h"
 #include "Save/LRSaveSubsystem.h"
 
@@ -62,9 +63,21 @@ void ULRSaveWidgetController::Open(const ELRSaveSelectionMode mode)
 			: (SaveSubsystem && !SaveSubsystem->IsCatalogReady() ? ELRSaveUIState::LoadingCatalog : ELRSaveUIState::Idle));
 	Snapshot.Confirmation = ELRSaveUIConfirmation::None;
 	Snapshot.StatusMessage = FText::GetEmpty();
-	Snapshot.FocusTarget = FLRSaveFocusTarget::MakeRoot();
+	Snapshot.Title = ResolveText(TEXT("SaveTitle"));
+	Snapshot.CreateLabel = ResolveText(TEXT("SaveCreateNew"));
+	Snapshot.FocusTarget = FLRSaveFocusTarget();
 	UpdateConfirmationViewModel();
 	Refresh();
+}
+
+void ULRSaveWidgetController::UpdateFocusTarget(const FLRSaveFocusTarget& focusTarget)
+{
+	const FLRSaveFocusTarget resolved = ReconcileFocusTarget(Snapshot, focusTarget);
+	if (resolved.Kind == focusTarget.Kind && resolved.SlotId == focusTarget.SlotId
+		&& resolved.CreateDisplayIndex == focusTarget.CreateDisplayIndex)
+	{
+		Snapshot.FocusTarget = focusTarget;
+	}
 }
 
 void ULRSaveWidgetController::Close()
@@ -94,12 +107,17 @@ void ULRSaveWidgetController::RequestPrimarySlotAction(const FLRSaveSlotId slotI
 		return;
 	}
 	Snapshot.FocusTarget = FLRSaveFocusTarget::MakeExisting(slotId);
-	if (Snapshot.Mode == ELRSaveSelectionMode::Load && slot.Health == ELRSaveSlotHealth::Healthy)
+	const FLRSaveSlotView* view = Snapshot.Slots.FindByPredicate(
+		[slotId](const FLRSaveSlotView& candidate) { return candidate.SlotId == slotId; });
+	const ELRSaveOperationType action = ResolveSlotAction(Snapshot.Mode, slot, false,
+		view && view->bCanOverwrite);
+	if (action == ELRSaveOperationType::Load)
 	{
-		SubmitOperation(ELRSaveOperationType::Load, slotId);
+		SubmitOperation(action, slotId);
 	}
-	else if (Snapshot.Mode == ELRSaveSelectionMode::Save && slotId.Type == ELRSaveSlotType::Manual)
+	else if (action == ELRSaveOperationType::OverwriteManual && slot.SlotId.Type != ELRSaveSlotType::Auto)
 	{
+		// 防御：自动槽永不进入覆盖确认流程；规则层与子系统层另有兜底。
 		Snapshot.State = ELRSaveUIState::Confirming;
 		Snapshot.Confirmation = ELRSaveUIConfirmation::Overwrite;
 		Snapshot.SelectedSlotId = slotId;
@@ -111,7 +129,7 @@ void ULRSaveWidgetController::RequestPrimarySlotAction(const FLRSaveSlotId slotI
 void ULRSaveWidgetController::RequestDelete(const FLRSaveSlotId slotId)
 {
 	FLRSaveSlotMetadata slot;
-	if (!FindSlot(slotId, slot) || slotId.Type != ELRSaveSlotType::Manual
+	if (!FindSlot(slotId, slot) || ResolveSlotAction(Snapshot.Mode, slot, true) != ELRSaveOperationType::Delete
 		|| Snapshot.State != ELRSaveUIState::Idle)
 	{
 		return;
@@ -124,6 +142,21 @@ void ULRSaveWidgetController::RequestDelete(const FLRSaveSlotId slotId)
 	OnSnapshotChanged.Broadcast(Snapshot);
 }
 
+ELRSaveOperationType ULRSaveWidgetController::ResolveSlotAction(const ELRSaveSelectionMode mode,
+	const FLRSaveSlotMetadata& slot, const bool bDeleteRequest, const bool bManualSaveAllowed)
+{
+	if (bDeleteRequest)
+	{
+		return slot.SlotId.Type == ELRSaveSlotType::Manual ? ELRSaveOperationType::Delete : ELRSaveOperationType::None;
+	}
+	if (mode == ELRSaveSelectionMode::Load)
+	{
+		return slot.Health == ELRSaveSlotHealth::Healthy ? ELRSaveOperationType::Load : ELRSaveOperationType::None;
+	}
+	return bManualSaveAllowed && slot.SlotId.Type == ELRSaveSlotType::Manual
+		? ELRSaveOperationType::OverwriteManual : ELRSaveOperationType::None;
+}
+
 void ULRSaveWidgetController::ConfirmPendingAction()
 {
 	if (Snapshot.State != ELRSaveUIState::Confirming || !Snapshot.SelectedSlotId.IsValid())
@@ -132,6 +165,15 @@ void ULRSaveWidgetController::ConfirmPendingAction()
 	}
 	const ELRSaveOperationType operation = Snapshot.Confirmation == ELRSaveUIConfirmation::Overwrite
 		? ELRSaveOperationType::OverwriteManual : ELRSaveOperationType::Delete;
+	FLRSaveSlotMetadata slot;
+	if (operation == ELRSaveOperationType::OverwriteManual && FindSlot(Snapshot.SelectedSlotId, slot)
+		&& slot.SlotId.Type == ELRSaveSlotType::Auto)
+	{
+		// 防御：自动槽覆盖被拒绝（正常流程不可达；子系统另有 IsProtectedOverwrite 兜底）。
+		UE_LOG(LogLostRunicUI, Warning, TEXT("Confirmed overwrite on the automatic slot was rejected."));
+		CancelPendingAction();
+		return;
+	}
 	SubmitOperation(operation, Snapshot.SelectedSlotId);
 }
 
@@ -158,46 +200,6 @@ void ULRSaveWidgetController::DismissError()
 	}
 }
 
-FLRSaveUISnapshot ULRSaveWidgetController::BuildSnapshot(const TArray<FLRSaveSlotMetadata>& slots,
-	const ELRSaveSelectionMode mode, const ELRSaveUIState state, const bool bManualSaveAllowed,
-	const int32 maxManualSlots, const ULRGameContentSet* contentSet)
-{
-	FLRSaveUISnapshot result;
-	result.Mode = mode;
-	result.State = state;
-	result.bIsBusy = IsBusyState(state);
-	int32 manualCount = 0;
-	for (const FLRSaveSlotMetadata& metadata : slots)
-	{
-		FLRSaveSlotView& view = result.Slots.AddDefaulted_GetRef();
-		view.SlotId = metadata.SlotId;
-		view.DisplayIndex = metadata.DisplayIndex;
-		view.SavedAtUtc = metadata.SavedAtUtc;
-		view.PlayTimeSeconds = metadata.PlayTimeSeconds;
-		view.CollectedCount = metadata.CollectedCount;
-		view.TotalCollectibleCount = contentSet ? contentSet->GetTotalCollectibleCount() : 0;
-		view.Health = metadata.Health;
-		view.bAutomatic = metadata.SlotId.Type == ELRSaveSlotType::Auto;
-		view.bCanLoad = metadata.Health == ELRSaveSlotHealth::Healthy;
-		view.bCanOverwrite = !view.bAutomatic && bManualSaveAllowed;
-		view.bCanDelete = !view.bAutomatic;
-		view.MapDisplayName = contentSet ? contentSet->GetMapDisplayName(metadata.MapId) : FText::FromName(metadata.MapId);
-		manualCount += view.bAutomatic ? 0 : 1;
-	}
-	result.Slots.Sort([](const FLRSaveSlotView& a, const FLRSaveSlotView& b)
-	{
-		if (a.bAutomatic != b.bAutomatic)
-		{
-			return a.bAutomatic;
-		}
-		return a.DisplayIndex < b.DisplayIndex;
-	});
-	result.bCanCreateManualSlot = mode == ELRSaveSelectionMode::Save && state == ELRSaveUIState::Idle
-		&& bManualSaveAllowed && manualCount < maxManualSlots;
-	result.CreateDisplayIndex = manualCount + 1;
-	return result;
-}
-
 void ULRSaveWidgetController::Refresh()
 {
 	if (!SaveSubsystem || !bOpen)
@@ -209,7 +211,7 @@ void ULRSaveWidgetController::Refresh()
 		Snapshot.Slots.Reset();
 		Snapshot.State = ELRSaveUIState::Error;
 		Snapshot.bIsBusy = false;
-		Snapshot.StatusMessage = NSLOCTEXT("LRSaveUI", "CatalogBlocked", "Save data is unavailable.");
+		Snapshot.StatusMessage = ResolveText(TEXT("SaveCatalogBlocked"));
 		UpdateConfirmationViewModel();
 		OnSnapshotChanged.Broadcast(Snapshot);
 		return;
@@ -233,7 +235,7 @@ void ULRSaveWidgetController::Refresh()
 	Snapshot = BuildSnapshot(SaveSubsystem->GetSaveSlots(), mode, state, SaveSubsystem->IsManualSaveAllowed(),
 		SaveSubsystem->GetMaxManualSaveSlots(), ContentSet);
 	Snapshot.StatusMessage = status;
-	Snapshot.FocusTarget = focusTarget.IsValid() ? focusTarget : FLRSaveFocusTarget::MakeRoot();
+	Snapshot.FocusTarget = ReconcileFocusTarget(Snapshot, focusTarget);
 	Snapshot.SelectedSlotId = selectedSlotId;
 	Snapshot.Confirmation = confirmation;
 	UpdateConfirmationViewModel();
@@ -299,8 +301,8 @@ void ULRSaveWidgetController::SetError(const ELRSaveResultCode code)
 	Snapshot.bIsBusy = false;
 	Snapshot.Confirmation = ELRSaveUIConfirmation::None;
 	Snapshot.StatusMessage = code == ELRSaveResultCode::RejectedAtCapacity
-		? NSLOCTEXT("LRSaveUI", "Capacity", "No manual save slots are available.")
-		: NSLOCTEXT("LRSaveUI", "OperationFailed", "The save operation could not be completed.");
+		? ResolveText(TEXT("SaveCapacityFull"))
+		: ResolveText(TEXT("SaveOperationFailed"));
 	UpdateConfirmationViewModel();
 	PendingOperationId.Invalidate();
 	PendingSlotId = FLRSaveSlotId();
@@ -323,6 +325,11 @@ bool ULRSaveWidgetController::FindSlot(const FLRSaveSlotId& slotId, FLRSaveSlotM
 	}
 	outSlot = *found;
 	return true;
+}
+
+FText ULRSaveWidgetController::ResolveText(const FName textKey) const
+{
+	return ContentSet ? ContentSet->ResolveUIText(textKey) : FText::FromName(textKey);
 }
 
 void ULRSaveWidgetController::HandleOperationCompleted(const FLRSaveOperationResult result)
@@ -366,9 +373,13 @@ void ULRSaveWidgetController::UpdateConfirmationViewModel()
 	Snapshot.ConfirmationViewModel.SlotId = Snapshot.SelectedSlotId;
 	Snapshot.ConfirmationViewModel.bVisible = Snapshot.Confirmation != ELRSaveUIConfirmation::None;
 	Snapshot.ConfirmationViewModel.Message = Snapshot.Confirmation == ELRSaveUIConfirmation::Overwrite
-		? NSLOCTEXT("LRSaveUI", "ConfirmOverwrite", "Overwrite this save slot?")
+		? ResolveText(TEXT("SaveConfirmOverwrite"))
 		: (Snapshot.Confirmation == ELRSaveUIConfirmation::Delete
-			? NSLOCTEXT("LRSaveUI", "ConfirmDelete", "Delete this save slot?") : FText::GetEmpty());
+			? ResolveText(TEXT("SaveConfirmDelete")) : FText::GetEmpty());
+	Snapshot.ConfirmationViewModel.WarningMessage = Snapshot.Confirmation == ELRSaveUIConfirmation::Delete
+		? ResolveText(TEXT("SaveDeleteWarning")) : FText::GetEmpty();
+	Snapshot.ConfirmationViewModel.ConfirmLabel = ResolveText(TEXT("UIConfirm"));
+	Snapshot.ConfirmationViewModel.CancelLabel = ResolveText(TEXT("UICancel"));
 }
 
 void ULRSaveWidgetController::HandleCatalogStateChanged(const ELRSaveCatalogState state)

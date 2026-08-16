@@ -12,7 +12,7 @@
 
 namespace
 {
-	FLRSaveOperationResult MakeOperationResult(const FGuid operationId, const ELRSaveOperationType type,
+	FLRSaveOperationResult MakeV2OperationResult(const FGuid operationId, const ELRSaveOperationType type,
 		const FLRSaveSlotId& slotId, const ELRSaveResultCode code, const FString& diagnostic)
 	{
 		FLRSaveOperationResult result;
@@ -50,7 +50,7 @@ FLRSaveOperationResult ULRSaveSubsystem::EnqueueOperation(const ELRSaveOperation
 		operation.CapturedData = *capturedData;
 		operation.bHasCapturedData = true;
 	}
-	const FLRSaveOperationResult result = MakeOperationResult(operation.OperationId, operation.Type,
+	const FLRSaveOperationResult result = MakeV2OperationResult(operation.OperationId, operation.Type,
 		operation.SlotId, ELRSaveResultCode::Queued, FString());
 	if (bFront)
 	{
@@ -169,7 +169,7 @@ void ULRSaveSubsystem::CancelQueuedOperations(const FString& diagnostic)
 	FLRQueuedSaveOperation operation;
 	while (LRSaveOperationQueue::Dequeue(OperationQueue, operation))
 	{
-		OnSaveOperationCompleted.Broadcast(MakeOperationResult(operation.OperationId, operation.Type,
+		OnSaveOperationCompleted.Broadcast(MakeV2OperationResult(operation.OperationId, operation.Type,
 			operation.SlotId, ELRSaveResultCode::Cancelled, diagnostic));
 	}
 }
@@ -207,7 +207,7 @@ void ULRSaveSubsystem::CompleteOperation(const ELRSaveResultCode code, const FSt
 	{
 		PublishCatalogSnapshot();
 	}
-	const FLRSaveOperationResult result = MakeOperationResult(completedOperation.OperationId,
+	const FLRSaveOperationResult result = MakeV2OperationResult(completedOperation.OperationId,
 		completedOperation.Type, completedOperation.SlotId, code, diagnostic);
 	if (code == ELRSaveResultCode::Succeeded)
 	{

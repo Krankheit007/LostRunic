@@ -9,6 +9,7 @@
 #pragma once
 
 #include "GameFramework/HUD.h"
+#include "Save/LRSaveV2Types.h"
 #include "UI/LRUITypes.h"
 
 #include "LRHUD.generated.h"
@@ -18,6 +19,8 @@ class ALRPlayerController;
 class ULRDialogueWidgetController;
 class ULRHUDWidgetController;
 class ULRMenuWidgetController;
+class ULRPauseWidget;
+class ULRSaveSelectionWidget;
 class ULRScreenWidget;
 class ULRSaveWidgetController;
 class ULRTransitionWidgetController;
@@ -73,7 +76,7 @@ public:
 	 * @param inputMode 本次操作使用的 `inputMode` 枚举或模式值。
 	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
 	 */
-	ULRScreenWidget* GetFocusableScreen(ELRInputMode inputMode) const;
+	virtual ULRScreenWidget* GetFocusableScreen(ELRInputMode inputMode) const;
 	/**
 	 * @brief 查询 Dialogue Controller；不修改领域状态。
 	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
@@ -103,6 +106,13 @@ public:
 	TSubclassOf<ULRScreenWidget> GetMenuScreenClass() const { return MenuScreenClass; }
 
 protected:
+	/** Opens the save-slot page in an explicit mode; widget classes remain Blueprint defaults. */
+	void OpenSaveSelection(ELRSaveSelectionMode mode);
+	/** Returns from the save page to its owning screen. Main-menu HUD overrides this route. */
+	virtual void ReturnFromSaveSelection();
+	/** Gameplay HUDs may use the project default; the dedicated main-menu HUD opts out. */
+	virtual bool ShouldUseProjectDefaultHUDScreen() const { return true; }
+
 	/** HUDScreen Class 的软类或类默认引用，用于创建对应蓝图实例。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。 */
 	UPROPERTY(EditDefaultsOnly, Category = "Widgets")
 	TSubclassOf<ULRScreenWidget> HUDScreenClass;
@@ -127,6 +137,10 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Widgets")
 	TSubclassOf<ULRScreenWidget> SaveSlotsScreenClass;
 
+	/** Allows the dedicated main-menu HUD to show only its own root screen. */
+	void HideMenuScreens();
+	void SetScreenVisible(ELRScreenType screen, bool bVisible);
+
 	/** Transition Screen Class 的软类或类默认引用，用于创建对应蓝图实例。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。 */
 	UPROPERTY(EditDefaultsOnly, Category = "Widgets")
 	TSubclassOf<ULRScreenWidget> TransitionScreenClass;
@@ -149,11 +163,9 @@ private:
 	 * @param screen 本次操作使用的 `screen` 枚举或模式值。
 	 * @param bVisible 布尔开关 `bVisible`；true 表示启用或条件成立，false 表示禁用或条件不成立。
 	 */
-	void SetScreenVisible(ELRScreenType screen, bool bVisible);
 	/**
 	 * @brief 隐藏所有互斥菜单页面，确保同一时刻只有一个焦点目标。
 	 */
-	void HideMenuScreens();
 
 	/**
 	 * @brief 尽力把菜单控制器绑定到角色库存；Possess 未发生时 Inventory 为空，SetObservedCharacter 会兜底完成绑定。
@@ -193,6 +205,14 @@ private:
 	 */
 	UFUNCTION()
 	void HandleMenuScreenChanged(ELRScreenType previousScreen, ELRScreenType currentScreen);
+	UFUNCTION()
+	void HandlePauseResumeRequested();
+	UFUNCTION()
+	void HandlePauseSaveRequested();
+	UFUNCTION()
+	void HandlePauseMainMenuRequested();
+	UFUNCTION()
+	void HandleSaveSelectionBackRequested();
 
 	/**
 	 * @brief 处理 Handle Transition Visibility Changed 事件，将引擎回调转换为对应领域状态更新。
@@ -223,4 +243,6 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<ULRSaveWidgetController> SaveController;
+
+	ELRSaveSelectionMode PendingSaveSelectionMode = ELRSaveSelectionMode::Save;
 };

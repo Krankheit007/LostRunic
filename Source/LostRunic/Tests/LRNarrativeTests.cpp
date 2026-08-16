@@ -48,6 +48,7 @@ namespace
 		mapRegistration.World = TSoftObjectPtr<UWorld>(FSoftObjectPath(TEXT("/Game/LostRunic/Levels/PIE_Test/L_PIE_Test.L_PIE_Test")));
 		contentSet->Maps.Add(mapRegistration);
 		contentSet->NewGameMapId = mapRegistration.MapId;
+		contentSet->MainMenuMapId = mapRegistration.MapId;
 		return contentSet;
 	}
 

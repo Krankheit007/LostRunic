@@ -14,10 +14,14 @@
 #include "Framework/LRCharacter.h"
 #include "Framework/LRGameInstanceSubsystem.h"
 #include "Framework/LRPlayerController.h"
+#include "Framework/LRGameFlowSubsystem.h"
 #include "Narrative/LRDialogueSubsystem.h"
 #include "UI/LRDialogueWidgetController.h"
 #include "UI/LRHUDWidgetController.h"
 #include "UI/LRInventoryScreenWidget.h"
+#include "UI/LRPauseWidget.h"
+#include "UI/LRPlayerUIComponent.h"
+#include "UI/LRSaveSelectionWidget.h"
 #include "UI/LRMenuWidgetController.h"
 #include "UI/LRScreenWidget.h"
 #include "UI/LRSaveWidgetController.h"
@@ -86,11 +90,11 @@ void ALRHUD::InitializeForController(ALRPlayerController* playerController)
 	}
 	// 菜单控制器绑定库存与内容定义；Possess 尚未发生时在此尽力绑定，SetObservedCharacter 会兜底。
 	BindMenuControllerToCharacter(playerController);
-	if (!HUDScreenClass)
+	if (!HUDScreenClass && ShouldUseProjectDefaultHUDScreen())
 	{
 		HUDScreenClass = GetDefault<ULRProjectSettings>()->HUDScreenClass.LoadSynchronous();
 	}
-	if (!HUDScreenClass)
+	if (!HUDScreenClass && ShouldUseProjectDefaultHUDScreen())
 	{
 		UE_LOG(LogLostRunicUI, Warning, TEXT("HUD=%s has no HUDScreenClass; no HUD screen will be created."), *GetNameSafe(this));
 	}
@@ -103,6 +107,16 @@ void ALRHUD::InitializeForController(ALRPlayerController* playerController)
 	if (ULRScreenWidget* saveScreen = GetScreen(ELRScreenType::SaveSlots))
 	{
 		saveScreen->SetSaveWidgetController(SaveController);
+	}
+	if (ULRPauseWidget* pauseScreen = Cast<ULRPauseWidget>(GetScreen(ELRScreenType::Pause)))
+	{
+		pauseScreen->OnResumeRequested.AddDynamic(this, &ALRHUD::HandlePauseResumeRequested);
+		pauseScreen->OnSaveRequested.AddDynamic(this, &ALRHUD::HandlePauseSaveRequested);
+		pauseScreen->OnMainMenuRequested.AddDynamic(this, &ALRHUD::HandlePauseMainMenuRequested);
+	}
+	if (ULRSaveSelectionWidget* saveScreen = Cast<ULRSaveSelectionWidget>(GetScreen(ELRScreenType::SaveSlots)))
+	{
+		saveScreen->OnBackRequested.AddDynamic(this, &ALRHUD::HandleSaveSelectionBackRequested);
 	}
 	SetObservedCharacter(Cast<ALRCharacter>(playerController->GetPawn()));
 	SetScreenVisible(ELRScreenType::HUD, true);
@@ -191,6 +205,23 @@ void ALRHUD::ShowMenu(const ELRScreenType screen, const bool bVisible)
 	if (!bVisible)
 	{
 		MenuController->CloseScreen();
+	}
+}
+
+void ALRHUD::OpenSaveSelection(const ELRSaveSelectionMode mode)
+{
+	PendingSaveSelectionMode = mode;
+	if (MenuController)
+	{
+		MenuController->OpenScreen(ELRScreenType::SaveSlots);
+	}
+}
+
+void ALRHUD::ReturnFromSaveSelection()
+{
+	if (MenuController)
+	{
+		MenuController->OpenScreen(ELRScreenType::Pause);
 	}
 }
 
@@ -354,12 +385,44 @@ void ALRHUD::HandleMenuScreenChanged(const ELRScreenType previousScreen, const E
 	{
 		if (currentScreen == ELRScreenType::SaveSlots && SaveController)
 		{
-			SaveController->Open(ELRSaveSelectionMode::Save);
+			SaveController->Open(PendingSaveSelectionMode);
 		}
 		SetScreenVisible(currentScreen, true);
 		return;
 	}
 	ShowMenuTab(currentScreen);
+}
+
+void ALRHUD::HandlePauseResumeRequested()
+{
+	ALRPlayerController* controller = Cast<ALRPlayerController>(PlayerOwner);
+	if (controller && controller->GetPlayerUI())
+	{
+		controller->GetPlayerUI()->CloseMenuScreen();
+	}
+}
+
+void ALRHUD::HandlePauseSaveRequested()
+{
+	OpenSaveSelection(ELRSaveSelectionMode::Save);
+}
+
+void ALRHUD::HandlePauseMainMenuRequested()
+{
+	ALRPlayerController* controller = Cast<ALRPlayerController>(PlayerOwner);
+	if (controller && controller->GetPlayerUI())
+	{
+		controller->GetPlayerUI()->CloseMenuScreen();
+	}
+	if (ULRGameFlowSubsystem* flow = GetGameInstance() ? GetGameInstance()->GetSubsystem<ULRGameFlowSubsystem>() : nullptr)
+	{
+		flow->TravelToMainMenu();
+	}
+}
+
+void ALRHUD::HandleSaveSelectionBackRequested()
+{
+	ReturnFromSaveSelection();
 }
 
 /**

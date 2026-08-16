@@ -473,9 +473,9 @@
 6. 菜单打开后角色不能移动（Gameplay Context 移除 + Handler 防御）与鼠标可见（`ConfigureViewportInput(Menu)`）由架构保证，`LostRunic.UI.InputLayerPriorityAndRestore` 自动化测试覆盖层切换。
 7. 手柄路径（`DPad-Up` 打开、`LB`/`RB` 切页）由 `LostRunic.Input.InventoryOpenMappings` 自动化测试断言映射，PIE 手柄实测留待发布验收。
 
-## 主菜单、存档选择与本地化最终契约（2026-08-16）
+## 主菜单、暂停、存档选择与本地化最终契约（2026-08-16）
 
-- 状态：`C++ 契约已实现；蓝图父类、输入资产和 StringTable 需按本节装配`
+- 状态：`C++ 契约与资产装配已实现；PIE 验收结果见本节末尾`
 - 测试地图：通用 UI/输入冒烟仍使用 `/Game/LostRunic/Levels/PIE_Test/L_PIE_Test`；主菜单地图为 `/Game/LostRunic/Levels/Menu/L_MainMenu`。
 - 主菜单框架：`ALRMainMenuGameMode` + `ALRMainMenuHUD`，`DefaultPawnClass=nullptr`，复用 `ALRPlayerController`；菜单 Host 不创建玩法 Pawn。
 
@@ -484,23 +484,41 @@
 | 蓝图用途 | C++ 父类 | 必须存在的控件名 |
 | --- | --- | --- |
 | 主菜单 | `ULRMainMenuWidget` | `NewGameButton`、`ContinueButton`、`LoadButton`、`OptionsButton`、`ExitButton` |
-| 存档选择页 | `ULRSaveSelectionWidget` | `SlotListPanel`、`CreateSlotButton`、`BackButton`、`TitleText`、`StatusText` |
-| 存档槽 | `ULRSaveSlotWidget` | `PrimaryButton`、`DeleteButton`、`SlotNameText`、`MapNameText`、`SavedAtText`、`PlayTimeText`、`CollectibleCountText`、`HealthText`、`BackgroundImage` |
-| 创建槽 | `ULRCreateSaveSlotWidget` | `CreateButton`、`CreateLabelText` |
-| 覆盖/删除确认 | `ULRSaveConfirmDialogWidget` | `ConfirmButton`、`CancelButton`、`MessageText` |
+| 暂停菜单 | `ULRPauseWidget` | `Resume`、`SaveGame`、`Options`、`MainMenu` |
+| 存档选择页 | `ULRSaveSelectionWidget` | `SlotListPanel`、`BackButton`、`TitleText`、`StatusText` |
+| 存档槽 | `ULRSaveSlotWidget` | `SlotButton`、`SlotNameText`、`MapNameText`、`SavedAtText`、`PlayTimeText`、`CollectibleCountText`、`HealthText`、`BackgroundImage` |
+| 创建槽 | `ULRCreateSaveSlotWidget` | `CreateButton`、`Slot_Index`、`CreateLabelText` |
+| 覆盖/删除确认 | `ULRSaveConfirmDialogWidget` | 面板 `Cover`、`Delete`；按钮 `Cover_Confirm`、`Cover_Cancel`、`Delete_Confirm`、`Delete_Cancel`；文字 `MessageText`、`Cover_Confirm_T`、`Cover_Cancel_T`、`Delete_T_1`、`Delete_T`、`Delete_Confirm_T`、`Delete_Cancel_T` |
+
+现有 Widget Blueprint 是绑定契约的事实来源。上述名称来自资产现有 Designer 结构；C++ 只适配这些既有名称，并用 `FLRSaveConfirmViewModel` 下发 StringTable 文案，不重命名或重建控件。`Cover` 与 `Delete` 共用一套运行时 ViewModel，但根据请求类型互斥显示。
+
+### 资产路径、父类与 Class Defaults
+
+1. `/Game/LostRunic/UI/Save/WBP_MainMenu`：父类 `ULRMainMenuWidget`。
+2. `/Game/LostRunic/UI/Save/WBP_Pause`：父类 `ULRPauseWidget`；`Options` 由 C++ 保持禁用。
+3. `/Game/LostRunic/UI/Save/WBP_SaveSelection`：父类 `ULRSaveSelectionWidget`。在 **Class Defaults > Save UI > Widget Classes** 分别设置 `Save Slot Widget Class = WBP_SaveSlot`、`Create Save Slot Widget Class = WBP_CreateSaveSlot`、`Confirm Dialog Widget Class = WBP_SaveConfirmDialog`。**Save UI > Layout > Slot Row Height** 保持 `200`，与现有 `WBP_SaveSlot`、`WBP_CreateSaveSlot` 的 Designer 行高一致；C++ 会用 `SizeBox` 包装动态行，避免 CanvasPanel 根控件直接加入 ScrollBox 后期望高度变为 0。
+4. `/Game/LostRunic/UI/Save/WBP_SaveSlot`：父类 `ULRSaveSlotWidget`。整栏只保留 `SlotButton`；鼠标点击和 Primary 都执行模式相关主操作，Delete 输入只作用于当前焦点手动槽。`WBP_SaveSelection` 收到快照后在 C++ 中创建该行，并通过 `ApplyView` 写入所有 TextBlock；蓝图 EventGraph 不负责生成文字。
+5. `/Game/LostRunic/UI/Save/WBP_CreateSaveSlot`：父类 `ULRCreateSaveSlotWidget`；创建入口只存在于此资产的 `CreateButton`，选择页不再绑定页面级 `CreateSlotButton`。该行同样由 `WBP_SaveSelection` 在 C++ 中创建；`Slot_Index` 由 `ApplyView` 写入纯数字，`CreateLabelText` 由 StringTable 快照写入。
+6. `/Game/LostRunic/UI/Save/WBP_SaveConfirmDialog`：父类 `ULRSaveConfirmDialogWidget`；Overwrite 只显示 `Cover`，Delete 只显示 `Delete`，关闭时两者均 Collapsed。
+7. `/Game/LostRunic/Blueprints/UI/BP_LRMainMenuHUD`：父类 `ALRMainMenuHUD`；Class Defaults 设置 `Main Menu Screen Class = WBP_MainMenu`、`Save Slots Screen Class = WBP_SaveSelection`。
+8. `/Game/LostRunic/Blueprints/UI/BP_LRMainMenuGameMode`：父类 `ALRMainMenuGameMode`；`HUD Class = BP_LRMainMenuHUD`、`Default Pawn Class = None`。`L_MainMenu` 的 **World Settings > GameMode Override** 指向该类。
+9. `/Game/LostRunic/Blueprints/Character/BP_LRGameMode`：`Default Pawn Class = /Game/LostRunic/Blueprints/Character/BP_Ruth.BP_Ruth_C`，供 `L_Home` 生成可见主角。
+10. `/Game/LostRunic/Data/Tuning/DA_LRNPCTuning`：类型 `ULRNPCTuning`，使用 C++ 合法默认值；`/Game/LostRunic/Data/DA_LRGameTuningSet` 的 `NPC` 指向该资产。
+11. `/Game/LostRunic/Data/DA_LRGameContentSet`：`MainMenuMapId = Menu`；`Maps` 中必须已有 `Menu` 注册。Pause 返回主菜单只调用 GameFlow 注册旅行，不在 UI C++ 中写地图路径。
 
 `ALRHUD` 是 `ULRSaveWidgetController` 的唯一宿主。Widget 只在 `SetSaveWidgetController` 时绑定 `OnSnapshotChanged`，在 `NativeDestruct` 时解除绑定，不调用 `Initialize/Deinitialize`，也不保存玩法状态。
 
-存档目录非 `Ready` 时页面只能显示加载/阻塞状态，不得把空列表解释为“没有存档”；正式列表来自 `FLRSaveCatalogSnapshot`。确认页消费 `FLRSaveConfirmViewModel`，焦点消费 `FLRSaveFocusTarget`：已有槽按 `SlotId` 恢复，创建槽按 `CreateDisplayIndex` 恢复。
+存档目录非 `Ready` 时页面只能显示加载/阻塞状态，不得把空列表解释为“没有存档”；正式列表来自 `FLRSaveCatalogSnapshot`。`WBP_SaveSelection` 根据快照动态创建槽位：Save 模式容量允许时追加 `WBP_CreateSaveSlot`，Load 模式不创建该栏。确认页消费 `FLRSaveConfirmViewModel`，焦点消费 `FLRSaveFocusTarget`：已有槽按 `SlotId` 恢复，创建槽按 `CreateDisplayIndex` 恢复；刷新、取消确认与删除后必须落到仍有效的目标。
 
 本阶段批准的表现例外：不新增可见错误 `TextBlock`；阻塞与操作失败沿用现有 `StatusText`/确认层表现，具体错误原因保留在 C++ 日志与结果码中。
 
 ### 输入与本地化
 
 1. 在 `DA_LRInputConfig` 新增 `UIDeleteAction`，资产路径约定为 `/Game/LostRunic/Input/Actions/IA_LRUIDelete`；`IMC_LRMenu` 映射键盘 `Delete`、手柄 `Gamepad_FaceButton_Top`（Xbox X 语义）到该动作。代码已接通；资产未配置时保留兼容并不绑定该动作。
-2. `ULRGameContentSet.UIStringTable` 指向 `/Game/LostRunic/Localization/ST_LRUI`。地图显示名唯一来源是 `FLRMapRegistration.DisplayNameTextKey -> ULRGameContentSet::GetMapDisplayName -> ResolveUIText`；健康状态、按钮标签和格式化模板目前仍使用 `NSLOCTEXT`，在 StringTable 中添加同名 key 不会自动替换它们。
-3. `FLRSaveSlotMetadata.SavedAtUtc` 只保存 UTC；槽位 Widget 使用 `LRSaveFormatting::FormatSavedAtLocal` 转为当前本地时区和 Culture。时长使用 `HH:MM:SS`，不按 24 小时取模；收藏进度使用 `{Count}/{Total}`。
-4. `FLRSaveSlotMetadata.CollectedCount` 追加在现有 SaveGame 字段末尾；旧 V1 Catalog 不含该字段时按 `0` 迁移。冻结兼容夹具为 `Source/LostRunic/Tests/Fixtures/CatalogV1_NoCollectedCount.bin`，由 `LostRunic.Save.Catalog.LoadsFrozenV1Fixture` 回归验证。
+2. `/Game/LostRunic/Input/Actions/IA_LRCancel` 必须勾选 **Trigger When Paused**。Pause 打开的 Save 页面保持 World Paused；未勾选时 Escape/手柄 Cancel 不会进入统一 UI Cancel 路由，也就无法返回 Pause。
+3. `ULRGameContentSet.UIStringTable` 指向 `/Game/LostRunic/Localization/ST_LRUI`。地图显示名、存档页标题、创建入口、自动槽名称、健康状态、错误提示、确认文案和确认/取消按钮都由 `ULRGameContentSet::ResolveUIText` 解析后写入只读 UI 快照；Widget Blueprint 不再保存这些文字的运行时权威值。`WBP_SaveSelection` 收到 `OnSnapshotChanged` 时只把动态委托当作刷新通知，实际显示数据统一从 `ULRSaveWidgetController.GetSnapshot()` 读取，避免在反射委托参数中复制嵌套 `FText`。
+4. `FLRSaveSlotMetadata.SavedAtUtc` 只保存 UTC；槽位 Widget 使用 `LRSaveFormatting::FormatSavedAtLocal` 转为当前本地时区和 Culture。时长使用 `HH:MM:SS`，不按 24 小时取模；收藏进度使用 `{Count}/{Total}`。
+5. `FLRSaveSlotMetadata.CollectedCount` 追加在现有 SaveGame 字段末尾；旧 V1 Catalog 不含该字段时按 `0` 迁移。冻结兼容夹具为 `Source/LostRunic/Tests/Fixtures/CatalogV1_NoCollectedCount.bin`，由 `LostRunic.Save.Catalog.LoadsFrozenV1Fixture` 回归验证。
 
 ### `ST_LRUI` 的实际配置步骤
 
@@ -511,15 +529,30 @@
 
    | Key | Source String（`zh-Hans`） | 对应设置 |
    | --- | --- | --- |
-   | `Map.Home` | `家` | Content Set 的 Maps 行：`MapId=Home`、`DisplayNameTextKey=Map.Home` |
-   | `Map.Memory` | `记忆` | 只有存在 `MapId=Memory` 的 Maps 行时才添加 |
+   | `MapHome` | `家` | Content Set 的 Maps 行：`MapId=Home`、`DisplayNameTextKey=MapHome` |
+   | `MapMenu` | `主菜单` | Content Set 的 Maps 行：`MapId=Menu`、`DisplayNameTextKey=MapMenu` |
+
+   存档界面使用以下稳定 Key，统一在此 StringTable 修改源语言，不在各 Widget Blueprint 中分别维护文案：
+
+   | Key | Source String（`zh-Hans`） |
+   | --- | --- |
+   | `SaveTitle` | `存档` |
+   | `SaveCreateNew` | `新建存档` |
+   | `SaveAuto` | `自动存档` |
+   | `SaveHealthHealthy` / `SaveHealthMissing` / `SaveHealthCorrupt` | `存档正常` / `存档文件缺失` / `存档损坏` |
+   | `SaveHealthUnsupported` / `SaveHealthMismatch` | `存档版本不支持` / `存档数据不匹配` |
+   | `SaveHealthUnknown` / `SaveHealthInvalid` | `未知存档类型` / `无效存档` |
+   | `SaveCatalogBlocked` / `SaveCapacityFull` / `SaveOperationFailed` | 存档页状态错误文案 |
+   | `SaveConfirmOverwrite` / `SaveConfirmDelete` | 覆盖、删除确认文案 |
+   | `SaveDeleteWarning` | `删除后无法恢复` |
+   | `UIConfirm` / `UICancel` | `确认` / `取消` |
 
 3. 打开 `/Game/LostRunic/Data/DA_LRGameContentSet`，在 `Content → Localization → UI String Table` 选择 `ST_LRUI`。这个引用当前已经存在，但仍要确认没有被改空。
 4. 在同一个资产的 `Maps` 数组中编辑对应地图行：
 
    - `MapId`：稳定 ID，例如 `Home`。
    - `World`：该地图的软引用。
-   - `DisplayNameTextKey`：填写 `Map.Home`，必须与 StringTable 的 Key 完全相同。
+   - `DisplayNameTextKey`：填写 `MapHome`，必须与 StringTable 的 Key 完全相同。
    - 不再填写 `DisplayName`：该字段已删除，地图名称只由 `DisplayNameTextKey` 提供。
 
 5. 保存资产并执行 Data Validation。存档槽显示地图名时，代码会按 `MapId` 找到该行，再从 `DisplayNameTextKey` 解析 StringTable；因此只在表里新增 Key、但不填写地图注册行，不会产生任何可见变化。
@@ -527,19 +560,20 @@
 ### 如何判断配置是否生效
 
 - 显示 `家`：`UIStringTable`、Maps 行和 Key 都正确。
-- 显示 `Map.Home`：Key 不存在、拼写/大小写不一致，或 `UIStringTable` 没有赋值。
+- 显示 `MapHome`：Key 不存在、拼写/大小写不一致，或 `UIStringTable` 没有赋值。
 - 显示 `Home`：Maps 行的 `DisplayNameTextKey` 为空，或地图注册行不存在，代码只能回退到 `MapId`。
 
 ### 英文配置
 
 StringTable 的 `Source String` 只填写源语言（本项目约定为 `zh-Hans`），不要在同一 Key 下再复制一行英文。需要英文时，在 Localization Dashboard 创建/打开项目 Target，将 Native Culture 设为 `zh-Hans`，Supported Cultures 加入 `en`；Gather 后导出 PO，在英文翻译列填写 `Home`，再 Import 并 Compile。运行时切换 `culture=zh-Hans` 与 `culture=en` 验收同一个 Key 的两种文本。
 
-> 重要边界：当前 `ST_LRUI` 只会直接影响使用 `ResolveUIText` 的内容，实际落地的是地图显示名。如果目标是让主菜单按钮、健康状态、确认提示也全部从 `ST_LRUI` 读取，需要下一步把这些 `NSLOCTEXT` 调用改为接收 `ULRGameContentSet` 的 resolver；仅配置 StringTable 行不会自动完成这件事。
+> 数字、UTC 转本地时间、累计时长和收藏计数不走文案 Key；其余存档页可见文字必须由上述稳定 Key 解析。Key 缺失时界面会显示 Key 本身，便于直接诊断配置遗漏。
 
 ### 存档页按钮语义
 
 - 主菜单：`NewGame`、`Continue`、`Load`、`Exit` 可用；`Options` 置灰。
-- Save 页：自动槽不可覆盖/删除；手动槽覆盖必须确认；删除必须确认；列表未 `Ready` 时 Create/Overwrite/Load/Delete/Continue/NewGame 均由存档子系统返回 `RejectedBusy`。
+- Pause：`Resume` 关闭暂停；`SaveGame` 打开 Save 模式并在 Back 时返回 Pause；`MainMenu` 解除暂停并前往注册的 `Menu` 地图；`Options` 置灰。
+- Save 页：自动槽的 Primary 禁用，且不可覆盖/删除；手动槽覆盖必须确认；删除必须确认。Load 能力只在 Load 模式暴露，Overwrite 能力只在 Save 模式暴露；列表未 `Ready` 时 Create/Overwrite/Load/Delete/Continue/NewGame 均由存档子系统返回 `RejectedBusy`。
 - Load 页：只有 `Healthy` 槽可加载；`Continue` 与 `RequestContinue` 共享同一“最新健康槽”解析规则。
 
 ### 本节 PIE 验收
@@ -549,3 +583,10 @@ StringTable 的 `Source String` 只填写源语言（本项目约定为 `zh-Hans
 3. 验证 `Delete` 与 Xbox X 只进入删除确认，不直接删除；自动槽无删除入口。
 4. 切换 zh-Hans/English，确认主菜单、地图名、健康状态、时间、时长和收藏计数均来自 StringTable/格式化函数。
 5. 主菜单从 `L_MainMenu` 点击 NewGame 后进入 `Home`；不生成 Pawn 的主菜单不会出现 Character/Save WorldReady 相关错误。
+
+### 验证记录（2026-08-16）
+
+- `LostRunicEditor Win64 Development` 构建通过。
+- 定向自动化测试 7/7 通过、0 Warning/Error：主菜单无 Pawn、PIE 内容契约、Designer Widget 契约、刷新后焦点恢复、焦点目标规则、Primary/Delete 动作规则和存档快照规则。
+- `L_MainMenu` 已确认菜单显示、专用 GameMode/HUD 生效、无 Pawn，且 `LogGameMode`、`LogLostRunicUI`、`LogBlueprint` 无项目级 Warning/Error；`DA_LRNPCTuning` 已由调优日志确认加载。
+- `L_Home` 已确认运行时生成 `BP_Ruth_C` 且角色模型可见。Pause → Save、确认弹窗及返回链路的最终手动 PIE 由项目负责人继续验收。

@@ -7,6 +7,7 @@
 #include "LRSaveConfirmDialogWidget.generated.h"
 
 class UButton;
+class UPanelWidget;
 class UTextBlock;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FLRSaveConfirmActionRequested);
@@ -21,6 +22,7 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Lost Runic|Save UI")
 	void ApplyViewModel(const FLRSaveConfirmViewModel& viewModel);
+	bool FocusDefaultAction();
 
 	UPROPERTY(BlueprintAssignable, Category = "Lost Runic|Save UI")
 	FLRSaveConfirmActionRequested OnConfirmRequested;
@@ -32,9 +34,19 @@ protected:
 	UFUNCTION(BlueprintImplementableEvent, Category = "Lost Runic|Save UI")
 	void OnViewModelChanged(const FLRSaveConfirmViewModel& viewModel);
 
-	UPROPERTY(BlueprintReadOnly, meta = (BindWidget)) TObjectPtr<UButton> ConfirmButton;
-	UPROPERTY(BlueprintReadOnly, meta = (BindWidget)) TObjectPtr<UButton> CancelButton;
+	UPROPERTY(BlueprintReadOnly, meta = (BindWidget)) TObjectPtr<UPanelWidget> Cover;
+	UPROPERTY(BlueprintReadOnly, meta = (BindWidget)) TObjectPtr<UPanelWidget> Delete;
+	UPROPERTY(BlueprintReadOnly, meta = (BindWidget)) TObjectPtr<UButton> Cover_Confirm;
+	UPROPERTY(BlueprintReadOnly, meta = (BindWidget)) TObjectPtr<UButton> Cover_Cancel;
+	UPROPERTY(BlueprintReadOnly, meta = (BindWidget)) TObjectPtr<UButton> Delete_Confirm;
+	UPROPERTY(BlueprintReadOnly, meta = (BindWidget)) TObjectPtr<UButton> Delete_Cancel;
 	UPROPERTY(BlueprintReadOnly, meta = (BindWidget)) TObjectPtr<UTextBlock> MessageText;
+	UPROPERTY(BlueprintReadOnly, meta = (BindWidget)) TObjectPtr<UTextBlock> Cover_Confirm_T;
+	UPROPERTY(BlueprintReadOnly, meta = (BindWidget)) TObjectPtr<UTextBlock> Cover_Cancel_T;
+	UPROPERTY(BlueprintReadOnly, meta = (BindWidget)) TObjectPtr<UTextBlock> Delete_T_1;
+	UPROPERTY(BlueprintReadOnly, meta = (BindWidget)) TObjectPtr<UTextBlock> Delete_T;
+	UPROPERTY(BlueprintReadOnly, meta = (BindWidget)) TObjectPtr<UTextBlock> Delete_Confirm_T;
+	UPROPERTY(BlueprintReadOnly, meta = (BindWidget)) TObjectPtr<UTextBlock> Delete_Cancel_T;
 	UPROPERTY(BlueprintReadOnly, Category = "Save UI") FLRSaveConfirmViewModel ViewModel;
 
 	UFUNCTION()

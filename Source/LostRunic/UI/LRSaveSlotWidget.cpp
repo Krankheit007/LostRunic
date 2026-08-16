@@ -4,75 +4,64 @@
 #include "Components/TextBlock.h"
 #include "Save/LRSaveFormatting.h"
 
-namespace
-{
-	FText HealthText(const ELRSaveSlotHealth health)
-	{
-		switch (health)
-		{
-		case ELRSaveSlotHealth::Healthy: return NSLOCTEXT("LRSaveUI", "HealthHealthy", "Healthy");
-		case ELRSaveSlotHealth::MissingPayload: return NSLOCTEXT("LRSaveUI", "HealthMissing", "Missing");
-		case ELRSaveSlotHealth::CorruptPayload: return NSLOCTEXT("LRSaveUI", "HealthCorrupt", "Corrupt");
-		case ELRSaveSlotHealth::UnsupportedVersion: return NSLOCTEXT("LRSaveUI", "HealthUnsupported", "Unsupported");
-		case ELRSaveSlotHealth::CatalogMismatch: return NSLOCTEXT("LRSaveUI", "HealthMismatch", "Mismatched");
-		case ELRSaveSlotHealth::UnknownSlotType: return NSLOCTEXT("LRSaveUI", "HealthUnknownType", "Unknown");
-		case ELRSaveSlotHealth::InvalidData: return NSLOCTEXT("LRSaveUI", "HealthInvalid", "Invalid");
-		default: return NSLOCTEXT("LRSaveUI", "HealthInvalidFallback", "Invalid");
-		}
-	}
-}
-
 void ULRSaveSlotWidget::NativeOnInitialized()
 {
 	Super::NativeOnInitialized();
-	if (PrimaryButton)
+	SlotButton->OnClicked.AddDynamic(this, &ULRSaveSlotWidget::HandlePrimaryClicked);
+}
+
+void ULRSaveSlotWidget::NativeOnAddedToFocusPath(const FFocusEvent& inFocusEvent)
+{
+	Super::NativeOnAddedToFocusPath(inFocusEvent);
+	if (View.SlotId.IsValid())
 	{
-		PrimaryButton->OnClicked.AddDynamic(this, &ULRSaveSlotWidget::HandlePrimaryClicked);
-	}
-	if (DeleteButton)
-	{
-		DeleteButton->OnClicked.AddDynamic(this, &ULRSaveSlotWidget::HandleDeleteClicked);
+		OnFocused.Broadcast(View.SlotId);
 	}
 }
 
 void ULRSaveSlotWidget::ApplyView(const FLRSaveSlotView& view)
 {
 	View = view;
-	if (PrimaryButton)
-	{
-		PrimaryButton->SetIsEnabled(view.bCanLoad || view.bCanOverwrite);
-	}
-	if (DeleteButton)
-	{
-		DeleteButton->SetIsEnabled(view.bCanDelete);
-	}
+	SlotButton->SetIsEnabled(view.bCanLoad || view.bCanOverwrite || view.bCanDelete);
 	if (SlotNameText)
 	{
-		SlotNameText->SetText(FText::Format(NSLOCTEXT("LRSaveUI", "SlotName", "Slot {0}"),
-			FText::AsNumber(view.DisplayIndex)));
+		SlotNameText->SetText(view.SlotDisplayText);
 	}
 	if (MapNameText)
 	{
-		MapNameText->SetText(view.MapDisplayName);
+		MapNameText->SetText(view.bHasData ? view.MapDisplayName : FText::GetEmpty());
 	}
 	if (SavedAtText)
 	{
-		SavedAtText->SetText(LRSaveFormatting::FormatSavedAtLocal(view.SavedAtUtc));
+		SavedAtText->SetText(view.bHasData
+			? LRSaveFormatting::FormatSavedAtLocal(view.SavedAtUtc) : FText::GetEmpty());
 	}
 	if (PlayTimeText)
 	{
-		PlayTimeText->SetText(LRSaveFormatting::FormatPlayTime(view.PlayTimeSeconds));
+		PlayTimeText->SetText(view.bHasData
+			? LRSaveFormatting::FormatPlayTime(view.PlayTimeSeconds) : FText::GetEmpty());
 	}
 	if (CollectibleCountText)
 	{
-		CollectibleCountText->SetText(LRSaveFormatting::FormatCollectedCount(view.CollectedCount,
-			view.TotalCollectibleCount));
+		CollectibleCountText->SetText(view.bHasData
+			? LRSaveFormatting::FormatCollectedCount(view.CollectedCount, view.TotalCollectibleCount)
+			: FText::GetEmpty());
 	}
 	if (HealthText)
 	{
-		HealthText->SetText(::HealthText(view.Health));
+		HealthText->SetText(view.bHasData ? view.HealthDisplayText : FText::GetEmpty());
 	}
 	OnViewChanged(View);
+}
+
+bool ULRSaveSlotWidget::SetSlotFocus()
+{
+	if (!SlotButton || !SlotButton->GetIsEnabled())
+	{
+		return false;
+	}
+	SlotButton->SetUserFocus(GetOwningPlayer());
+	return true;
 }
 
 void ULRSaveSlotWidget::HandlePrimaryClicked()
@@ -80,13 +69,5 @@ void ULRSaveSlotWidget::HandlePrimaryClicked()
 	if (View.SlotId.IsValid())
 	{
 		OnPrimaryRequested.Broadcast(View.SlotId);
-	}
-}
-
-void ULRSaveSlotWidget::HandleDeleteClicked()
-{
-	if (View.SlotId.IsValid())
-	{
-		OnDeleteRequested.Broadcast(View.SlotId);
 	}
 }

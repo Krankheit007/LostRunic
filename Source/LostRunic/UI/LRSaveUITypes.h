@@ -83,6 +83,15 @@ struct LOSTRUNIC_API FLRSaveConfirmViewModel
 	FText Message;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Save UI|Confirmation")
+	FText WarningMessage;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Save UI|Confirmation")
+	FText ConfirmLabel;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Save UI|Confirmation")
+	FText CancelLabel;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Save UI|Confirmation")
 	bool bVisible = false;
 };
 
@@ -93,12 +102,16 @@ struct LOSTRUNIC_API FLRSaveSlotView
 
 	UPROPERTY(BlueprintReadOnly, Category = "Save UI") FLRSaveSlotId SlotId;
 	UPROPERTY(BlueprintReadOnly, Category = "Save UI") int32 DisplayIndex = 0;
+	UPROPERTY(BlueprintReadOnly, Category = "Save UI") FText SlotDisplayText;
 	UPROPERTY(BlueprintReadOnly, Category = "Save UI") FText MapDisplayName;
 	UPROPERTY(BlueprintReadOnly, Category = "Save UI") FDateTime SavedAtUtc;
 	UPROPERTY(BlueprintReadOnly, Category = "Save UI") double PlayTimeSeconds = 0.0;
 	UPROPERTY(BlueprintReadOnly, Category = "Save UI") int32 CollectedCount = 0;
 	UPROPERTY(BlueprintReadOnly, Category = "Save UI") int32 TotalCollectibleCount = 0;
 	UPROPERTY(BlueprintReadOnly, Category = "Save UI") ELRSaveSlotHealth Health = ELRSaveSlotHealth::Healthy;
+	UPROPERTY(BlueprintReadOnly, Category = "Save UI") FText HealthDisplayText;
+	/** False for the always-present automatic row when the catalog holds no automatic save yet. */
+	UPROPERTY(BlueprintReadOnly, Category = "Save UI") bool bHasData = true;
 	UPROPERTY(BlueprintReadOnly, Category = "Save UI") bool bAutomatic = false;
 	UPROPERTY(BlueprintReadOnly, Category = "Save UI") bool bCanLoad = false;
 	UPROPERTY(BlueprintReadOnly, Category = "Save UI") bool bCanOverwrite = false;
@@ -113,6 +126,8 @@ struct LOSTRUNIC_API FLRSaveUISnapshot
 	UPROPERTY(BlueprintReadOnly, Category = "Save UI") ELRSaveSelectionMode Mode = ELRSaveSelectionMode::Load;
 	UPROPERTY(BlueprintReadOnly, Category = "Save UI") ELRSaveUIState State = ELRSaveUIState::Idle;
 	UPROPERTY(BlueprintReadOnly, Category = "Save UI") ELRSaveUIConfirmation Confirmation = ELRSaveUIConfirmation::None;
+	UPROPERTY(BlueprintReadOnly, Category = "Save UI") FText Title;
+	UPROPERTY(BlueprintReadOnly, Category = "Save UI") FText CreateLabel;
 	UPROPERTY(BlueprintReadOnly, Category = "Save UI") FLRSaveConfirmViewModel ConfirmationViewModel;
 	UPROPERTY(BlueprintReadOnly, Category = "Save UI") TArray<FLRSaveSlotView> Slots;
 	UPROPERTY(BlueprintReadOnly, Category = "Save UI") FLRSaveSlotId SelectedSlotId;
