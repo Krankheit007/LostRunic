@@ -490,7 +490,16 @@ void ULRPlayerUIComponent::HandleNarrativePageChanged(const FLRNarrativePage pag
 {
 	if (ALRHUD* hud = GetLRHUD())
 	{
-		hud->ShowNarrative(true);
+		if (page.SessionType == ELRNarrativeSessionType::Dialogue)
+		{
+			hud->ShowNarrative(false);
+			hud->ShowDialogue(true);
+		}
+		else
+		{
+			hud->ShowDialogue(false);
+			hud->ShowNarrative(true);
+		}
 	}
 	bDialogueActive = true;
 	ApplyArbitratedInputMode();
@@ -506,6 +515,7 @@ void ULRPlayerUIComponent::HandleNarrativeSessionEnded(const ELRNarrativeSession
 	if (ALRHUD* hud = GetLRHUD())
 	{
 		hud->ShowNarrative(false);
+		hud->ShowDialogue(false);
 	}
 	bDialogueActive = false;
 	ApplyArbitratedInputMode();

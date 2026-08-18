@@ -1,6 +1,6 @@
 /**
  * @file LRDialogueSubsystem.h
- * @brief 读取 Dialogue/Reading DataTable，计算剧情条件与选项分支，记录一次性事件，并向 UI 发布当前台词、阅读内容及结束事件。
+ * @brief 驱动 SUDS Dialogue 与 Reading DataTable 会话，记录剧情状态，并向 UI 发布当前台词、阅读内容及结束事件。
  *
  * 关联文件：LRDialogueSubsystem.cpp；所属领域：Narrative。
  * 设计依据：Docs/Design/01_GameDesignSummary.md 与 Docs/Technical/04_TechnicalDesign.md。
@@ -14,8 +14,47 @@
 
 #include "LRDialogueSubsystem.generated.h"
 
+class USUDSDialogue;
+class USUDSScript;
+class ULRDialogueEventBridge;
+class ULRDialogueStateParticipant;
+class ULRDialogueScriptRegistry;
+class ULRDialogueSpeakerRegistry;
 class ULRGameContentSet;
 class ULRLevelEventDefinition;
+
+UENUM(BlueprintType)
+enum class ELRDialogueEndReason : uint8
+{
+	None,
+	CompletedNaturally,
+	Cancelled,
+	OwnerDestroyed,
+	LevelTravel,
+	Rejected,
+	Error
+};
+
+USTRUCT(BlueprintType)
+struct LOSTRUNIC_API FLRDialogueStartRequest
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category="Dialogue")
+	FName ScriptId = NAME_None;
+
+	UPROPERTY(BlueprintReadOnly, Category="Dialogue")
+	TObjectPtr<USUDSScript> Script = nullptr;
+
+	UPROPERTY(BlueprintReadOnly, Category="Dialogue")
+	FName StartLabel = NAME_None;
+
+	UPROPERTY(BlueprintReadOnly, Category="Dialogue")
+	TWeakObjectPtr<UObject> Owner;
+
+	UPROPERTY(BlueprintReadOnly, Category="Dialogue")
+	FGameplayTag CompletionStoryTag;
+};
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FLRNarrativePageChanged, FLRNarrativePage, page);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FLRNarrativeSessionEnded, ELRNarrativeSessionType, sessionType,
@@ -48,14 +87,14 @@ public:
 	 */
 	void InitializeContent(ULRGameContentSet* contentSet);
 
-	/**
-	 * @brief 使用稳定 Dialogue 行 ID 启动对话会话并发布首个页面。
-	 * @param rowId DataTable 稳定行 ID，不使用行号。
-	 * @param completionEventId 稳定标识 `completionEventId`；用于内容查询和存档，不依赖显示名或数组序号。
-	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
-	 */
-	UFUNCTION(BlueprintCallable, Category = "Lost Runic|Narrative")
-	FLRNarrativeResult StartDialogue(FName rowId, FName completionEventId = NAME_None);
+	/** SUDS-backed production dialogue entry point. */
+	FLRNarrativeResult StartSUDSDialogue(const FLRDialogueStartRequest& request);
+	/** Returns the project-level Registry used to resolve every dialogue ScriptId. */
+	const ULRDialogueScriptRegistry* GetDialogueScriptRegistry() const { return DialogueScriptRegistry; }
+	FLRNarrativeResult AdvanceSUDSDialogue();
+	FLRNarrativeResult SelectSUDSChoice(int32 choiceIndex);
+	void EndSUDSDialogue(ELRDialogueEndReason reason, UObject* owner = nullptr);
+	FName GetActiveScriptId() const { return ActiveScriptId; }
 
 	/**
 	 * @brief 使用稳定 Reading 行 ID 启动阅读会话，并复用叙事推进规则。
@@ -169,13 +208,6 @@ public:
 
 private:
 	/**
-	 * @brief 解析指定对话行、条件和选项并发布给 UI，不在 C++ 中硬编码台词。
-	 * @param rowId DataTable 稳定行 ID，不使用行号。
-	 * @param action 输入动作或数值 `action`；不包含写死的具体键位。
-	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
-	 */
-	FLRNarrativeResult ShowDialogueRow(FName rowId, ELRNarrativeAction action);
-	/**
 	 * @brief 解析指定阅读行并发布给 UI，同时记录稳定笔记 ID。
 	 * @param readingId 稳定标识 `readingId`；用于内容查询和存档，不依赖显示名或数组序号。
 	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
@@ -203,10 +235,23 @@ private:
 	 * @brief 清空当前对话/阅读行、选项和表现状态，但保留已完成剧情事件。
 	 */
 	void ResetSession();
+	UFUNCTION()
+	void HandleSUDSSpeakerLine(USUDSDialogue* dialogue);
+	UFUNCTION()
+	void HandleSUDSChoice(USUDSDialogue* dialogue, int choiceIndex);
+	UFUNCTION()
+	void HandleSUDSFinished(USUDSDialogue* dialogue);
+	void FinishSUDSSession(ELRDialogueEndReason reason);
 
 	/** Content Set 的领域数据，由所属类型负责维护和校验。 该字段仅为运行时缓存，不进入存档。 */
 	UPROPERTY(Transient)
 	TObjectPtr<ULRGameContentSet> ContentSet;
+
+	UPROPERTY(Transient)
+	TObjectPtr<ULRDialogueScriptRegistry> DialogueScriptRegistry;
+
+	UPROPERTY(Transient)
+	TObjectPtr<ULRDialogueSpeakerRegistry> DialogueSpeakerRegistry;
 
 	/** Current Page 的领域数据，由所属类型负责维护和校验。 该字段仅为运行时缓存，不进入存档。 */
 	UPROPERTY(Transient)
@@ -223,6 +268,20 @@ private:
 	UPROPERTY(Transient)
 	TSet<FName> MemoryEventIds;
 
-	/** Completion Event Id 的内部运行时数据；不参与蓝图配置。 */
-	FName CompletionEventId = NAME_None;
+	UPROPERTY(Transient)
+	TObjectPtr<USUDSDialogue> ActiveSUDSDialogue;
+
+	UPROPERTY(Transient)
+	TObjectPtr<USUDSScript> ActiveSUDSScript;
+
+	UPROPERTY(Transient)
+	TObjectPtr<ULRDialogueEventBridge> DialogueEventBridge;
+
+	UPROPERTY(Transient)
+	TObjectPtr<ULRDialogueStateParticipant> DialogueStateParticipant;
+
+	TWeakObjectPtr<UObject> ActiveDialogueOwner;
+	FName ActiveScriptId = NAME_None;
+	FGameplayTag ActiveCompletionStoryTag;
+	ELRDialogueEndReason ActiveEndReason = ELRDialogueEndReason::None;
 };

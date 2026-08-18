@@ -35,6 +35,7 @@ enum class ELRScreenType : uint8
 	None UMETA(DisplayName = "None"),
 	HUD UMETA(DisplayName = "HUD"),
 	StateOverlay UMETA(DisplayName = "State Overlay"),
+	Dialogue UMETA(DisplayName = "Dialogue"),
 	Narrative UMETA(DisplayName = "Narrative"),
 	Journal UMETA(DisplayName = "Journal"),
 	Inventory UMETA(DisplayName = "Inventory"),

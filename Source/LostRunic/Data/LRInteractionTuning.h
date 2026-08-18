@@ -39,6 +39,13 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Interaction|Selection", meta = (ClampMin = "0.02", ClampMax = "1.0", Units = "s"))
 	float QueryIntervalSeconds = 0.1f;
 
+	/** Shared vertical lift for world-space interaction prompts; instance overrides live on the presentation component. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Interaction|Presentation", meta = (
+		ClampMin = "-1000.0",
+		ClampMax = "1000.0",
+		Units = "cm"))
+	float InteractionPromptZOffset = 40.0f;
+
 	/**
 	 * @brief 校验当前资产的必填引用、数值边界及跨字段关系，并输出可诊断错误。
 	 * @param outError 输出校验失败原因；成功时保持为空。

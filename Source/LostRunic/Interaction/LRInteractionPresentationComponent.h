@@ -5,12 +5,14 @@
 #pragma once
 
 #include "Components/ActorComponent.h"
+#include "Engine/EngineTypes.h"
 #include "Interaction/LRInteractionTypes.h"
 
 #include "LRInteractionPresentationComponent.generated.h"
 
 class UNiagaraComponent;
 class UPrimitiveComponent;
+class USceneComponent;
 
 /** Receives a state from ULRInteractionComponent and owns only visual feedback. */
 UCLASS(ClassGroup = "Lost Runic", BlueprintType, meta = (BlueprintSpawnableComponent, DisplayName = "Lost Runic Interaction Presentation"))
@@ -35,6 +37,33 @@ public:
 
 	/** Registers the shared far-hint Niagara component created by the world actor. */
 	void SetFarHintComponent(UNiagaraComponent* component);
+
+	/**
+	 * Resolves the optional editor-selected component, falling back to the interactable's
+	 * default presentation anchor supplied by the caller.
+	 */
+	USceneComponent* ResolvePromptAnchorComponent(USceneComponent* defaultAnchor) const;
+
+	/** Resolves the instance Z offset, falling back to the shared tuning value. */
+	float ResolvePromptZOffset(float defaultOffset) const;
+
+	/** Optional per-instance component used only for world-space prompt presentation. */
+	UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Category = "Interaction|Presentation", meta = (
+		UseComponentPicker,
+		AllowedClasses = "/Script/Engine.SceneComponent"))
+	FComponentReference PromptAnchorOverride;
+
+	/** Enables the per-instance prompt Z offset override. */
+	UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Category = "Interaction|Presentation")
+	bool bOverridePromptZOffset = false;
+
+	/** Per-instance prompt Z offset in Unreal centimeters. */
+	UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Category = "Interaction|Presentation", meta = (
+		EditCondition = "bOverridePromptZOffset",
+		ClampMin = "-1000.0",
+		ClampMax = "1000.0",
+		Units = "cm"))
+	float PromptZOffsetOverride = 40.0f;
 
 private:
 	/** Refreshes Niagara activation and CustomDepth without evaluating gameplay rules. */

@@ -187,6 +187,11 @@ void ALRHUD::ShowNarrative(const bool bVisible)
 	SetScreenVisible(ELRScreenType::Narrative, bVisible);
 }
 
+void ALRHUD::ShowDialogue(const bool bVisible)
+{
+	SetScreenVisible(ELRScreenType::Dialogue, bVisible);
+}
+
 /**
  * @brief 显示或隐藏指定菜单 Widget，并维护唯一可聚焦页面。
  * @param screen 本次操作使用的 `screen` 枚举或模式值。
@@ -257,7 +262,8 @@ ULRScreenWidget* ALRHUD::GetFocusableScreen(const ELRInputMode inputMode) const
 {
 	if (inputMode == ELRInputMode::Dialogue)
 	{
-		return GetScreen(ELRScreenType::Narrative);
+		ULRScreenWidget* dialogueScreen = GetScreen(ELRScreenType::Dialogue);
+		return dialogueScreen ? dialogueScreen : GetScreen(ELRScreenType::Narrative);
 	}
 	if (inputMode == ELRInputMode::Menu && MenuController)
 	{
@@ -287,6 +293,7 @@ void ALRHUD::CreateScreens(ALRPlayerController* playerController)
 	}
 	CreateScreen(playerController, ELRScreenType::HUD, HUDScreenClass);
 	CreateScreen(playerController, ELRScreenType::StateOverlay, StateOverlayScreenClass);
+	CreateScreen(playerController, ELRScreenType::Dialogue, DialogueScreenClass);
 	CreateScreen(playerController, ELRScreenType::Narrative, NarrativeScreenClass);
 	CreateScreen(playerController, ELRScreenType::Inventory, MenuScreenClass);
 	CreateScreen(playerController, ELRScreenType::Pause, PauseScreenClass);
@@ -361,7 +368,17 @@ void ALRHUD::HandleNarrativePresentationChanged(const FLRNarrativePresentation p
 {
 	if (ULRScreenWidget* widget = GetScreen(ELRScreenType::Narrative))
 	{
-		widget->PresentNarrative(presentation);
+		if (presentation.Page.SessionType == ELRNarrativeSessionType::Reading)
+		{
+			widget->PresentNarrative(presentation);
+		}
+	}
+	if (ULRScreenWidget* widget = GetScreen(ELRScreenType::Dialogue))
+	{
+		if (presentation.Page.SessionType == ELRNarrativeSessionType::Dialogue)
+		{
+			widget->PresentNarrative(presentation);
+		}
 	}
 }
 

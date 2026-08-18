@@ -12,6 +12,7 @@
 #include "Data/LRGameContentSet.h"
 #include "Data/LRGameTuningSet.h"
 #include "Data/LRProjectSettings.h"
+#include "Narrative/LRDialogueScriptRegistry.h"
 
 /**
  * @brief 初始化子系统拥有的长期状态与事件绑定。
@@ -27,9 +28,18 @@ void ULRGameInstanceSubsystem::Initialize(FSubsystemCollectionBase& collection)
 
 	FString tuningError;
 	FString contentError;
-	bConfigurationValid = TuningSet && ContentSet
-		&& TuningSet->Validate(tuningError)
-		&& ContentSet->Validate(contentError);
+	const bool bTuningValid = TuningSet && TuningSet->Validate(tuningError);
+	bool bContentValid = ContentSet && ContentSet->Validate(contentError);
+	if (bContentValid)
+	{
+		FString registryError;
+		if (!ContentSet->DialogueScriptRegistry->Validate(registryError))
+		{
+			contentError = FString::Printf(TEXT("DialogueScriptRegistry is invalid: %s"), *registryError);
+			bContentValid = false;
+		}
+	}
+	bConfigurationValid = bTuningValid && bContentValid;
 
 	if (!bConfigurationValid)
 	{

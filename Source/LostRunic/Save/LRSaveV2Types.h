@@ -155,6 +155,7 @@ USTRUCT(BlueprintType)
 struct LOSTRUNIC_API FLRSaveStoryChunk
 {
 	GENERATED_BODY()
+	UPROPERTY(BlueprintReadOnly, SaveGame, Category = "Save|Story") FGameplayTagContainer StoryFlags;
 	UPROPERTY(BlueprintReadOnly, SaveGame, Category = "Save|Story") TSet<FName> CompletedEventIds;
 	UPROPERTY(BlueprintReadOnly, SaveGame, Category = "Save|Story") TSet<FName> MemoryEventIds;
 };

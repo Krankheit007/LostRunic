@@ -38,6 +38,7 @@ public:
 	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
 	 */
 	virtual FVector GetInteractionLocation_Implementation() override;
+	virtual USceneComponent* GetInteractionPromptAnchorComponent_Implementation() override;
 	/**
 	 * @brief 执行当前交互选项；物品目标仍通过统一物品事务入口结算。
 	 * @param interactor 参与本次操作的运行时对象 `interactor`；函数会检查空值和所需接口。

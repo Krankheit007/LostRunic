@@ -42,6 +42,12 @@ FVector ALRWorldInteractionActor::GetInteractionLocation_Implementation()
 	return GetActorLocation();
 }
 
+/** Returns the collision component for UI placement without changing gameplay query semantics. */
+USceneComponent* ALRWorldInteractionActor::GetInteractionPromptAnchorComponent_Implementation()
+{
+	return InteractionCollision;
+}
+
 /** Keeps common rejection logic out of concrete door and pickup implementations. */
 FLRInteractionResult ALRWorldInteractionActor::ExecuteInteraction_Implementation(AActor* interactor,
 	const FGameplayTag actionTag)

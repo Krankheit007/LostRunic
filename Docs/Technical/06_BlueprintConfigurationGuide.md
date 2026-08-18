@@ -144,6 +144,118 @@
 - **参数要求**：输入上下文的优先级、焦点、鼠标光标和锁键行为由 PlayerController 管理；打字速度等表现参数来自 `ULRUITuning`。
 - **验收**：验证打开/关闭、焦点切换、对话二段确认、菜单阻断 Gameplay 输入和转场期间的输入锁定。
 
+### 交互提示、描边与 NPC 对话（2026-08-18）
+
+- 状态：`代码、资产配置、定向自动化测试与 PIE 定向验收已完成`
+- 代码入口：`ULRInteractionComponent`、`ULRHUDWidgetController`、`ULRHUDScreenWidget`、`ALRNPCCharacter`
+- 受影响蓝图：
+  - `/Game/LostRunic/UI/WBP_HUD`：父类必须为 `ULRHUDScreenWidget`。
+  - `/Game/LostRunic/Blueprints/Interaction/BP_LRHomePickup`、`BP_LRHomeDoor`：保留现有 `InteractionCollision`、`Presentation` 和网格上的 `InteractionOutline` 标签。
+  - `/Game/LostRunic/Blueprints/Character/BP_NPC1`：父类为 `ALRNPCCharacter`；交互碰撞由 C++ 自动创建，不要在蓝图重复添加第二个交互组件。
+
+#### `WBP_HUD` 配置步骤
+
+1. 编译 `LostRunicEditor` 后打开 `/Game/LostRunic/UI/WBP_HUD`，在 **Class Settings → Parent Class** 确认父类为 `LRHUDScreenWidget`，然后执行 **Compile** 和 **Save**。
+2. 在 Designer 中确认最外层 `Background` 为 CanvasPanel，并将 `/Game/LostRunic/UI/WBP_Interaction` 的实例命名为 `InteractionWidget`，作为 `Background` 的直接子项；不要对该实例调用 `AddToViewport`。
+3. `ULRHUDScreenWidget` 通过 `BindWidget` 显式绑定 `InteractionWidget`，并在运行时订阅 Controller 的 `OnInteractionPromptChanged`。不要在 Event Graph 中扫描 WidgetTree、扫描世界或每帧重新判断交互规则。
+4. `InteractionWidget` 的 Canvas Slot 使用固定左上锚点 `(0, 0)`、`Size To Content = true` 和底部居中 Alignment `(0.5, 1.0)`；位置由 `ULRHUDScreenWidget` 每帧从 `PromptAnchor` 投影到 `Background` Canvas 本地坐标。不要把该 Slot 保留为中心锚点，否则动态位置会叠加中心锚点而跑出窗口。投影失败、相机背后或完整 Widget 越界时隐藏，不执行屏幕边缘夹取。
+
+#### `WBP_Interaction` 配置步骤
+
+1. 在 **Class Settings → Parent Class** 确认父类为 `ULRInteractionWidget`，然后 Compile/Save。
+2. 根层级必须包含两个 `TextBlock`，名称和类型固定为 `InteractionKey : TextBlock`、`InteractionInfo : TextBlock`。它们只负责布局、字体和样式，不绑定输入事件或世界对象。
+3. 非活动状态由 C++ 设置为 `Collapsed`；活动状态由 C++ 设置为 `HitTestInvisible`。不要在蓝图 Tick 中控制可见性。
+4. 按键文本由 `ULRHUDWidgetController` 查询当前 Local Player 的 active Enhanced Input mappings；键鼠显示实际绑定键（例如 `E`），所有 Gamepad 当前使用 Xbox-style label，`Gamepad_FaceButton_Left` 显示为 `X`，不包含括号。
+
+#### 描边与交互 Actor 配置步骤
+
+1. 打开材质 `/Game/LostRunic/Materials/M_PP_InteractionOutline`，在 **Material Details** 确认 `Material Domain = Post Process`、`Blendable Location = Before Tonemapping`、`Blend Mode = Opaque`、`Shading Model = Unlit`。
+2. 打开 `/Game/LostRunic/Levels/Home/L_Home` 和 `/Game/LostRunic/Levels/PIE_Test/L_PIE_Test`，选中 `PostProcessVolume_1`，在 **Details → Rendering Features → Post Process Materials → Weighted Blendables** 添加 `M_PP_InteractionOutline`，权重为 `1.0`。
+3. 交互 Actor 的可视网格必须开启 **Rendering → Render CustomDepth Pass**；材质图使用 `InteractionOutline` Component Tag 作为交互表现组件的筛选契约。不要把后处理材质改成普通 Surface 材质。
+4. `BP_LRHomePickup` 与 `BP_LRHomeDoor` 的可交互碰撞必须为 Query Only，并将 Object Type 设为项目 `Interaction` 通道；其余交互规则、距离和执行合法性由 C++ 处理。
+
+#### NPC 对话配置步骤
+
+1. 打开 `/Game/LostRunic/Blueprints/Character/BP_NPC1`，确认组件树中存在 C++ 自动创建的 `InteractionCollision`，其为 Query Only、Object Type 为 `Interaction`，并只对 `Interaction` 通道生成 Overlap。
+2. 确认 `DialogueComponent.ScriptId` 仍为 `HomeSisterHide`，并按 SUDS 对话登记为该 ID 提供脚本注册表；不要在 NPC 蓝图中另建 E 输入或自行判断距离。
+3. NPC 是否可执行由 `ALRNPCCharacter::CanInteract_Implementation` 和 `TryInteract_Implementation` 维护；HUD 会以同一套 `OnInteractionPromptChanged` 显示 `E` 与 `对话`。NPC 的默认 Prompt Anchor 为 `InteractionCollision`；可在其 `Presentation` 组件中用 `PromptAnchorOverride` 指定其它 SceneComponent。
+4. 全局默认提示高度来自 `/Game/LostRunic/Data/Tuning/DA_LRInteractionTuning` 的 `InteractionPromptZOffset`，默认 `40 cm`。若单个实例需要调整，在其可选 `Presentation` 组件中启用 `bOverridePromptZOffset` 并填写 `PromptZOffsetOverride`。
+
+#### 验收
+
+- 编译：`LostRunicEditor Win64 Development` 已通过；`WBP_HUD` 已通过 UMG Compile，父类为 `LRHUDScreenWidget`。
+- 自动化：`LostRunic.Interaction` 定向测试通过（3/3）；`LostRunic.UI.InteractionWidgetBlueprintContract` 通过（1/1）。
+- PIE 地图：`/Game/LostRunic/Levels/PIE_Test/L_PIE_Test`；已确认有效焦点下提示出现在拾取物上方，按 E 成功拾取后提示消失。门与 `BP_NPC1` 的完整交互流程仍按同一地图继续验收。
+- 描边：靠近拾取物和门时确认 `CustomDepth` 与后处理轮廓同时可见；离开范围后提示、轮廓和焦点状态清除。
+- Output Log：记录本次 PIE 中项目级 Warning/Error；引擎本机 Turnkey/缓存权限提示不作为项目交互失败判定。
+
+## SUDS 对话与本地化生产链（2026-08-17）
+
+### 运行时资产配置
+
+本批次已将 SUDS 固定为对白结构引擎；Reading DataTable 和 `NarrativeScreenClass` 仍属于阅读系统，不要把它们替换为 Dialogue Widget。
+
+1. 将 `Plugins/SUDS` 保持为 Git submodule，当前已固定到 commit `3b3145d727b2e140bb3f37c155a651013eae8af5`。升级 SUDS 时先运行 Editor build 和 Contract Test，再修改唯一的 `LRSUDSLocalizationParser` 适配层。
+2. 在 `/Game/LostRunic/Dialogue/Data/` 创建 `DA_DialogueScriptRegistry`，类型为 `ULRDialogueScriptRegistry`。每个条目填写唯一 `ScriptId` 和对应的 `USUDSScript`；同一 Script 不得绑定到两个 ID。第一版 NPC 使用硬引用，保证同步 `TryStartDialogue` 可用。
+3. 打开 `BP_NPC`（父类 `ALRNPCCharacter`），选择 C++ 自动创建的 `DialogueComponent`，填写 `ScriptRegistry`、`ScriptId`、可选 `StartLabel` 和可选 `CompletionStoryTag`。不要在蓝图或旧 `DA_LRNPCDefinition` 中维护第二套对白身份。
+4. 在 `/Game/LostRunic/Dialogue/Data/` 创建 `ST_DialogueSpeakers`，添加 `Adele`、`Butler`、`Narrator`（必要时添加 `Player`）条目；创建 `DA_DialogueSpeakers`（类型 `ULRDialogueSpeakerRegistry`），使每个 `DisplayName` 直接引用该 String Table entry。普通手写 FText 会被 Registry 校验拒绝。
+   同时在 `DA_LRGameContentSet` 的 `Content|Localization|DialogueSpeakerRegistry` 指定该资产，运行时从中读取本地化 Speaker Name 和硬引用 Portrait。
+5. 在项目的 SUDS Editor Settings 中确认 `AlwaysGenerateSpeakerLinesFromChoices=False`。`.sud` Fixture 也必须保持 `GenerateSpeakerLinesFromChoices false`；LostRunic UI 由 `OnSpeakerLine` 读取 Choice，不依赖 `OnChoice` 生成选项。
+6. 打开 HUD 蓝图的类默认值，配置独立的 `DialogueScreenClass` 为 `ULRDialogueWidget` 派生 Widget；`NarrativeScreenClass` 继续指向 Reading Widget。Dialogue Widget 的文本、Speaker Name、Portrait 和 Choice 只消费 C++ Presentation，不在蓝图重判分支。
+
+### 运行时语义验收
+
+- `FLRDialogueStartRequest` 必须同时带 `ScriptId` 与 `USUDSScript*`；两者必须等于 Registry 当前映射。运行时不得反查 ScriptId。
+- `OnSpeakerLine` 后读取 `GetText`、`GetSpeakerDisplayName`、`IsSimpleContinue`、`GetNumberOfChoices` 和 `GetChoiceText` 刷新 UI；`IsSimpleContinue=true` 时 Choice 数为 0，否则至少为 1。`OnChoice` 只用于 telemetry、音效或日志。
+- `Story.*` 只写入 `ULRStoryStateSubsystem`，`Save.*` 只提出 Save Request；StoryFlag 必须可由 SUDS Boolean variable 读取。不可重复的世界副作用不要放在 Story Event 中。
+- `CompletionStoryTag` 只在 `ELRDialogueEndReason::CompletedNaturally` 时提交。强制 End、取消、Owner 销毁和 Level Travel 即使收到 SUDS `OnFinished` 也不得提交完成标签。
+- Dialogue Owner 销毁或 Level Travel 时必须清理 SUDS、Input Layer 和两个 Narrative Screen；不保存 SUDS 当前播放位置。
+
+### 本地化生产命令
+
+配置文件必须提交到 `Config/Localization/`；生成的 PO/Archive/LOCRES 属于 UE Localization 资产，Manifest、Import JSON 和 Python venv 属于 `Intermediate/`，人工 XLSX 默认保存到 `Saved/DialogueLocalization/Workbooks/`，不由清理工具删除。
+
+在 Developer Command Prompt 中从项目根目录执行：
+
+```powershell
+# 首次机器/CI 初始化；默认要求系统 Python 3.14，也可显式传入 Python 3.14
+.\Tools\DialogueLocalization\bootstrap.ps1
+# 非标准安装位置：
+# .\Tools\DialogueLocalization\bootstrap.ps1 -BasePython C:\Python314\python.exe
+
+# 校验 Fixture/所有脚本的 @hex@、ChoicePath、Metadata 和生成 Speaker Line 设置
+& "$env:UE_ROOT\Engine\Binaries\Win64\UnrealEditor-Cmd.exe" .\LostRunic.uproject '-run=LRDialogueLocalization' '-Mode=ValidateSUDS' '-ScriptId="Home.Butler.Introduction"' '-Script="Content/LostRunic/Dialogue/Source/Fixture.sud"' '-unattended' '-nop4'
+
+# 先完成 Reimport SUDS asset，再执行 UE Gather/Export；-PO 必须是本次 Export 产生的当前 PO
+& "$env:UE_ROOT\Engine\Binaries\Win64\UnrealEditor-Cmd.exe" .\LostRunic.uproject '-run=LRDialogueLocalization' '-Mode=PrepareXLSX' '-Registry=/Game/LostRunic/Dialogue/Data/DA_DialogueScriptRegistry' '-SpeakerRegistry=/Game/LostRunic/Dialogue/Data/DA_DialogueSpeakers' '-PO=Content/Localization/LostRunic/en/LostRunic.po' '-Culture=en' '-unattended' '-nop4'
+
+# 翻译员编辑 Saved/DialogueLocalization/Workbooks/Dialogue_en.xlsx 后
+& "$env:UE_ROOT\Engine\Binaries\Win64\UnrealEditor-Cmd.exe" .\LostRunic.uproject '-run=LRDialogueLocalization' '-Mode=ImportXLSX' '-XLSX="Saved/DialogueLocalization/Workbooks/Dialogue_en.xlsx"' '-Culture=en' '-unattended' '-nop4'
+& "$env:UE_ROOT\Engine\Binaries\Win64\UnrealEditor-Cmd.exe" .\LostRunic.uproject '-run=LRDialogueLocalization' '-Mode=ApplyPO' '-PO="Content/Localization/LostRunic/en/LostRunic.po"' '-Import="Intermediate/DialogueLocalization/DialogueLocalizationImport.json"' '-unattended' '-nop4'
+
+# ApplyPO 后必须 Import，再 Compile；PO 不是 Compile 的直接权威输入
+& "$env:UE_ROOT\Engine\Binaries\Win64\UnrealEditor-Cmd.exe" .\LostRunic.uproject -run=LRDialogueLocalization -Mode=ImportLocalization -unattended -nop4
+& "$env:UE_ROOT\Engine\Binaries\Win64\UnrealEditor-Cmd.exe" .\LostRunic.uproject -run=LRDialogueLocalization -Mode=CompileLocalization -unattended -nop4
+
+# 等价的一键顺序：ApplyPO -> ImportLocalization -> CompileLocalization
+& "$env:UE_ROOT\Engine\Binaries\Win64\UnrealEditor-Cmd.exe" .\LostRunic.uproject '-run=LRDialogueLocalization' '-Mode=ApplyAndCompileLocalization' '-PO="Content/Localization/LostRunic/en/LostRunic.po"' '-Import="Intermediate/DialogueLocalization/DialogueLocalizationImport.json"' '-unattended' '-nop4'
+```
+
+`Entries` 与 `Speakers` 工作表都通过当前 PO Join；Speakers 表的 Translation 同样会进入 Import JSON。普通导入在 `manifestHash` 或 `poRevision` 变化时只给 Warning，并逐行依据 `ScriptId + StringKey`、SpeakerId、SourceHash、String Table Identity、Namespace + Key、MsgCtxt + MsgId 和 FormatArgs 决定是否接受；stale 行被拒绝而其他行继续。CI 加 `-StrictManifest`，要求 Manifest、PO revision、Workbook fingerprint 和完整行集一致。`ApplyPO` 只写 PO `msgstr`，下一步由 UE Localization Import 更新 `.archive`，最后 Compile 生成 `.locres`。
+
+### Python 环境与验收
+
+默认 Python 位于 `Intermediate/DialogueLocalization/PythonEnv/`，由 `requirements.lock.txt` 固定 `openpyxl==3.1.5`，`.ready` 是 Editor 调用 XLSX 工具的前置条件。特殊机器可在 **Project Settings > Plugins/Developer Settings > LostRunic Dialogue Localization > Python** 填 `Python Executable Override`，或在 Commandlet 传 `-PythonExecutable=`。
+
+Editor Contract Test 名称：
+
+- `LostRunicEditor.DialogueLocalization.EntryIdentitySurvivesReorder`
+- `LostRunicEditor.DialogueLocalization.SudsAdapterDoesNotLeakTypes`
+- `LostRunicEditor.DialogueLocalization.GenerateSpeakerLinesFromChoicesDisabled`
+- `LostRunicEditor.DialogueLocalization.ApplyImportCompileProducesLocres`
+
+最终在 `/Game/LostRunic/Levels/PIE_Test/L_PIE_Test` 验收普通对白、Choice、Speaker Name、Portrait、Story 条件、自然完成/强制结束，以及 Dialogue/Reading 屏幕隔离。检查 `LogLostRunicDialogueLocalization`、`LogLostRunicNarrative`、`LogLostRunicState` 无项目级 Warning/Error；端到端验收还必须确认 PO 只有预期 `msgstr` 变化、Archive 已更新、LOCRES 可读且 PIE 显示新译文。
+
 ## V2 存档 UI 基础资产（2026-08-14）
 
 本次仅创建空的 Widget Blueprint 基础资产，暂不在资产内装配控件、事件图或存档规则。四个资产均继承 `ULRScreenWidget`，由项目负责人在 Unreal Editor 中完成 Designer 布局、绑定和导航配置。
@@ -207,9 +319,9 @@
 ### 通用 NPC
 
 - **`BP_NPC`**：继承 `ALRNPCCharacter`，配置网格、动画与 `DA_LRNPCDefinition`。
-- **`DA_LRNPCDefinition`**：`NpcId`（稳定 FName）、`Behavior`（StateTree **硬引用** `ST_NPC`）、`DialogueRowId`（对话 DataTable 稳定行 ID）、`DefaultBehavior`（Idle/Patrol）。
+- **`DA_LRNPCDefinition`**：`NpcId`（稳定 FName）、`Behavior`（StateTree **硬引用** `ST_NPC`）、`DefaultBehavior`（Idle/Patrol）。对白不再从 Dialogue DataTable 读取。
 - **`ST_NPC` 资产（编辑器人工创建 + MCP 检查）**：四个状态 `Idle / Patrol / ReactToNoise / Conversation`；条件 `FLRNPCStateCondition` 比较控制器 `GetActiveBehavior()`，任务 `FLRNPCBehaviorTask`；Idle 附加 `FLRNPCLookAtPlayerTask`（低频朝向检测），ReactToNoise 附加 `FLRNPCReactToNoiseTask`（限时反应，到时发 `AI.Event.NPCReactionEnded` 回默认行为）。树由 `AI.Event.NPCNoiseHeard` / `NPCDialogueStarted` / `NPCDialogueEnded` / `NPCReactionEnded` 驱动。
-- **对话**：交互选项 `Interaction.Action.Talk`（Normal 状态）经 `ULRDialogueSubsystem::StartDialogue` 启动；Conversation 高优先级，普通噪声不打断（只触发 `OnNoiseHeard` 表现钩子）。巡逻点按实例配置。
+- **对话**：交互选项 `Interaction.Action.Talk`（Normal 状态）经 NPC 上的 `ULRDialogueComponent::TryStartDialogue` 启动 SUDS；Conversation 高优先级，普通噪声不打断（只触发 `OnNoiseHeard` 表现钩子）。对白脚本由 `ULRDialogueScriptRegistry` 通过 `ScriptId` 唯一解析，巡逻点按实例配置。
 - **调优**：`DA_LRNPCTuning`（登记进 `DA_LRGameTuningSet.NPC`）：`LookAtPlayerRadiusCm`、`LookAtIntervalSeconds`、`NoiseReactionDurationSeconds`、`PatrolSpeedCm`。
 - **预留**：`OnNoiseHeard`（BlueprintImplementableEvent）与 `OnNPCAttentionChanged` 委托为未来告警/逃离扩展钩子，本批次不实现告警逻辑。
 

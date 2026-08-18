@@ -27,5 +27,6 @@ bool ULRInteractionTuning::Validate(FString& outError) const
 		&& LRValidation::RequireRange(TEXT("OutlineDistance"), OutlineDistance, 1.0f, 5000.0f, outError)
 		&& LRValidation::RequireRange(TEXT("FarHintDistance"), FarHintDistance, 1.0f, 5000.0f, outError)
 		&& LRValidation::RequireRange(TEXT("FacingConeDegrees"), FacingConeDegrees, 1.0f, 360.0f, outError)
-		&& LRValidation::RequireRange(TEXT("QueryIntervalSeconds"), QueryIntervalSeconds, 0.02f, 1.0f, outError);
+		&& LRValidation::RequireRange(TEXT("QueryIntervalSeconds"), QueryIntervalSeconds, 0.02f, 1.0f, outError)
+		&& LRValidation::RequireRange(TEXT("InteractionPromptZOffset"), InteractionPromptZOffset, -1000.0f, 1000.0f, outError);
 }

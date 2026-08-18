@@ -1,6 +1,6 @@
 /**
  * @file LRNPCCharacter.h
- * @brief 通用非战斗 NPC：由 StateTree（Idle/Patrol/ReactToNoise/Conversation）驱动；实现对话交互（Talk 选项经 ULRDialogueSubsystem::StartDialogue）与噪声表现钩子（OnNoiseHeard / OnNPCAttentionChanged 预留未来告警/逃离）。
+ * @brief 通用非战斗 NPC：由 StateTree（Idle/Patrol/ReactToNoise/Conversation）驱动；实现 SUDS 对话交互与噪声表现钩子（OnNoiseHeard / OnNPCAttentionChanged 预留未来告警/逃离）。
  *
  * 关联文件：LRNPCCharacter.cpp；所属领域：AI。
  * 设计依据：Docs/Design/01_GameDesignSummary.md 与 Docs/Technical/04_TechnicalDesign.md。
@@ -16,7 +16,11 @@
 
 class ALRNPCController;
 class ULRNPCDefinition;
+class ULRDialogueComponent;
 class ULRDialogueSubsystem;
+class ULRInteractionPresentationComponent;
+class USceneComponent;
+class USphereComponent;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FLRNPCAttentionChanged, FVector, location, FGameplayTag, reason);
 
@@ -68,6 +72,7 @@ public:
 	//~ ILRInteractable
 	virtual TArray<FLRInteractionOption> GetInteractionOptions_Implementation(AActor* interactor) override;
 	virtual FVector GetInteractionLocation_Implementation() override;
+	virtual USceneComponent* GetInteractionPromptAnchorComponent_Implementation() override;
 	virtual FLRInteractionResult ExecuteInteraction_Implementation(AActor* interactor, FGameplayTag actionTag) override;
 	//~ End ILRInteractable
 
@@ -80,6 +85,18 @@ public:
 	FLRNPCAttentionChanged OnNPCAttentionChanged;
 
 protected:
+	/** Dedicated query shape for discovering this NPC through the Interaction object channel. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "NPC|Interaction")
+	TObjectPtr<USphereComponent> InteractionCollision;
+
+	/** Optional world-prompt presentation settings; interaction eligibility never depends on it. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "NPC|Interaction")
+	TObjectPtr<ULRInteractionPresentationComponent> PresentationComponent;
+
+	/** SUDS is the production dialogue source. Registry and ScriptId form the single runtime identity. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "NPC|Dialogue")
+	TObjectPtr<ULRDialogueComponent> DialogueComponent;
+
 	/** Definition 的领域数据，由所属类型负责维护和校验。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "NPC")
 	TObjectPtr<ULRNPCDefinition> Definition;
