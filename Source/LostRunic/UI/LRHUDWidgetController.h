@@ -9,12 +9,16 @@
 #pragma once
 
 #include "Core/LRTypes.h"
+#include "GameFramework/InputDeviceSubsystem.h"
 #include "Interaction/LRInteractionTypes.h"
 #include "UObject/Object.h"
 
 #include "LRHUDWidgetController.generated.h"
 
 class ALRCharacter;
+class ALRPlayerController;
+class UEnhancedInputLocalPlayerSubsystem;
+class UEnhancedInputUserSettings;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FLRHUDPerceptionModeChanged, ELRPerceptionMode, mode, FGameplayTag, reason);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FLRHUDInteractionPromptChanged, FLRInteractionPromptView, promptView);
@@ -65,9 +69,44 @@ private:
 	UFUNCTION()
 	void HandleFocusedInteractionChanged(FLRInteractionPromptView promptView);
 
+	/** Re-resolves the display key when the PlayerController changes its input layer. */
+	UFUNCTION()
+	void HandleInputModeChanged(ELRInputMode previousMode, ELRInputMode currentMode);
+
+	/** Re-resolves the display key when the active hardware device changes. */
+	UFUNCTION()
+	void HandleInputHardwareDeviceChanged(FPlatformUserId userId, FInputDeviceId deviceId);
+
+	/** Re-resolves the display key after Enhanced Input has rebuilt active mappings. */
+	UFUNCTION()
+	void HandleControlMappingsRebuilt();
+
+	/** Re-resolves the display key after user-mappable settings change. */
+	UFUNCTION()
+	void HandleUserSettingsChanged(UEnhancedInputUserSettings* settings);
+
+	/** Binds the settings-change delegate when Enhanced Input creates settings lazily. */
+	UFUNCTION()
+	void HandleUserSettingsInitialized(const UEnhancedInputUserSettings* settings);
+
+	/** Central input-display refresh used by every mapping/device lifecycle event. */
+	void RefreshInteractionDisplayKey();
+
+	/** Resolves the active key for the semantic action and formats the current UI policy. */
+	FText ResolveInteractionDisplayKey(const UInputAction* action) const;
+
+	/** Formats physical keys using the current Xbox-style gamepad text policy. */
+	FText FormatInteractionKey(const FKey& key) const;
+
 	/** Observed Character 的内部运行时数据；不参与蓝图配置。 */
 	TWeakObjectPtr<ALRCharacter> ObservedCharacter;
+	TWeakObjectPtr<ALRPlayerController> ObservedPlayerController;
+	TWeakObjectPtr<UEnhancedInputLocalPlayerSubsystem> EnhancedInputSubsystem;
+	TWeakObjectPtr<UEnhancedInputUserSettings> EnhancedInputUserSettings;
+	TWeakObjectPtr<UInputDeviceSubsystem> InputDeviceSubsystem;
 	/** 当前已提交的心理状态；仅状态组件可修改，蓝图只能读取。该字段由 C++ 在运行时维护，不在蓝图中配置。 */
 	ELRPerceptionMode CurrentMode = ELRPerceptionMode::Normal;
+	ELRInputMode CurrentInputMode = ELRInputMode::Gameplay;
+	FLRInteractionPromptView SourceInteractionPrompt;
 	FLRInteractionPromptView CurrentInteractionPrompt;
 };

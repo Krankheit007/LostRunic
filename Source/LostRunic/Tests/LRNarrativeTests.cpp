@@ -35,8 +35,6 @@ namespace
 	ULRGameContentSet* MakeContentSet()
 	{
 		ULRGameContentSet* contentSet = NewObject<ULRGameContentSet>();
-		contentSet->DialogueTable = NewObject<UDataTable>(contentSet);
-		contentSet->DialogueTable->RowStruct = FLRDialogueRow::StaticStruct();
 		contentSet->ReadingTable = NewObject<UDataTable>(contentSet);
 		contentSet->ReadingTable->RowStruct = FLRReadingRow::StaticStruct();
 		contentSet->UIStringTable = NewObject<UStringTable>(contentSet);
@@ -50,22 +48,6 @@ namespace
 		contentSet->NewGameMapId = mapRegistration.MapId;
 		contentSet->MainMenuMapId = mapRegistration.MapId;
 		return contentSet;
-	}
-
-	/**
-	 * @brief 根据当前领域状态构建 Make Dialogue Row 所需的数据，不把临时对象作为长期存档标识。
-	 * @param rowId DataTable 稳定行 ID，不使用行号。
-	 * @param text 调用方提供的 `text`，只在本次操作范围内使用。
-	 * @param nextRowId 稳定标识 `nextRowId`；用于内容查询和存档，不依赖显示名或数组序号。
-	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
-	 */
-	FLRDialogueRow MakeDialogueRow(const FName rowId, const FString& text, const FName nextRowId = NAME_None)
-	{
-		FLRDialogueRow row;
-		row.DialogueId = rowId;
-		row.Text = FText::FromString(text);
-		row.NextRowId = nextRowId;
-		return row;
 	}
 
 	/**
@@ -142,23 +124,13 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLRNarrativeBranchingTest, "LostRunic.Narrative
 bool FLRNarrativeBranchingTest::RunTest(const FString& parameters)
 {
 	ULRGameContentSet* contentSet = MakeContentSet();
-	FLRDialogueRow start = MakeDialogueRow(TEXT("Start"), TEXT("Choose."));
-	FLRDialogueOption option;
-	option.OptionId = TEXT("Continue");
-	option.NextRowId = TEXT("End");
-	start.Options.Add(option);
-	contentSet->DialogueTable->AddRow(TEXT("Start"), start);
-	contentSet->DialogueTable->AddRow(TEXT("End"), MakeDialogueRow(TEXT("End"), TEXT("Finished.")));
 	ULRLevelEventDefinition* eventDefinition = NewObject<ULRLevelEventDefinition>(contentSet);
 	eventDefinition->EventId = TEXT("Home.Dorothy.Spoken");
 	contentSet->LevelEvents.Add(eventDefinition);
 
 	ULRDialogueSubsystem* subsystem = MakeDialogueSubsystem();
 	subsystem->InitializeContent(contentSet);
-	TestTrue(TEXT("Dialogue starts"), subsystem->StartDialogue(TEXT("Start"), eventDefinition->EventId).bSuccess);
-	TestTrue(TEXT("Legal branch advances"), subsystem->SelectChoice(TEXT("Continue")).bSuccess);
-	TestEqual(TEXT("Second line became current"), subsystem->GetCurrentPage().ContentId, FName(TEXT("End")));
-	TestTrue(TEXT("Final advance completes event"), subsystem->Advance().bSuccess);
+	TestTrue(TEXT("Story event commits independently of dialogue presentation"), subsystem->TryCompleteEvent(eventDefinition->EventId).bSuccess);
 	TestTrue(TEXT("One-shot event is recorded"), subsystem->IsEventCompleted(eventDefinition->EventId));
 	TestTrue(TEXT("Repeated one-shot event is rejected"), subsystem->TryCompleteEvent(eventDefinition->EventId).FailureReason
 		== LRGameplayTags::NarrativeRejectAlreadyCompleted);
@@ -192,7 +164,11 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLRNarrativeTypewriterTest, "LostRunic.UI.Typew
 bool FLRNarrativeTypewriterTest::RunTest(const FString& parameters)
 {
 	ULRGameContentSet* contentSet = MakeContentSet();
-	contentSet->DialogueTable->AddRow(TEXT("Line"), MakeDialogueRow(TEXT("Line"), TEXT("ABCDE")));
+	FLRReadingRow reading;
+	reading.ReadingId = TEXT("TypewriterNote");
+	reading.Title = FText::FromString(TEXT("Note"));
+	reading.Body = FText::FromString(TEXT("ABCDE"));
+	contentSet->ReadingTable->AddRow(reading.ReadingId, reading);
 	ULRDialogueSubsystem* subsystem = MakeDialogueSubsystem();
 	subsystem->InitializeContent(contentSet);
 	ULRUITuning* tuning = NewObject<ULRUITuning>();
@@ -200,12 +176,12 @@ bool FLRNarrativeTypewriterTest::RunTest(const FString& parameters)
 	ULRDialogueWidgetController* controller = NewObject<ULRDialogueWidgetController>();
 	controller->Initialize(subsystem, tuning, nullptr);
 
-	TestTrue(TEXT("Dialogue starts"), subsystem->StartDialogue(TEXT("Line")).bSuccess);
+	TestTrue(TEXT("Reading starts"), subsystem->StartReading(reading.ReadingId).bSuccess);
 	controller->AdvanceTypewriterForTest(1.0f);
 	TestEqual(TEXT("Typewriter uses tuned speed"), controller->GetPresentation().DisplayedText.ToString(), FString(TEXT("AB")));
 	TestEqual(TEXT("First confirm reveals full text"), controller->HandleConfirm().Action, ELRNarrativeAction::RevealCurrentText);
 	TestEqual(TEXT("Full text is displayed"), controller->GetPresentation().DisplayedText.ToString(), FString(TEXT("ABCDE")));
-	TestEqual(TEXT("Second confirm advances the rule session"), controller->HandleConfirm().Action, ELRNarrativeAction::Completed);
+	TestEqual(TEXT("Second confirm completes the reading session"), controller->HandleConfirm().Action, ELRNarrativeAction::Completed);
 	return true;
 }
 

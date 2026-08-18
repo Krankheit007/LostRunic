@@ -21,5 +21,6 @@ public class LostRunicEditorTarget : TargetRules
 		DefaultBuildSettings = BuildSettingsVersion.V7;
 		IncludeOrderVersion = EngineIncludeOrderVersion.Unreal5_8;
 		ExtraModuleNames.Add("LostRunic");
+		ExtraModuleNames.Add("LostRunicEditor");
 	}
 }

@@ -1,6 +1,6 @@
 /**
  * @file LRNarrativeTypes.h
- * @brief 实现 DataTable 驱动的对话、阅读、条件分支和一次性剧情事件；稳定 FName ID 进入存档，显示全文与推进下一句的二段确认由控制层维护。
+ * @brief 实现 SUDS 对话、Reading DataTable、条件分支和一次性剧情事件；稳定 FName ID 进入存档，显示全文与推进下一句的二段确认由控制层维护。
  *
  * 关联文件：Narrative 目录内调用该公共契约的实现文件；所属领域：Narrative。
  * 设计依据：Docs/Design/01_GameDesignSummary.md 与 Docs/Technical/04_TechnicalDesign.md。
@@ -46,6 +46,9 @@ struct LOSTRUNIC_API FLRNarrativeChoice
 	UPROPERTY(BlueprintReadOnly, Category = "Narrative")
 	FName ChoiceId = NAME_None;
 
+	UPROPERTY(BlueprintReadOnly, Category = "Narrative")
+	int32 ChoiceIndex = INDEX_NONE;
+
 	/** Text 的领域数据，由所属类型负责维护和校验。 蓝图可读取但不可写入。 */
 	UPROPERTY(BlueprintReadOnly, Category = "Narrative")
 	FText Text;
@@ -69,6 +72,12 @@ struct LOSTRUNIC_API FLRNarrativePage
 	UPROPERTY(BlueprintReadOnly, Category = "Narrative")
 	FName ContentId = NAME_None;
 
+	UPROPERTY(BlueprintReadOnly, Category = "Narrative")
+	FName ScriptId = NAME_None;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Narrative")
+	FString TextId;
+
 	/** Speaker Id 的稳定 FName/GUID 标识；用于定义查询和存档，不依赖显示名或临时 Actor 名称。 C++ 安全默认值为 `NAME_None`。 蓝图可读取但不可写入。 */
 	UPROPERTY(BlueprintReadOnly, Category = "Narrative")
 	FName SpeakerId = NAME_None;
@@ -81,13 +90,30 @@ struct LOSTRUNIC_API FLRNarrativePage
 	UPROPERTY(BlueprintReadOnly, Category = "Narrative")
 	FText Text;
 
+	/** Dialogue line text; Reading continues to use Text as its body field. */
+	UPROPERTY(BlueprintReadOnly, Category = "Narrative|Dialogue")
+	FText LineText;
+
+	/** Localized speaker display name supplied by SUDS. */
+	UPROPERTY(BlueprintReadOnly, Category = "Narrative|Dialogue")
+	FText SpeakerName;
+
 	/** Portrait 的领域数据，由所属类型负责维护和校验。 蓝图可读取但不可写入。 */
 	UPROPERTY(BlueprintReadOnly, Category = "Narrative")
-	TSoftObjectPtr<UTexture2D> Portrait;
+	TObjectPtr<UTexture2D> Portrait = nullptr;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Narrative|Dialogue")
+	bool bShowSpeakerName = false;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Narrative|Dialogue")
+	bool bShowPortrait = false;
 
 	/** Choices 的领域数据，由所属类型负责维护和校验。 蓝图可读取但不可写入。 */
 	UPROPERTY(BlueprintReadOnly, Category = "Narrative")
 	TArray<FLRNarrativeChoice> Choices;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Narrative")
+	bool bSimpleContinue = true;
 };
 
 /** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */

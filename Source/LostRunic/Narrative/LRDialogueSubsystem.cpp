@@ -1,6 +1,6 @@
 /**
  * @file LRDialogueSubsystem.cpp
- * @brief 读取 Dialogue/Reading DataTable，计算剧情条件与选项分支，记录一次性事件，并向 UI 发布当前台词、阅读内容及结束事件。
+ * @brief 驱动 SUDS Dialogue 与 Reading DataTable 会话，记录剧情状态，并向 UI 发布当前台词、阅读内容及结束事件。
  *
  * 关联文件：LRDialogueSubsystem.h；所属领域：Narrative。
  * 设计依据：Docs/Design/01_GameDesignSummary.md 与 Docs/Technical/04_TechnicalDesign.md。
@@ -16,6 +16,16 @@
 #include "Engine/DataTable.h"
 #include "Framework/LRGameInstanceSubsystem.h"
 #include "Narrative/LRNarrativeRules.h"
+#include "Narrative/LRDialogueEventBridge.h"
+#include "Narrative/LRDialogueScriptRegistry.h"
+#include "Narrative/LRDialogueStateParticipant.h"
+#include "Narrative/LRDialogueSpeakerRegistry.h"
+#include "Narrative/LRStoryStateSubsystem.h"
+#include "SUDSCommon.h"
+#include "SUDSDialogue.h"
+#include "SUDSLibrary.h"
+#include "SUDSScript.h"
+#include "SUDSScriptEdge.h"
 
 /**
  * @brief 初始化子系统拥有的长期状态与事件绑定。
@@ -34,12 +44,231 @@ void ULRDialogueSubsystem::Initialize(FSubsystemCollectionBase& collection)
  */
 void ULRDialogueSubsystem::Deinitialize()
 {
+	EndSUDSDialogue(ELRDialogueEndReason::LevelTravel);
 	ResetSession();
 	ContentSet = nullptr;
+	DialogueScriptRegistry = nullptr;
 	ContextTags.Reset();
 	CompletedEventIds.Reset();
 	MemoryEventIds.Reset();
 	Super::Deinitialize();
+}
+
+FLRNarrativeResult ULRDialogueSubsystem::StartSUDSDialogue(const FLRDialogueStartRequest& request)
+{
+	if (HasActiveSession() || ActiveSUDSDialogue)
+	{
+		return Reject(request.ScriptId, LRGameplayTags::NarrativeRejectConditions);
+	}
+	if (request.ScriptId.IsNone() || !request.Script || !DialogueScriptRegistry)
+	{
+		return Reject(request.ScriptId, LRGameplayTags::NarrativeRejectMissingContent);
+	}
+	TObjectPtr<USUDSScript> RegisteredScript = nullptr;
+	FString RegistryError;
+	const bool bResolved = DialogueScriptRegistry->Resolve(request.ScriptId, RegisteredScript, RegistryError);
+	if (!bResolved)
+	{
+		UE_LOG(LogLostRunicNarrative, Warning, TEXT("Dialogue request rejected ScriptId=%s because ScriptId and Script do not match the global Registry: %s"),
+			*request.ScriptId.ToString(), *RegistryError);
+		return Reject(request.ScriptId, LRGameplayTags::NarrativeRejectMissingContent);
+	}
+	if (RegisteredScript != request.Script)
+	{
+		RegistryError = TEXT("The supplied Script pointer does not match the ScriptId mapping.");
+		UE_LOG(LogLostRunicNarrative, Warning, TEXT("Dialogue request rejected ScriptId=%s because ScriptId and Script do not match the global Registry: %s"),
+			*request.ScriptId.ToString(), *RegistryError);
+		return Reject(request.ScriptId, LRGameplayTags::NarrativeRejectMissingContent);
+	}
+	UGameInstance* gameInstance = GetGameInstance();
+	ULRStoryStateSubsystem* storyState = gameInstance
+		? gameInstance->GetSubsystem<ULRStoryStateSubsystem>() : nullptr;
+	if (request.CompletionStoryTag.IsValid() && storyState && storyState->HasStoryFlag(request.CompletionStoryTag))
+	{
+		return Reject(request.ScriptId, LRGameplayTags::NarrativeRejectAlreadyCompleted);
+	}
+
+	ActiveEndReason = ELRDialogueEndReason::None;
+	ActiveScriptId = request.ScriptId;
+	ActiveSUDSScript = request.Script;
+	ActiveCompletionStoryTag = request.CompletionStoryTag;
+	ActiveDialogueOwner = request.Owner.IsValid() ? request.Owner : this;
+	DialogueStateParticipant = NewObject<ULRDialogueStateParticipant>(this);
+	DialogueStateParticipant->Initialize(storyState);
+	DialogueEventBridge = NewObject<ULRDialogueEventBridge>(this);
+	DialogueEventBridge->Initialize(storyState);
+	ActiveSUDSDialogue = USUDSLibrary::CreateDialogue(ActiveDialogueOwner.Get(), request.Script, false, request.StartLabel);
+	if (!ActiveSUDSDialogue)
+	{
+		EndSUDSDialogue(ELRDialogueEndReason::Error);
+		return Reject(request.ScriptId, LRGameplayTags::NarrativeRejectMissingContent);
+	}
+	ActiveSUDSDialogue->AddParticipant(DialogueStateParticipant);
+	ActiveSUDSDialogue->OnSpeakerLine.AddDynamic(this, &ULRDialogueSubsystem::HandleSUDSSpeakerLine);
+	ActiveSUDSDialogue->OnChoice.AddDynamic(this, &ULRDialogueSubsystem::HandleSUDSChoice);
+	ActiveSUDSDialogue->OnFinished.AddDynamic(this, &ULRDialogueSubsystem::HandleSUDSFinished);
+	ActiveSUDSDialogue->OnEvent.AddDynamic(DialogueEventBridge, &ULRDialogueEventBridge::HandleDialogueEvent);
+	ActiveSUDSDialogue->Start(request.StartLabel);
+
+	FLRNarrativeResult result;
+	result.bSuccess = ActiveSUDSDialogue != nullptr;
+	result.Action = ELRNarrativeAction::Started;
+	result.ContentId = request.ScriptId;
+	return result;
+}
+
+FLRNarrativeResult ULRDialogueSubsystem::AdvanceSUDSDialogue()
+{
+	if (!ActiveSUDSDialogue || !HasActiveSession())
+	{
+		return Reject(ActiveScriptId, LRGameplayTags::NarrativeRejectNoSession);
+	}
+	if (!ActiveSUDSDialogue->IsSimpleContinue())
+	{
+		return Reject(ActiveScriptId, LRGameplayTags::NarrativeRejectInvalidChoice);
+	}
+	const bool bContinued = ActiveSUDSDialogue->Continue();
+	FLRNarrativeResult result;
+	result.bSuccess = bContinued || !ActiveSUDSDialogue;
+	result.Action = bContinued ? ELRNarrativeAction::Advanced : ELRNarrativeAction::Completed;
+	result.ContentId = ActiveScriptId;
+	return result;
+}
+
+FLRNarrativeResult ULRDialogueSubsystem::SelectSUDSChoice(const int32 choiceIndex)
+{
+	if (!ActiveSUDSDialogue || !HasActiveSession())
+	{
+		return Reject(ActiveScriptId, LRGameplayTags::NarrativeRejectNoSession);
+	}
+	if (ActiveSUDSDialogue->IsSimpleContinue() || choiceIndex < 0
+		|| choiceIndex >= ActiveSUDSDialogue->GetNumberOfChoices())
+	{
+		return Reject(ActiveScriptId, LRGameplayTags::NarrativeRejectInvalidChoice);
+	}
+	const bool bContinued = ActiveSUDSDialogue->Choose(choiceIndex);
+	FLRNarrativeResult result;
+	result.bSuccess = bContinued || !ActiveSUDSDialogue;
+	result.Action = bContinued ? ELRNarrativeAction::Advanced : ELRNarrativeAction::Completed;
+	result.ContentId = ActiveScriptId;
+	return result;
+}
+
+void ULRDialogueSubsystem::EndSUDSDialogue(const ELRDialogueEndReason reason, UObject* owner)
+{
+	if (!ActiveSUDSDialogue)
+	{
+		return;
+	}
+	if (owner && ActiveDialogueOwner.IsValid() && owner != ActiveDialogueOwner.Get())
+	{
+		return;
+	}
+	ActiveEndReason = reason;
+	const ELRNarrativeSessionType sessionType = CurrentPage.SessionType;
+	const FName finalContentId = CurrentPage.ContentId;
+	ActiveSUDSDialogue->End(true);
+	ActiveSUDSDialogue = nullptr;
+	ActiveSUDSScript = nullptr;
+	DialogueEventBridge = nullptr;
+	DialogueStateParticipant = nullptr;
+	ActiveDialogueOwner.Reset();
+	ActiveScriptId = NAME_None;
+	ActiveCompletionStoryTag = FGameplayTag();
+	ResetSession();
+	if (sessionType != ELRNarrativeSessionType::None)
+	{
+		OnSessionEnded.Broadcast(sessionType, finalContentId);
+	}
+}
+
+void ULRDialogueSubsystem::HandleSUDSSpeakerLine(USUDSDialogue* dialogue)
+{
+	if (!dialogue || dialogue != ActiveSUDSDialogue)
+	{
+		return;
+	}
+	CurrentPage = FLRNarrativePage();
+	CurrentPage.SessionType = ELRNarrativeSessionType::Dialogue;
+	CurrentPage.ContentId = ActiveScriptId;
+	CurrentPage.ScriptId = ActiveScriptId;
+	CurrentPage.Text = dialogue->GetText();
+	CurrentPage.LineText = CurrentPage.Text;
+	CurrentPage.TextId = SUDS_GET_TEXT_KEY(CurrentPage.Text);
+	CurrentPage.SpeakerId = FName(*dialogue->GetSpeakerID());
+	if (const FLRDialogueSpeakerDefinition* Speaker = DialogueSpeakerRegistry
+		? DialogueSpeakerRegistry->Find(CurrentPage.SpeakerId) : nullptr)
+	{
+		CurrentPage.SpeakerName = Speaker->DisplayName;
+		CurrentPage.Portrait = Speaker->Portrait;
+		CurrentPage.bShowPortrait = IsValid(CurrentPage.Portrait);
+	}
+	else
+	{
+		CurrentPage.SpeakerName = dialogue->GetSpeakerDisplayName();
+	}
+	CurrentPage.bShowSpeakerName = !CurrentPage.SpeakerName.IsEmpty();
+	CurrentPage.bSimpleContinue = dialogue->IsSimpleContinue();
+	if (!CurrentPage.bSimpleContinue)
+	{
+		const TArray<FSUDSScriptEdge>& choices = dialogue->GetChoices();
+		for (int32 index = 0; index < choices.Num(); ++index)
+		{
+			const FSUDSScriptEdge& edge = choices[index];
+			FLRNarrativeChoice choice;
+			choice.ChoiceIndex = index;
+			choice.ChoiceId = FName(*edge.GetTextID());
+			choice.Text = edge.GetText();
+			CurrentPage.Choices.Add(MoveTemp(choice));
+		}
+	}
+	OnPageChanged.Broadcast(CurrentPage);
+}
+
+void ULRDialogueSubsystem::HandleSUDSChoice(USUDSDialogue* dialogue, const int choiceIndex)
+{
+	if (dialogue == ActiveSUDSDialogue)
+	{
+		UE_LOG(LogLostRunicNarrative, Verbose, TEXT("Dialogue ScriptId=%s choiceIndex=%d selected."),
+			*ActiveScriptId.ToString(), choiceIndex);
+	}
+}
+
+void ULRDialogueSubsystem::HandleSUDSFinished(USUDSDialogue* dialogue)
+{
+	if (dialogue != ActiveSUDSDialogue)
+	{
+		return;
+	}
+	FinishSUDSSession(ActiveEndReason == ELRDialogueEndReason::None
+		? ELRDialogueEndReason::CompletedNaturally : ActiveEndReason);
+}
+
+void ULRDialogueSubsystem::FinishSUDSSession(const ELRDialogueEndReason reason)
+{
+	if (!ActiveSUDSDialogue)
+	{
+		return;
+	}
+	ActiveEndReason = reason;
+	const FName finalContentId = CurrentPage.ContentId;
+	const FGameplayTag completionTag = ActiveCompletionStoryTag;
+	UGameInstance* gameInstance = GetGameInstance();
+	ULRStoryStateSubsystem* storyState = gameInstance
+		? gameInstance->GetSubsystem<ULRStoryStateSubsystem>() : nullptr;
+	if (reason == ELRDialogueEndReason::CompletedNaturally && completionTag.IsValid() && storyState)
+	{
+		storyState->AddStoryFlag(completionTag);
+	}
+	ActiveSUDSDialogue = nullptr;
+	ActiveSUDSScript = nullptr;
+	DialogueEventBridge = nullptr;
+	DialogueStateParticipant = nullptr;
+	ActiveDialogueOwner.Reset();
+	ActiveScriptId = NAME_None;
+	ActiveCompletionStoryTag = FGameplayTag();
+	ResetSession();
+	OnSessionEnded.Broadcast(ELRNarrativeSessionType::Dialogue, finalContentId);
 }
 
 /**
@@ -49,25 +278,9 @@ void ULRDialogueSubsystem::Deinitialize()
 void ULRDialogueSubsystem::InitializeContent(ULRGameContentSet* contentSet)
 {
 	ContentSet = contentSet;
+	DialogueScriptRegistry = contentSet ? contentSet->DialogueScriptRegistry : nullptr;
+	DialogueSpeakerRegistry = contentSet ? contentSet->DialogueSpeakerRegistry : nullptr;
 	ResetSession();
-}
-
-/**
- * @brief 使用稳定 Dialogue 行 ID 启动对话会话并发布首个页面。
- * @param rowId DataTable 稳定行 ID，不使用行号。
- * @param completionEventId 稳定标识 `completionEventId`；用于内容查询和存档，不依赖显示名或数组序号。
- * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
- */
-FLRNarrativeResult ULRDialogueSubsystem::StartDialogue(const FName rowId, const FName completionEventId)
-{
-	ResetSession();
-	CompletionEventId = completionEventId;
-	FLRNarrativeResult result = ShowDialogueRow(rowId, ELRNarrativeAction::Started);
-	if (!result.bSuccess)
-	{
-		ResetSession();
-	}
-	return result;
 }
 
 /**
@@ -79,7 +292,6 @@ FLRNarrativeResult ULRDialogueSubsystem::StartDialogue(const FName rowId, const 
 FLRNarrativeResult ULRDialogueSubsystem::StartReading(const FName readingId, const FName completionEventId)
 {
 	ResetSession();
-	CompletionEventId = completionEventId;
 	FLRNarrativeResult result = ShowReadingRow(readingId);
 	if (!result.bSuccess)
 	{
@@ -94,6 +306,10 @@ FLRNarrativeResult ULRDialogueSubsystem::StartReading(const FName readingId, con
  */
 FLRNarrativeResult ULRDialogueSubsystem::Advance()
 {
+	if (ActiveSUDSDialogue)
+	{
+		return AdvanceSUDSDialogue();
+	}
 	if (!HasActiveSession())
 	{
 		return Reject(NAME_None, LRGameplayTags::NarrativeRejectNoSession);
@@ -102,27 +318,7 @@ FLRNarrativeResult ULRDialogueSubsystem::Advance()
 	{
 		return FinishSession();
 	}
-	if (!CurrentPage.Choices.IsEmpty())
-	{
-		FLRNarrativeResult result;
-		result.bSuccess = true;
-		result.Action = ELRNarrativeAction::AwaitChoice;
-		result.ContentId = CurrentPage.ContentId;
-		return result;
-	}
-
-	const FLRDialogueRow* row = ContentSet && ContentSet->DialogueTable
-		? ContentSet->DialogueTable->FindRow<FLRDialogueRow>(CurrentPage.ContentId, TEXT("Advance dialogue")) : nullptr;
-	if (!row)
-	{
-		return Reject(CurrentPage.ContentId, LRGameplayTags::NarrativeRejectMissingContent);
-	}
-	if (!row->Options.IsEmpty())
-	{
-		return Reject(CurrentPage.ContentId, LRGameplayTags::NarrativeRejectConditions);
-	}
-	return row->NextRowId.IsNone() ? FinishSession()
-		: ShowDialogueRow(row->NextRowId, ELRNarrativeAction::Advanced);
+	return Reject(CurrentPage.ContentId, LRGameplayTags::NarrativeRejectNoSession);
 }
 
 /**
@@ -132,20 +328,16 @@ FLRNarrativeResult ULRDialogueSubsystem::Advance()
  */
 FLRNarrativeResult ULRDialogueSubsystem::SelectChoice(const FName choiceId)
 {
-	if (CurrentPage.SessionType != ELRNarrativeSessionType::Dialogue)
+	if (ActiveSUDSDialogue)
 	{
-		return Reject(CurrentPage.ContentId, LRGameplayTags::NarrativeRejectNoSession);
+		const FLRNarrativeChoice* choice = CurrentPage.Choices.FindByPredicate([choiceId](const FLRNarrativeChoice& candidate)
+		{
+			return candidate.ChoiceId == choiceId;
+		});
+		return choice ? SelectSUDSChoice(choice->ChoiceIndex)
+			: Reject(ActiveScriptId, LRGameplayTags::NarrativeRejectInvalidChoice);
 	}
-	const FLRNarrativeChoice* choice = CurrentPage.Choices.FindByPredicate([choiceId](const FLRNarrativeChoice& candidate)
-	{
-		return candidate.ChoiceId == choiceId;
-	});
-	if (!choice)
-	{
-		return Reject(CurrentPage.ContentId, LRGameplayTags::NarrativeRejectInvalidChoice);
-	}
-	return choice->NextContentId.IsNone() ? FinishSession()
-		: ShowDialogueRow(choice->NextContentId, ELRNarrativeAction::Advanced);
+	return Reject(CurrentPage.ContentId, LRGameplayTags::NarrativeRejectNoSession);
 }
 
 /**
@@ -153,6 +345,11 @@ FLRNarrativeResult ULRDialogueSubsystem::SelectChoice(const FName choiceId)
  */
 void ULRDialogueSubsystem::EndSession()
 {
+	if (ActiveSUDSDialogue)
+	{
+		EndSUDSDialogue(ELRDialogueEndReason::Cancelled);
+		return;
+	}
 	if (!HasActiveSession())
 	{
 		return;
@@ -161,47 +358,6 @@ void ULRDialogueSubsystem::EndSession()
 	const FName finalContentId = CurrentPage.ContentId;
 	ResetSession();
 	OnSessionEnded.Broadcast(sessionType, finalContentId);
-}
-
-/**
- * @brief 解析指定对话行、条件和选项并发布给 UI，不在 C++ 中硬编码台词。
- * @param rowId DataTable 稳定行 ID，不使用行号。
- * @param action 输入动作或数值 `action`；不包含写死的具体键位。
- * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
- */
-FLRNarrativeResult ULRDialogueSubsystem::ShowDialogueRow(const FName rowId, const ELRNarrativeAction action)
-{
-	const FLRDialogueRow* row = ContentSet && ContentSet->DialogueTable
-		? ContentSet->DialogueTable->FindRow<FLRDialogueRow>(rowId, TEXT("Show dialogue")) : nullptr;
-	if (!row)
-	{
-		return Reject(rowId, LRGameplayTags::NarrativeRejectMissingContent);
-	}
-	if (!LRNarrativeRules::AreConditionsMet(row->RequiredTags, row->BlockedTags, ContextTags))
-	{
-		return Reject(rowId, LRGameplayTags::NarrativeRejectConditions);
-	}
-	if (row->DialogueId != rowId)
-	{
-		UE_LOG(LogLostRunicNarrative, Warning, TEXT("Dialogue row name=%s has mismatched ID=%s"),
-			*rowId.ToString(), *row->DialogueId.ToString());
-		return Reject(rowId, LRGameplayTags::NarrativeRejectMissingContent);
-	}
-
-	CurrentPage = FLRNarrativePage();
-	CurrentPage.SessionType = ELRNarrativeSessionType::Dialogue;
-	CurrentPage.ContentId = row->DialogueId;
-	CurrentPage.SpeakerId = row->SpeakerId;
-	CurrentPage.Text = row->Text;
-	CurrentPage.Portrait = row->Portrait;
-	LRNarrativeRules::BuildAvailableChoices(row->Options, ContextTags, CurrentPage.Choices);
-	OnPageChanged.Broadcast(CurrentPage);
-
-	FLRNarrativeResult result;
-	result.bSuccess = true;
-	result.Action = action;
-	result.ContentId = CurrentPage.ContentId;
-	return result;
 }
 
 /**
@@ -229,6 +385,9 @@ FLRNarrativeResult ULRDialogueSubsystem::ShowReadingRow(const FName readingId)
 	CurrentPage.ContentId = row->ReadingId;
 	CurrentPage.Title = row->Title;
 	CurrentPage.Text = row->Body;
+	CurrentPage.LineText = CurrentPage.Text;
+	CurrentPage.bShowSpeakerName = false;
+	CurrentPage.bShowPortrait = false;
 	OnPageChanged.Broadcast(CurrentPage);
 
 	FLRNarrativeResult result;
@@ -244,20 +403,11 @@ FLRNarrativeResult ULRDialogueSubsystem::ShowReadingRow(const FName readingId)
  */
 FLRNarrativeResult ULRDialogueSubsystem::FinishSession()
 {
-	const FName eventId = CompletionEventId;
 	const ELRNarrativeSessionType sessionType = CurrentPage.SessionType;
 	const FName finalContentId = CurrentPage.ContentId;
 	ResetSession();
 	OnSessionEnded.Broadcast(sessionType, finalContentId);
 
-	if (!eventId.IsNone())
-	{
-		FLRNarrativeResult eventResult = TryCompleteEvent(eventId);
-		if (!eventResult.bSuccess)
-		{
-			return eventResult;
-		}
-	}
 	FLRNarrativeResult result;
 	result.bSuccess = true;
 	result.Action = ELRNarrativeAction::Completed;
@@ -288,5 +438,4 @@ FLRNarrativeResult ULRDialogueSubsystem::Reject(const FName contentId, const FGa
 void ULRDialogueSubsystem::ResetSession()
 {
 	CurrentPage = FLRNarrativePage();
-	CompletionEventId = NAME_None;
 }

@@ -43,6 +43,12 @@ FVector ALRHidePoint::GetInteractionLocation_Implementation()
 	return GetActorLocation();
 }
 
+/** Uses the actor root as the fallback prompt anchor for hide points. */
+USceneComponent* ALRHidePoint::GetInteractionPromptAnchorComponent_Implementation()
+{
+	return GetRootComponent();
+}
+
 /**
  * @brief 执行当前交互选项；物品目标仍通过统一物品事务入口结算。
  * @param interactor 参与本次操作的运行时对象 `interactor`；函数会检查空值和所需接口。

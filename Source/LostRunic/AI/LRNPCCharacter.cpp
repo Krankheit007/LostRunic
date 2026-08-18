@@ -1,6 +1,6 @@
 /**
  * @file LRNPCCharacter.cpp
- * @brief 通用非战斗 NPC 实现：对话交互（Talk 选项经 ULRDialogueSubsystem::StartDialogue）与噪声表现钩子；行为由 StateTree/控制器驱动。
+ * @brief 通用非战斗 NPC 实现：SUDS 对话交互与噪声表现钩子；行为由 StateTree/控制器驱动。
  *
  * 关联文件：LRNPCCharacter.h；所属领域：AI。
  * 设计依据：Docs/Design/01_GameDesignSummary.md 与 Docs/Technical/04_TechnicalDesign.md。
@@ -9,10 +9,13 @@
 #include "AI/LRNPCCharacter.h"
 
 #include "AI/LRNPCController.h"
+#include "Components/SphereComponent.h"
 #include "Core/LRGameplayTags.h"
 #include "Core/LRLog.h"
 #include "Data/LRNPCDefinition.h"
 #include "Engine/GameInstance.h"
+#include "Interaction/LRInteractionPresentationComponent.h"
+#include "Narrative/LRDialogueComponent.h"
 #include "Narrative/LRDialogueSubsystem.h"
 
 /**
@@ -23,6 +26,15 @@ ALRNPCCharacter::ALRNPCCharacter()
 	PrimaryActorTick.bCanEverTick = false;
 	AIControllerClass = ALRNPCController::StaticClass();
 	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
+	InteractionCollision = CreateDefaultSubobject<USphereComponent>(TEXT("InteractionCollision"));
+	InteractionCollision->SetupAttachment(RootComponent);
+	InteractionCollision->InitSphereRadius(32.0f);
+	InteractionCollision->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	InteractionCollision->SetCollisionObjectType(ECC_GameTraceChannel1);
+	InteractionCollision->SetCollisionResponseToAllChannels(ECR_Ignore);
+	InteractionCollision->SetCollisionResponseToChannel(ECC_GameTraceChannel1, ECR_Overlap);
+	PresentationComponent = CreateDefaultSubobject<ULRInteractionPresentationComponent>(TEXT("Presentation"));
+	DialogueComponent = CreateDefaultSubobject<ULRDialogueComponent>(TEXT("DialogueComponent"));
 }
 
 /**
@@ -64,7 +76,7 @@ ELRNPCBehaviorState ALRNPCCharacter::GetActiveBehavior() const
 TArray<FLRInteractionOption> ALRNPCCharacter::GetInteractionOptions_Implementation(AActor* interactor)
 {
 	TArray<FLRInteractionOption> options;
-	if (Definition && !Definition->DialogueRowId.IsNone())
+	if (DialogueComponent && !DialogueComponent->GetScriptId().IsNone())
 	{
 		FLRInteractionOption option;
 		option.ActionTag = LRGameplayTags::InteractionActionTalk;
@@ -84,8 +96,14 @@ FVector ALRNPCCharacter::GetInteractionLocation_Implementation()
 	return GetActorLocation();
 }
 
+/** Returns the NPC interaction collision for UI placement without altering gameplay location queries. */
+USceneComponent* ALRNPCCharacter::GetInteractionPromptAnchorComponent_Implementation()
+{
+	return InteractionCollision;
+}
+
 /**
- * @brief 实现 Execute Interaction 对应的领域步骤：Talk 经 ULRDialogueSubsystem::StartDialogue 启动对话并进入 Conversation；对话结束回到默认行为。
+ * @brief 实现 Execute Interaction 对应的领域步骤：Talk 经 ULRDialogueComponent 启动 SUDS 对话并进入 Conversation；对话结束回到默认行为。
  * @param interactor 参与本次操作的运行时对象 `interactor`；函数会检查空值和所需接口。
  * @param actionTag Gameplay Tag 或标签集合，用于分类、条件、拒绝原因和可诊断事件。
  * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
@@ -100,15 +118,14 @@ FLRInteractionResult ALRNPCCharacter::ExecuteInteraction_Implementation(AActor* 
 		return result;
 	}
 	ULRDialogueSubsystem* dialogue = GetGameInstance() ? GetGameInstance()->GetSubsystem<ULRDialogueSubsystem>() : nullptr;
-	if (!dialogue || !Definition || Definition->DialogueRowId.IsNone())
+	if (!dialogue || !DialogueComponent || DialogueComponent->GetScriptId().IsNone())
 	{
 		result.FailureReason = LRGameplayTags::NarrativeRejectMissingContent;
 		return result;
 	}
-	const FLRNarrativeResult narrative = dialogue->StartDialogue(Definition->DialogueRowId);
-	if (!narrative.bSuccess)
+	if (!DialogueComponent->TryStartDialogue(interactor))
 	{
-		result.FailureReason = narrative.FailureReason;
+		result.FailureReason = LRGameplayTags::NarrativeRejectMissingContent;
 		return result;
 	}
 	if (ALRNPCController* controller = Cast<ALRNPCController>(GetController()))

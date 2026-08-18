@@ -1,6 +1,6 @@
 /**
  * @file LRGameContentSet.h
- * @brief 聚合 Dialogue/Reading 表、物品/收藏品/守卫/关卡事件定义和地图软引用注册，避免运行时代码散落硬编码 /Game 路径。
+ * @brief 聚合 Reading 表、物品/收藏品/守卫/关卡事件定义和地图软引用注册，避免运行时代码散落硬编码 /Game 路径。
  *
  * 关联文件：LRGameContentSet.cpp；所属领域：Data。
  * 设计依据：Docs/Design/01_GameDesignSummary.md 与 Docs/Technical/04_TechnicalDesign.md。
@@ -20,6 +20,8 @@ class ULRCollectibleDefinition;
 class ULRGuardDefinition;
 class ULRItemDefinition;
 class ULRLevelEventDefinition;
+class ULRDialogueScriptRegistry;
+class ULRDialogueSpeakerRegistry;
 
 /** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
 UCLASS(BlueprintType, meta = (DisplayName = "Lost Runic Game Content Set"))
@@ -36,10 +38,6 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Content|Maps")
 	FName MainMenuMapId = NAME_None;
 
-	/** Dialogue Table DataTable 引用；行以稳定 FName ID 查询。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。 */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Content|Tables")
-	TObjectPtr<UDataTable> DialogueTable;
-
 	/** Reading Table DataTable 引用；行以稳定 FName ID 查询。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Content|Tables")
 	TObjectPtr<UDataTable> ReadingTable;
@@ -47,6 +45,14 @@ public:
 	/** Native UI string table. zh-Hans is the native source; localized targets are supplied by PO/Target data. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Content|Localization")
 	TObjectPtr<UStringTable> UIStringTable;
+
+	/** Global ScriptId to SUDS script mapping used by all dialogue components. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Content|Dialogue")
+	TObjectPtr<ULRDialogueScriptRegistry> DialogueScriptRegistry;
+
+	/** StringTable-backed dialogue speaker names and hard portrait references. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Content|Localization")
+	TObjectPtr<ULRDialogueSpeakerRegistry> DialogueSpeakerRegistry;
 
 	/** Items 的领域数据，由所属类型负责维护和校验。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Content|Definitions")

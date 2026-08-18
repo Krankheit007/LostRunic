@@ -12,6 +12,11 @@
 				"UMG",
 				"AIModule"
 			]
+		},
+		{
+			"Name": "LostRunicEditor",
+			"Type": "Editor",
+			"LoadingPhase": "Default"
 		}
 	],
 	"Plugins": [
@@ -48,6 +53,10 @@
 		},
 		{
 			"Name": "GameFeaturesToolset",
+			"Enabled": true
+		},
+		{
+			"Name": "SUDS",
 			"Enabled": true
 		},
 		{

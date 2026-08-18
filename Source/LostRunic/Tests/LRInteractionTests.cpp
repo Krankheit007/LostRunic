@@ -11,7 +11,10 @@
 #include "Misc/AutomationTest.h"
 
 #include "Data/LRInteractionTuning.h"
+#include "Components/SceneComponent.h"
+#include "Interaction/LRInteractionPresentationComponent.h"
 #include "Interaction/LRInteractionRules.h"
+#include "Interaction/LRInteractionTypes.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLRInteractionCandidateTest, "LostRunic.Interaction.SelectsNearestLegalCandidate",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
@@ -65,6 +68,41 @@ bool FLRInteractionRangeTest::RunTest(const FString& parameters)
 		LRInteractionRules::IsFacingAllowed(outsideDot, *tuning));
 	TestTrue(TEXT("The same 44.9 degree rule applies on the opposite side"),
 		LRInteractionRules::IsFacingAllowed(insideDot, *tuning));
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLRInteractionPromptPresentationConfigTest,
+	"LostRunic.Interaction.PromptPresentationConfig", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FLRInteractionPromptPresentationConfigTest::RunTest(const FString& parameters)
+{
+	const ULRInteractionTuning* tuning = GetDefault<ULRInteractionTuning>();
+	TestEqual(TEXT("Default prompt Z offset is 40 cm"), tuning->InteractionPromptZOffset, 40.0f);
+
+	AActor* actor = NewObject<AActor>();
+	USceneComponent* root = NewObject<USceneComponent>(actor, TEXT("PromptRoot"));
+	actor->SetRootComponent(root);
+	actor->AddInstanceComponent(root);
+	ULRInteractionPresentationComponent* presentation = NewObject<ULRInteractionPresentationComponent>(actor);
+	TestEqual(TEXT("Missing Presentation anchor override falls back to caller anchor"),
+		presentation->ResolvePromptAnchorComponent(root), root);
+
+	presentation->PromptAnchorOverride.PathToComponent = TEXT("PromptRoot");
+	TestEqual(TEXT("FComponentReference resolves the named SceneComponent"),
+		presentation->ResolvePromptAnchorComponent(nullptr), root);
+	presentation->bOverridePromptZOffset = true;
+	presentation->PromptZOffsetOverride = 75.0f;
+	TestEqual(TEXT("Instance prompt Z offset overrides the shared tuning value"),
+		presentation->ResolvePromptZOffset(tuning->InteractionPromptZOffset), 75.0f);
+
+	FLRInteractionPromptView before;
+	before.Target = actor;
+	before.Prompt = FText::FromString(TEXT("打开"));
+	before.bVisible = true;
+	FLRInteractionPromptView after = before;
+	after.Prompt = FText::FromString(TEXT("关闭"));
+	TestFalse(TEXT("Same target with changed prompt text is not treated as the same presentation"),
+		before.HasSamePresentationAs(after));
 	return true;
 }
 

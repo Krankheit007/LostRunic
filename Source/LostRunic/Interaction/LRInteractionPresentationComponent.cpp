@@ -5,6 +5,7 @@
 #include "Interaction/LRInteractionPresentationComponent.h"
 
 #include "Components/PrimitiveComponent.h"
+#include "Components/SceneComponent.h"
 #include "NiagaraComponent.h"
 
 /** Creates an event-driven presentation component. */
@@ -43,6 +44,29 @@ void ULRInteractionPresentationComponent::SetFarHintComponent(UNiagaraComponent*
 {
 	FarHintComponent = component;
 	ApplyVisualState();
+}
+
+/** Resolves an optional component picker reference without making presentation mandatory. */
+USceneComponent* ULRInteractionPresentationComponent::ResolvePromptAnchorComponent(USceneComponent* defaultAnchor) const
+{
+	const bool bHasConfiguredOverride = !PromptAnchorOverride.ComponentProperty.IsNone()
+		|| !PromptAnchorOverride.PathToComponent.IsEmpty()
+		|| PromptAnchorOverride.OtherActor.IsValid()
+		|| PromptAnchorOverride.OverrideComponent.IsValid();
+	if (bHasConfiguredOverride && GetOwner())
+	{
+		if (USceneComponent* overrideAnchor = Cast<USceneComponent>(PromptAnchorOverride.GetComponent(GetOwner())))
+		{
+			return overrideAnchor;
+		}
+	}
+	return defaultAnchor;
+}
+
+/** Resolves the instance override against the shared interaction tuning value. */
+float ULRInteractionPresentationComponent::ResolvePromptZOffset(const float defaultOffset) const
+{
+	return bOverridePromptZOffset ? PromptZOffsetOverride : defaultOffset;
 }
 
 /** Maps state thresholds to particle activation and white-outline CustomDepth. */

@@ -30,6 +30,7 @@ public class LostRunic : ModuleRules
 			"StateTreeModule",
 			"GameplayStateTreeModule",
 			"GameplayTags",
+			"SUDS",
 			"UMG",
 		});
 

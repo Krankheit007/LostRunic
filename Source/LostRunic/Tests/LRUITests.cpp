@@ -10,6 +10,12 @@
 
 #include "Misc/AutomationTest.h"
 
+#include "Blueprint/WidgetBlueprintGeneratedClass.h"
+#include "Blueprint/WidgetTree.h"
+#include "Blueprint/UserWidget.h"
+#include "Components/CanvasPanel.h"
+#include "Components/CanvasPanelSlot.h"
+#include "Components/TextBlock.h"
 #include "Core/LRGameplayTags.h"
 #include "Data/LRCollectibleDefinition.h"
 #include "Data/LRContentRows.h"
@@ -25,6 +31,8 @@
 #include "Save/LRSaveFormatting.h"
 #include "Tests/LRTestUIHelpers.h"
 #include "UI/LRHUD.h"
+#include "UI/LRHUDScreenWidget.h"
+#include "UI/LRInteractionWidget.h"
 #include "UI/LRInventoryScreenWidget.h"
 #include "UI/LRMenuWidgetController.h"
 #include "UI/LRPlayerUIComponent.h"
@@ -747,6 +755,69 @@ bool FLRSaveFormattingRulesTest::RunTest(const FString& parameters)
 		EDateTimeStyle::Short, FText::GetInvariantTimeZone());
 	TestEqual(TEXT("Saved-at formatting applies the supplied local offset"),
 		LRSaveFormatting::FormatSavedAtWithOffset(utc, FTimespan::FromHours(8)), expected);
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLRInteractionWidgetBlueprintContractTest,
+	"LostRunic.UI.InteractionWidgetBlueprintContract",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FLRInteractionWidgetBlueprintContractTest::RunTest(const FString& parameters)
+{
+	const UClass* interactionClass = LoadClass<UUserWidget>(nullptr,
+		TEXT("/Game/LostRunic/UI/WBP_Interaction.WBP_Interaction_C"));
+	TestNotNull(TEXT("WBP_Interaction loads"), interactionClass);
+	if (!interactionClass)
+	{
+		return true;
+	}
+	TestTrue(TEXT("WBP_Interaction derives from ULRInteractionWidget"),
+		interactionClass->IsChildOf(ULRInteractionWidget::StaticClass()));
+
+	const UWidgetBlueprintGeneratedClass* interactionGeneratedClass =
+		Cast<UWidgetBlueprintGeneratedClass>(interactionClass);
+	const UWidgetTree* interactionTree = interactionGeneratedClass
+		? interactionGeneratedClass->GetWidgetTreeArchetype() : nullptr;
+	TestNotNull(TEXT("WBP_Interaction has a widget tree"), interactionTree);
+	if (interactionTree)
+	{
+		TestTrue(TEXT("InteractionKey is a TextBlock"),
+			Cast<UTextBlock>(interactionTree->FindWidget(TEXT("InteractionKey"))) != nullptr);
+		TestTrue(TEXT("InteractionInfo is a TextBlock"),
+			Cast<UTextBlock>(interactionTree->FindWidget(TEXT("InteractionInfo"))) != nullptr);
+	}
+
+	const UClass* hudClass = LoadClass<UUserWidget>(nullptr,
+		TEXT("/Game/LostRunic/UI/WBP_HUD.WBP_HUD_C"));
+	TestNotNull(TEXT("WBP_HUD loads"), hudClass);
+	if (!hudClass)
+	{
+		return true;
+	}
+	TestTrue(TEXT("WBP_HUD derives from ULRHUDScreenWidget"),
+		hudClass->IsChildOf(ULRHUDScreenWidget::StaticClass()));
+
+	const UWidgetBlueprintGeneratedClass* hudGeneratedClass = Cast<UWidgetBlueprintGeneratedClass>(hudClass);
+	const UWidgetTree* hudTree = hudGeneratedClass ? hudGeneratedClass->GetWidgetTreeArchetype() : nullptr;
+	UWidget* interactionWidget = hudTree ? hudTree->FindWidget(TEXT("InteractionWidget")) : nullptr;
+	UCanvasPanel* background = hudTree ? Cast<UCanvasPanel>(hudTree->FindWidget(TEXT("Background"))) : nullptr;
+	TestNotNull(TEXT("WBP_HUD exposes InteractionWidget"), interactionWidget);
+	TestNotNull(TEXT("WBP_HUD exposes Background Canvas"), background);
+	if (interactionWidget && background)
+	{
+		const UCanvasPanelSlot* interactionSlot = Cast<UCanvasPanelSlot>(interactionWidget->Slot);
+		TestNotNull(TEXT("InteractionWidget uses a CanvasPanelSlot"), interactionSlot);
+		if (interactionSlot)
+		{
+			const FAnchors anchors = interactionSlot->GetAnchors();
+			TestTrue(TEXT("InteractionWidget Canvas slot uses a top-left fixed anchor"),
+				anchors.Minimum.IsNearlyZero() && anchors.Maximum.IsNearlyZero());
+			TestTrue(TEXT("InteractionWidget Canvas slot sizes to content"), interactionSlot->GetAutoSize());
+		}
+		TestTrue(TEXT("InteractionWidget instance derives from ULRInteractionWidget"),
+			interactionWidget->GetClass()->IsChildOf(ULRInteractionWidget::StaticClass()));
+		TestTrue(TEXT("InteractionWidget is a direct child of Background"), background->HasChild(interactionWidget));
+	}
 	return true;
 }
 

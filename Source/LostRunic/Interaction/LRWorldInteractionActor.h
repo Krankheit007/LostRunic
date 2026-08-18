@@ -30,6 +30,9 @@ public:
 	/** Uses the actor transform as the shared interaction point. */
 	virtual FVector GetInteractionLocation_Implementation() override;
 
+	/** Uses the interaction collision as the default UI prompt anchor. */
+	virtual USceneComponent* GetInteractionPromptAnchorComponent_Implementation() override;
+
 	/** Validates common state before dispatching to the specific interaction behavior. */
 	virtual FLRInteractionResult ExecuteInteraction_Implementation(AActor* interactor, FGameplayTag actionTag) override;
 

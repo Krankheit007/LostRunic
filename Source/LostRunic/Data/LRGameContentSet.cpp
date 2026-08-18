@@ -1,6 +1,6 @@
 /**
  * @file LRGameContentSet.cpp
- * @brief 聚合 Dialogue/Reading 表、物品/收藏品/守卫/关卡事件定义和地图软引用注册，避免运行时代码散落硬编码 /Game 路径。
+ * @brief 聚合 Reading 表、物品/收藏品/守卫/关卡事件定义和地图软引用注册，避免运行时代码散落硬编码 /Game 路径。
  *
  * 关联文件：LRGameContentSet.h；所属领域：Data。
  * 设计依据：Docs/Design/01_GameDesignSummary.md 与 Docs/Technical/04_TechnicalDesign.md。
@@ -21,51 +21,6 @@
 
 namespace
 {
-	/**
-	 * @brief 执行 Validate Dialogue Table 的纯规则或事务判定，失败时提供结构化原因。
-	 * @param dialogueTable 数据或调优来源 `dialogueTable`；调用期间只读，并按稳定 ID 解析内容。
-	 * @param outError 输出校验失败原因；成功时保持为空。
-	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
-	 */
-	bool ValidateDialogueTable(const UDataTable* dialogueTable, FString& outError)
-	{
-		const TArray<FName> rowNames = dialogueTable->GetRowNames();
-		TSet<FName> dialogueIds;
-		for (const FName rowName : rowNames)
-		{
-			const FLRDialogueRow* row = dialogueTable->FindRow<FLRDialogueRow>(rowName, TEXT("Validate dialogue"));
-			if (!row || row->DialogueId.IsNone() || row->DialogueId != rowName || dialogueIds.Contains(row->DialogueId))
-			{
-				outError = FString::Printf(TEXT("Dialogue row '%s' must have one matching, unique DialogueId."), *rowName.ToString());
-				return false;
-			}
-			dialogueIds.Add(row->DialogueId);
-		}
-
-		for (const FName rowName : rowNames)
-		{
-			const FLRDialogueRow* row = dialogueTable->FindRow<FLRDialogueRow>(rowName, TEXT("Validate dialogue links"));
-			if (!row->NextRowId.IsNone() && !dialogueIds.Contains(row->NextRowId))
-			{
-				outError = FString::Printf(TEXT("Dialogue '%s' references missing NextRowId '%s'."), *rowName.ToString(), *row->NextRowId.ToString());
-				return false;
-			}
-
-			TSet<FName> optionIds;
-			for (const FLRDialogueOption& option : row->Options)
-			{
-				if (option.OptionId.IsNone() || optionIds.Contains(option.OptionId)
-					|| (!option.NextRowId.IsNone() && !dialogueIds.Contains(option.NextRowId)))
-				{
-					outError = FString::Printf(TEXT("Dialogue '%s' has an empty, duplicate, or unresolved option."), *rowName.ToString());
-					return false;
-				}
-				optionIds.Add(option.OptionId);
-			}
-		}
-		return true;
-	}
-
 	/**
 	 * @brief 执行 Validate Reading Table 的纯规则或事务判定，失败时提供结构化原因。
 	 * @param readingTable 数据或调优来源 `readingTable`；调用期间只读，并按稳定 ID 解析内容。
@@ -157,23 +112,22 @@ namespace
  */
 bool ULRGameContentSet::Validate(FString& outError) const
 {
+	if (!DialogueScriptRegistry)
+	{
+		outError = TEXT("DialogueScriptRegistry must be assigned for SUDS dialogue content.");
+		return false;
+	}
 	if (!UIStringTable)
 	{
 		outError = TEXT("UIStringTable must be assigned for localized content.");
 		return false;
 	}
-	if (!DialogueTable || DialogueTable->GetRowStruct() != FLRDialogueRow::StaticStruct())
-	{
-		outError = TEXT("DialogueTable must use FLRDialogueRow.");
-		return false;
-	}
-
 	if (!ReadingTable || ReadingTable->GetRowStruct() != FLRReadingRow::StaticStruct())
 	{
 		outError = TEXT("ReadingTable must use FLRReadingRow.");
 		return false;
 	}
-	if (!ValidateDialogueTable(DialogueTable, outError) || !ValidateReadingTable(ReadingTable, outError)
+	if (!ValidateReadingTable(ReadingTable, outError)
 		|| !ValidateEvents(LevelEvents, outError)
 		|| !ValidateDefinitionIds(Items, [](const ULRItemDefinition& definition) -> FName { return definition.ItemId; }, TEXT("Items"), outError)
 		|| !ValidateDefinitionIds(Collectibles,

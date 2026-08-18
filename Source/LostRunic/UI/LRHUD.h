@@ -53,6 +53,8 @@ public:
 	 * @param bVisible 布尔开关 `bVisible`；true 表示启用或条件成立，false 表示禁用或条件不成立。
 	 */
 	void ShowNarrative(bool bVisible);
+	/** Shows the dedicated dialogue screen; Reading continues to use NarrativeScreenClass. */
+	void ShowDialogue(bool bVisible);
 	/**
 	 * @brief 显示或隐藏指定菜单 Widget，并维护唯一可聚焦页面。
 	 * @param screen 本次操作使用的 `screen` 枚举或模式值。
@@ -124,6 +126,10 @@ protected:
 	/** Narrative Screen Class 的软类或类默认引用，用于创建对应蓝图实例。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。 */
 	UPROPERTY(EditDefaultsOnly, Category = "Widgets")
 	TSubclassOf<ULRScreenWidget> NarrativeScreenClass;
+
+	/** Dialogue Screen Class 的类引用；不得复用 Reading 的 NarrativeScreenClass。 */
+	UPROPERTY(EditDefaultsOnly, Category = "Widgets")
+	TSubclassOf<ULRScreenWidget> DialogueScreenClass;
 
 	/** Menu Screen Class 的软类或类默认引用：背包/笔记/收集品共用一个 UMG 菜单资产，通过顶部 Tab 切换。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。 */
 	UPROPERTY(EditDefaultsOnly, Category = "Widgets")

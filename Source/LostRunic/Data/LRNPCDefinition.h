@@ -31,10 +31,6 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "NPC")
 	TObjectPtr<UStateTree> Behavior;
 
-	/** Dialogue Row Id 的稳定 DataTable 行 ID，用于 ULRDialogueSubsystem::StartDialogue。 C++ 安全默认值为 `NAME_None`。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。 */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "NPC")
-	FName DialogueRowId = NAME_None;
-
 	/** Default Behavior 的领域数据，由所属类型负责维护和校验。 C++ 安全默认值为 `ENPCBaseBehavior::Idle`。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "NPC")
 	ENPCBaseBehavior DefaultBehavior = ENPCBaseBehavior::Idle;

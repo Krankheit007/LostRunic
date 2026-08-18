@@ -13,6 +13,8 @@
 
 #include "LRInteractable.generated.h"
 
+class USceneComponent;
+
 UINTERFACE(BlueprintType, meta = (DisplayName = "Lost Runic Interactable"))
 class LOSTRUNIC_API ULRInteractable : public UInterface
 {
@@ -39,6 +41,13 @@ public:
 	 */
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Lost Runic|Interaction")
 	FVector GetInteractionLocation();
+
+	/**
+	 * Resolves the optional world component used only as the HUD prompt anchor.
+	 * This never participates in interaction eligibility, scoring, traces, or target selection.
+	 */
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Lost Runic|Interaction|Presentation")
+	USceneComponent* GetInteractionPromptAnchorComponent();
 
 	/**
 	 * @brief 实现 Execute Interaction 对应的领域步骤；调用关系和状态所有权由本文件所属系统维护。

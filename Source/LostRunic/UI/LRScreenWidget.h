@@ -113,7 +113,7 @@ public:
 	ULRHUDWidgetController* GetHUDWidgetController() const { return HUDWidgetController; }
 
 	/** Injects the local HUD event source before the widget is exposed to gameplay. */
-	void SetHUDWidgetController(ULRHUDWidgetController* controller);
+	virtual void SetHUDWidgetController(ULRHUDWidgetController* controller);
 	virtual void SetSaveWidgetController(ULRSaveWidgetController* controller);
 
 protected:

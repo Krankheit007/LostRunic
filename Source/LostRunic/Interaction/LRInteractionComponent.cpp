@@ -15,6 +15,7 @@
 #include "Engine/GameInstance.h"
 #include "Engine/OverlapResult.h"
 #include "Engine/World.h"
+#include "Components/SceneComponent.h"
 #include "Framework/LRGameInstanceSubsystem.h"
 #include "Framework/LRPlayerController.h"
 #include "Input/LRInputConfig.h"
@@ -26,6 +27,24 @@
 #include "CollisionQueryParams.h"
 #include "CollisionShape.h"
 #include "TimerManager.h"
+
+namespace
+{
+	/** Resolves the interface-provided UI anchor and always falls back to the actor root. */
+	USceneComponent* ResolveDefaultPromptAnchor(AActor* actor)
+	{
+		if (!actor || !actor->GetClass()->ImplementsInterface(ULRInteractable::StaticClass()))
+		{
+			return actor ? actor->GetRootComponent() : nullptr;
+		}
+
+		if (USceneComponent* anchor = ILRInteractable::Execute_GetInteractionPromptAnchorComponent(actor))
+		{
+			return anchor;
+		}
+		return actor->GetRootComponent();
+	}
+}
 
 /**
  * @brief 创建对象并设置默认子对象、能力开关和安全初值；需要 World、资产或玩家的依赖延迟到初始化阶段解析。
@@ -89,6 +108,11 @@ FLRInteractionResult ULRInteractionComponent::PerformPrimaryInteraction()
 		result = ILRInteractable::Execute_ExecuteInteraction(CurrentTarget.Get(), GetOwner(), CurrentOption.ActionTag);
 	}
 	OnInteractionExecuted.Broadcast(result);
+	if (result.bSuccess && CurrentPrompt.bVisible)
+	{
+		CurrentPrompt.bVisible = false;
+		OnFocusedInteractionChanged.Broadcast(CurrentPrompt);
+	}
 	RefreshInteractionState();
 	return result;
 }
@@ -268,14 +292,35 @@ void ULRInteractionComponent::ApplySelection(const TArray<FEvaluation>& evaluati
 	if (bChanged)
 	{
 		OnTargetChanged.Broadcast(selectedTarget, CurrentOption, CurrentRange);
-		CurrentPrompt.Target = selectedTarget;
-		CurrentPrompt.Prompt = selectedOption.Prompt;
-		CurrentPrompt.ActionTag = selectedOption.ActionTag;
+	}
+
+	FLRInteractionPromptView nextPrompt;
+	nextPrompt.Target = selectedTarget;
+	nextPrompt.Prompt = selectedOption.Prompt;
+	nextPrompt.ActionTag = selectedOption.ActionTag;
+	nextPrompt.bVisible = selectedTarget != nullptr;
+	if (selectedTarget)
+	{
 		const APawn* ownerPawn = Cast<APawn>(GetOwner());
 		const ALRPlayerController* controller = ownerPawn ? Cast<ALRPlayerController>(ownerPawn->GetController()) : nullptr;
-		ULRInputConfig* inputConfig = controller ? controller->GetInputConfig() : nullptr;
-		CurrentPrompt.InputAction = inputConfig ? inputConfig->InteractAction : nullptr;
-		CurrentPrompt.bVisible = selectedTarget != nullptr;
+		const ULRInputConfig* inputConfig = controller ? controller->GetInputConfig() : nullptr;
+		nextPrompt.InputAction = inputConfig ? inputConfig->InteractAction : nullptr;
+
+		USceneComponent* defaultAnchor = ResolveDefaultPromptAnchor(selectedTarget);
+		ULRInteractionPresentationComponent* presentation = selectedTarget->FindComponentByClass<ULRInteractionPresentationComponent>();
+		nextPrompt.PromptAnchor = presentation
+			? presentation->ResolvePromptAnchorComponent(defaultAnchor)
+			: defaultAnchor;
+		const float promptZOffset = presentation
+			? presentation->ResolvePromptZOffset(GetEffectiveTuning().InteractionPromptZOffset)
+			: GetEffectiveTuning().InteractionPromptZOffset;
+		nextPrompt.PromptWorldOffset = FVector(0.0f, 0.0f, promptZOffset);
+	}
+
+	const bool bPromptChanged = !CurrentPrompt.HasSamePresentationAs(nextPrompt);
+	CurrentPrompt = nextPrompt;
+	if (bPromptChanged)
+	{
 		OnFocusedInteractionChanged.Broadcast(CurrentPrompt);
 	}
 }
