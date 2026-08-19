@@ -4,6 +4,7 @@
 #include "Save/LRSaveTypes.h"
 #include "Save/LRSaveV2Types.h"
 #include "Save/LRSaveProvider.h"
+#include "Narrative/LRNarrativeTypes.h"
 #include "Subsystems/GameInstanceSubsystem.h"
 
 #include "LRSaveSubsystem.generated.h"
@@ -141,8 +142,7 @@ private:
 	void SetCatalogState(ELRSaveCatalogState newState);
 	void PublishCatalogSnapshot();
 
-	UFUNCTION()
-	void HandleNarrativeEventCommitted(FName eventId, ELRSavePolicy savePolicy);
+	void HandleNarrativeEventCommitted(const FLRStoryEventCommit& eventCommit);
 
 	void UpdateMemoryPhaseAfterOperation(const FLRQueuedSaveOperation& operation, bool bSuccess);
 	void SetMemoryPhase(ELRMemoryTransactionPhase newPhase);

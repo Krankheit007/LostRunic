@@ -3,7 +3,7 @@
  * @brief 提供 LostRunic Runtime 自动化测试，覆盖调优边界、状态矩阵、交互筛选、物品双入口、守卫警戒、叙事分支和存档事务顺序。仅在 WITH_DEV_AUTOMATION_TESTS 下编译。
  *
  * 关联文件：Tests 目录内调用该公共契约的实现文件；所属领域：Tests。
- * 设计依据：Docs/Design/01_GameDesignSummary.md 与 Docs/Technical/04_TechnicalDesign.md。
+ * 设计依据：Docs/Technical/08_ArchitectureBoundaries.md。
  * 除带 EditDefaultsOnly、EditAnywhere 或 EditInstanceOnly 的字段外，其余成员均为运行时状态，不应由蓝图直接改写。
  */
 #if WITH_DEV_AUTOMATION_TESTS
@@ -23,6 +23,7 @@
 #include "Internationalization/StringTable.h"
 #include "Narrative/LRDialogueSubsystem.h"
 #include "Narrative/LRNarrativeRules.h"
+#include "Narrative/LRStoryStateSubsystem.h"
 #include "UI/LRDialogueWidgetController.h"
 #include "UI/LRMenuWidgetController.h"
 
@@ -57,6 +58,7 @@ namespace
 	ULRDialogueSubsystem* MakeDialogueSubsystem()
 	{
 		UGameInstance* gameInstance = NewObject<UGameInstance>();
+		NewObject<ULRStoryStateSubsystem>(gameInstance);
 		return NewObject<ULRDialogueSubsystem>(gameInstance);
 	}
 }

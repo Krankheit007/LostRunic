@@ -4,9 +4,10 @@
 #include "Core/LRLog.h"
 #include "Framework/LRCharacter.h"
 #include "Kismet/GameplayStatics.h"
-#include "Narrative/LRDialogueSubsystem.h"
+#include "Narrative/LRStoryStateSubsystem.h"
 #include "Save/LRGameStatisticsSubsystem.h"
 #include "Save/LRSaveRules.h"
+#include "Save/LRStorySaveAdapter.h"
 #include "State/LRStateComponent.h"
 
 namespace
@@ -47,11 +48,6 @@ bool ULRSaveSubsystem::BeginDeathMemoryTransaction(ALRCharacter* character)
 		UE_LOG(LogLostRunicSave, Warning, TEXT("Memory snapshot could not resolve statistics subsystem."));
 		return false;
 	}
-	if (ULRDialogueSubsystem* dialogue = GetGameInstance()
-		? GetGameInstance()->GetSubsystem<ULRDialogueSubsystem>() : nullptr)
-	{
-		dialogue->CaptureMemoryEventIds(snapshot.Story.MemoryEventIds);
-	}
 	HomeResumeSnapshot = snapshot;
 	CurrentData = snapshot;
 	bHasHomeResumeSnapshot = true;
@@ -74,14 +70,15 @@ bool ULRSaveSubsystem::CommitMemoryEvent(const FName eventId)
 	{
 		return false;
 	}
-	ULRDialogueSubsystem* dialogue = GetGameInstance()
-		? GetGameInstance()->GetSubsystem<ULRDialogueSubsystem>() : nullptr;
-	if (!dialogue || !dialogue->RecordMemoryEvent(eventId))
+	ULRStoryStateSubsystem* storyState = ULRStoryStateSubsystem::Resolve(GetGameInstance());
+	if (!storyState || !storyState->CommitMemoryEvent(eventId))
 	{
 		return false;
 	}
 	FLRSaveDataV2 captured = HomeResumeSnapshot;
-	dialogue->CaptureMemoryEventIds(captured.Story.MemoryEventIds);
+	FLRNarrativePersistentState persistentState;
+	storyState->CapturePersistentState(persistentState);
+	LRStorySaveAdapter::ToSaveChunk(persistentState, captured.Story);
 	HomeResumeSnapshot = captured;
 	CurrentData = captured;
 	const FLRSaveOperationResult result = EnqueueOperation(ELRSaveOperationType::CriticalSave,
@@ -137,9 +134,11 @@ void ULRSaveSubsystem::HandleWorldReady(ALRCharacter* character)
 		return;
 	}
 	FLRSaveDataV2 resumeSnapshot = HomeResumeSnapshot;
-	if (ULRDialogueSubsystem* dialogue = GetGameInstance()->GetSubsystem<ULRDialogueSubsystem>())
+	if (ULRStoryStateSubsystem* storyState = ULRStoryStateSubsystem::Resolve(GetGameInstance()))
 	{
-		dialogue->CaptureMemoryEventIds(resumeSnapshot.Story.MemoryEventIds);
+		FLRNarrativePersistentState persistentState;
+		storyState->CapturePersistentState(persistentState);
+		LRStorySaveAdapter::ToSaveChunk(persistentState, resumeSnapshot.Story);
 	}
 	if (ULRGameStatisticsSubsystem* statistics = GetGameInstance()->GetSubsystem<ULRGameStatisticsSubsystem>())
 	{

@@ -5,9 +5,10 @@
 #include "Framework/LRGameInstanceSubsystem.h"
 #include "Items/LRInventoryComponent.h"
 #include "Kismet/GameplayStatics.h"
-#include "Narrative/LRDialogueSubsystem.h"
+#include "Narrative/LRStoryStateSubsystem.h"
 #include "Save/LRGameStatisticsSubsystem.h"
 #include "Save/LRSaveAnchor.h"
+#include "Save/LRStorySaveAdapter.h"
 
 namespace
 {
@@ -154,25 +155,33 @@ namespace
 
 	bool FStoryProvider::Capture(UGameInstance& gameInstance, FLRSaveDataV2& data, FString& outError) const
 	{
-		ULRDialogueSubsystem* dialogue = gameInstance.GetSubsystem<ULRDialogueSubsystem>();
-		if (!dialogue) { outError = TEXT("Story provider could not resolve dialogue subsystem."); return false; }
-		dialogue->CaptureStorySaveState(data.Story);
+		ULRStoryStateSubsystem* storyState = ULRStoryStateSubsystem::Resolve(&gameInstance);
+		if (!storyState) { outError = TEXT("Story provider could not resolve story-state subsystem."); return false; }
+		FLRNarrativePersistentState persistentState;
+		storyState->CapturePersistentState(persistentState);
+		LRStorySaveAdapter::ToSaveChunk(persistentState, data.Story);
 		return true;
 	}
 
 	bool FStoryProvider::Restore(UGameInstance& gameInstance, const FLRSaveDataV2& data, FString& outError) const
 	{
-		ULRDialogueSubsystem* dialogue = gameInstance.GetSubsystem<ULRDialogueSubsystem>();
-		if (!dialogue) { outError = TEXT("Story provider could not resolve dialogue subsystem."); return false; }
-		dialogue->RestoreStorySaveState(data.Story);
+		ULRStoryStateSubsystem* storyState = ULRStoryStateSubsystem::Resolve(&gameInstance);
+		if (!storyState) { outError = TEXT("Story provider could not resolve story-state subsystem."); return false; }
+		FLRNarrativePersistentState persistentState;
+		LRStorySaveAdapter::ToPersistentState(data.Story, persistentState);
+		if (!storyState->ReplacePersistentState(persistentState))
+		{
+			outError = TEXT("Story provider rejected invalid persistent story data.");
+			return false;
+		}
 		return true;
 	}
 
 	bool FStoryProvider::ResetForNewGame(UGameInstance& gameInstance, FString& outError) const
 	{
-		ULRDialogueSubsystem* dialogue = gameInstance.GetSubsystem<ULRDialogueSubsystem>();
-		if (!dialogue) { outError = TEXT("Story provider could not resolve dialogue subsystem."); return false; }
-		dialogue->ResetForNewGame();
+		ULRStoryStateSubsystem* storyState = ULRStoryStateSubsystem::Resolve(&gameInstance);
+		if (!storyState) { outError = TEXT("Story provider could not resolve story-state subsystem."); return false; }
+		storyState->ResetForNewGame();
 		return true;
 	}
 

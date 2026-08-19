@@ -11,7 +11,7 @@
 #include "Framework/LRGameInstanceSubsystem.h"
 #include "Framework/LRPlayerController.h"
 #include "Kismet/GameplayStatics.h"
-#include "Narrative/LRDialogueSubsystem.h"
+#include "Narrative/LRStoryStateSubsystem.h"
 #include "Save/LRSaveCatalog.h"
 #include "Save/LRSaveCatalogStore.h"
 #include "Save/LRSaveProvider.h"
@@ -41,7 +41,7 @@ void ULRSaveSubsystem::Initialize(FSubsystemCollectionBase& collection)
 	CatalogState = ELRSaveCatalogState::Initializing;
 	CatalogSnapshot = FLRSaveCatalogSnapshot();
 	collection.InitializeDependency<ULRGameInstanceSubsystem>();
-	collection.InitializeDependency<ULRDialogueSubsystem>();
+	collection.InitializeDependency<ULRStoryStateSubsystem>();
 
 	const ULRGameInstanceSubsystem* dataSubsystem = GetGameInstance()
 		? GetGameInstance()->GetSubsystem<ULRGameInstanceSubsystem>() : nullptr;
@@ -68,19 +68,17 @@ void ULRSaveSubsystem::Initialize(FSubsystemCollectionBase& collection)
 		bPersistenceBlocked = true;
 		SetCatalogState(ELRSaveCatalogState::Blocked);
 	}
-	if (ULRDialogueSubsystem* dialogue = GetGameInstance()
-		? GetGameInstance()->GetSubsystem<ULRDialogueSubsystem>() : nullptr)
+	if (ULRStoryStateSubsystem* storyState = ULRStoryStateSubsystem::Resolve(GetGameInstance()))
 	{
-		dialogue->OnEventCommitted.AddDynamic(this, &ULRSaveSubsystem::HandleNarrativeEventCommitted);
+		storyState->OnStoryEventCommittedNative.AddUObject(this, &ULRSaveSubsystem::HandleNarrativeEventCommitted);
 	}
 }
 
 void ULRSaveSubsystem::Deinitialize()
 {
-	if (ULRDialogueSubsystem* dialogue = GetGameInstance()
-		? GetGameInstance()->GetSubsystem<ULRDialogueSubsystem>() : nullptr)
+	if (ULRStoryStateSubsystem* storyState = ULRStoryStateSubsystem::Resolve(GetGameInstance()))
 	{
-		dialogue->OnEventCommitted.RemoveDynamic(this, &ULRSaveSubsystem::HandleNarrativeEventCommitted);
+		storyState->OnStoryEventCommittedNative.RemoveAll(this);
 	}
 	if (UWorld* world = GetCurrentWorld())
 	{
@@ -202,8 +200,10 @@ bool ULRSaveSubsystem::IsManualSaveAllowed() const
 		&& LRSaveRules::IsManualSaveAllowed(MemoryPhase, world && world->IsPaused());
 }
 
-void ULRSaveSubsystem::HandleNarrativeEventCommitted(const FName eventId, const ELRSavePolicy savePolicy)
+void ULRSaveSubsystem::HandleNarrativeEventCommitted(const FLRStoryEventCommit& eventCommit)
 {
+	const FName eventId = eventCommit.EventId;
+	const ELRSavePolicy savePolicy = eventCommit.SavePolicy;
 	if (savePolicy == ELRSavePolicy::AutoOnComplete)
 	{
 		RequestAutoSave(eventId);

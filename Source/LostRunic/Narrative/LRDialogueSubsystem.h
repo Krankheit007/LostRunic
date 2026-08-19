@@ -3,14 +3,13 @@
  * @brief 驱动 SUDS Dialogue 与 Reading DataTable 会话，记录剧情状态，并向 UI 发布当前台词、阅读内容及结束事件。
  *
  * 关联文件：LRDialogueSubsystem.cpp；所属领域：Narrative。
- * 设计依据：Docs/Design/01_GameDesignSummary.md 与 Docs/Technical/04_TechnicalDesign.md。
+ * 设计依据：Docs/Technical/08_ArchitectureBoundaries.md。
  * 除带 EditDefaultsOnly、EditAnywhere 或 EditInstanceOnly 的字段外，其余成员均为运行时状态，不应由蓝图直接改写。
  */
 #pragma once
 
 #include "Narrative/LRNarrativeTypes.h"
 #include "Subsystems/GameInstanceSubsystem.h"
-#include "Save/LRSaveV2Types.h"
 
 #include "LRDialogueSubsystem.generated.h"
 
@@ -22,6 +21,7 @@ class ULRDialogueScriptRegistry;
 class ULRDialogueSpeakerRegistry;
 class ULRGameContentSet;
 class ULRLevelEventDefinition;
+class ULRStoryStateSubsystem;
 
 UENUM(BlueprintType)
 enum class ELRDialogueEndReason : uint8
@@ -59,8 +59,6 @@ struct LOSTRUNIC_API FLRDialogueStartRequest
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FLRNarrativePageChanged, FLRNarrativePage, page);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FLRNarrativeSessionEnded, ELRNarrativeSessionType, sessionType,
 	FName, finalContentId);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FLRNarrativeEventCommitted, FName, eventId,
-	ELRSavePolicy, savePolicy);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FLRNarrativeRequestRejected, FName, contentId,
 	FGameplayTag, reason);
 
@@ -168,27 +166,7 @@ public:
 	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
 	 */
 	UFUNCTION(BlueprintPure, Category = "Lost Runic|Narrative|Events")
-	bool IsEventCompleted(FName eventId) const { return CompletedEventIds.Contains(eventId); }
-
-	/**
-	 * @brief 把 Restore Completed Events 数据应用到运行时对象，并显式处理缺失依赖。
-	 * @param eventIds 调用方提供的 `eventIds`，只在本次操作范围内使用。
-	 */
-	void RestoreCompletedEvents(const TSet<FName>& eventIds);
-	/**
-	 * @brief 查询 Completed Events；不修改领域状态。
-	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
-	 */
-	const TSet<FName>& GetCompletedEvents() const { return CompletedEventIds; }
-
-	/** V2 save adapter. Memory events remain a separate durable chunk. */
-	void CaptureStorySaveState(FLRSaveStoryChunk& outStory) const;
-	void RestoreStorySaveState(const FLRSaveStoryChunk& savedStory);
-	void CaptureMemoryEventIds(TSet<FName>& outEventIds) const;
-	void RestoreMemoryEventIds(const TSet<FName>& eventIds);
-	bool RecordMemoryEvent(FName eventId);
-	/** Clears transient narrative presentation state when a New Game begins. */
-	void ResetForNewGame();
+	bool IsEventCompleted(FName eventId) const;
 
 	/** 当 Page Changed 发生时广播；蓝图可绑定该委托以更新表现，不应在回调中改写核心规则。  */
 	UPROPERTY(BlueprintAssignable, Category = "Lost Runic|Narrative")
@@ -197,10 +175,6 @@ public:
 	/** 当 Session Ended 发生时广播；蓝图可绑定该委托以更新表现，不应在回调中改写核心规则。  */
 	UPROPERTY(BlueprintAssignable, Category = "Lost Runic|Narrative")
 	FLRNarrativeSessionEnded OnSessionEnded;
-
-	/** 当 Event Committed 发生时广播；蓝图可绑定该委托以更新表现，不应在回调中改写核心规则。  */
-	UPROPERTY(BlueprintAssignable, Category = "Lost Runic|Narrative|Events")
-	FLRNarrativeEventCommitted OnEventCommitted;
 
 	/** 当 Request Rejected 发生时广播；蓝图可绑定该委托以更新表现，不应在回调中改写核心规则。  */
 	UPROPERTY(BlueprintAssignable, Category = "Lost Runic|Narrative")
@@ -235,6 +209,7 @@ private:
 	 * @brief 清空当前对话/阅读行、选项和表现状态，但保留已完成剧情事件。
 	 */
 	void ResetSession();
+	ULRStoryStateSubsystem* ResolveStoryState() const;
 	UFUNCTION()
 	void HandleSUDSSpeakerLine(USUDSDialogue* dialogue);
 	UFUNCTION()
@@ -260,13 +235,6 @@ private:
 	/** Context Tags 的 Gameplay Tag 条件或分类，用于数据驱动规则与诊断。 该字段仅为运行时缓存，不进入存档。 */
 	UPROPERTY(Transient)
 	FGameplayTagContainer ContextTags;
-
-	/** Completed Event Ids 的领域数据，由所属类型负责维护和校验。 该字段仅为运行时缓存，不进入存档。 */
-	UPROPERTY(Transient)
-	TSet<FName> CompletedEventIds;
-
-	UPROPERTY(Transient)
-	TSet<FName> MemoryEventIds;
 
 	UPROPERTY(Transient)
 	TObjectPtr<USUDSDialogue> ActiveSUDSDialogue;

@@ -6,13 +6,14 @@
 #include "Engine/GameInstance.h"
 #include "Kismet/GameplayStatics.h"
 
-#include "Narrative/LRDialogueSubsystem.h"
+#include "Narrative/LRStoryStateSubsystem.h"
 #include "Save/LRSaveCatalog.h"
 #include "Save/LRSaveCatalogStore.h"
 #include "Save/LRGameStatisticsSubsystem.h"
 #include "Save/LRSaveOperationQueue.h"
 #include "Save/LRSavePayload.h"
 #include "Save/LRSaveRules.h"
+#include "Save/LRStorySaveAdapter.h"
 #include "Save/LRSaveSubsystem.h"
 #include "HAL/FileManager.h"
 
@@ -151,10 +152,12 @@ bool FLRSaveMemoryStateOwnerRoundTripTest::RunTest(const FString& parameters)
 	FLRSaveStatisticsChunk savedStatistics;
 	statistics->Capture(savedStatistics);
 
-	ULRDialogueSubsystem* dialogue = NewObject<ULRDialogueSubsystem>(gameInstance);
-	TestTrue(TEXT("Dialogue owner records a Memory event"), dialogue->RecordMemoryEvent(TEXT("Memory.Entry")));
+	ULRStoryStateSubsystem* storyState = NewObject<ULRStoryStateSubsystem>(gameInstance);
+	TestTrue(TEXT("StoryState owner records a Memory event"), storyState->CommitMemoryEvent(TEXT("Memory.Entry")));
+	FLRNarrativePersistentState persistentState;
+	storyState->CapturePersistentState(persistentState);
 	FLRSaveStoryChunk savedStory;
-	dialogue->CaptureStorySaveState(savedStory);
+	LRStorySaveAdapter::ToSaveChunk(persistentState, savedStory);
 
 	ULRGameStatisticsSubsystem* restoredStatistics = NewObject<ULRGameStatisticsSubsystem>(gameInstance);
 	restoredStatistics->Restore(savedStatistics);
@@ -163,10 +166,15 @@ bool FLRSaveMemoryStateOwnerRoundTripTest::RunTest(const FString& parameters)
 	TestEqual(TEXT("DeathCount survives V2 statistics capture and restore"),
 		restoredStatisticsData.DeathCount, savedStatistics.DeathCount);
 
-	ULRDialogueSubsystem* restoredDialogue = NewObject<ULRDialogueSubsystem>(gameInstance);
-	restoredDialogue->RestoreStorySaveState(savedStory);
+	ULRStoryStateSubsystem* restoredStoryState = NewObject<ULRStoryStateSubsystem>(gameInstance);
+	FLRNarrativePersistentState restoredPersistentState;
+	LRStorySaveAdapter::ToPersistentState(savedStory, restoredPersistentState);
+	TestTrue(TEXT("StoryState accepts the restored persistent snapshot"),
+		restoredStoryState->ReplacePersistentState(restoredPersistentState));
+	FLRNarrativePersistentState recapturedPersistentState;
+	restoredStoryState->CapturePersistentState(recapturedPersistentState);
 	FLRSaveStoryChunk restoredStory;
-	restoredDialogue->CaptureStorySaveState(restoredStory);
+	LRStorySaveAdapter::ToSaveChunk(recapturedPersistentState, restoredStory);
 	TestTrue(TEXT("MemoryEventIds survive V2 story capture and restore"),
 		restoredStory.MemoryEventIds.Contains(TEXT("Memory.Entry")));
 	return true;

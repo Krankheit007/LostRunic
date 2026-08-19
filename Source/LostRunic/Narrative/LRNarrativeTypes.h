@@ -3,7 +3,7 @@
  * @brief 实现 SUDS 对话、Reading DataTable、条件分支和一次性剧情事件；稳定 FName ID 进入存档，显示全文与推进下一句的二段确认由控制层维护。
  *
  * 关联文件：Narrative 目录内调用该公共契约的实现文件；所属领域：Narrative。
- * 设计依据：Docs/Design/01_GameDesignSummary.md 与 Docs/Technical/04_TechnicalDesign.md。
+ * 设计依据：Docs/Technical/08_ArchitectureBoundaries.md。
  * 除带 EditDefaultsOnly、EditAnywhere 或 EditInstanceOnly 的字段外，其余成员均为运行时状态，不应由蓝图直接改写。
  */
 #pragma once
@@ -34,6 +34,51 @@ enum class ELRNarrativeAction : uint8
 	Advanced UMETA(DisplayName = "Advanced"),
 	AwaitChoice UMETA(DisplayName = "Await Choice"),
 	Completed UMETA(DisplayName = "Completed")
+};
+
+/** 该公开类型定义 Narrative 持久事实的保存边界；字段只承载稳定 ID 和 Story.* 标记，不暴露 Save/UI/Dialogue 细节。 */
+USTRUCT(BlueprintType, meta = (DisplayName = "Lost Runic Narrative Persistent State"))
+struct LOSTRUNIC_API FLRNarrativePersistentState
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category = "Narrative|Persistence")
+	FGameplayTagContainer StoryFlags;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Narrative|Persistence")
+	TSet<FName> CompletedEventIds;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Narrative|Persistence")
+	TSet<FName> MemoryEventIds;
+};
+
+/** 该公开类型定义 Narrative 持久事实的追加增量；重复应用必须幂等且只追加，不移除既有事实。 */
+USTRUCT(BlueprintType, meta = (DisplayName = "Lost Runic Narrative Persistent Delta"))
+struct LOSTRUNIC_API FLRNarrativePersistentDelta
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category = "Narrative|Persistence")
+	FGameplayTagContainer AddedStoryFlags;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Narrative|Persistence")
+	TSet<FName> AddedCompletedEventIds;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Narrative|Persistence")
+	TSet<FName> AddedMemoryEventIds;
+};
+
+/** 该公开类型保留 Story event 提交后仍需被监听者消费的领域元数据，不引入 Save V2 结构。 */
+USTRUCT(BlueprintType, meta = (DisplayName = "Lost Runic Story Event Commit"))
+struct LOSTRUNIC_API FLRStoryEventCommit
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category = "Narrative|Events")
+	FName EventId = NAME_None;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Narrative|Events")
+	ELRSavePolicy SavePolicy = ELRSavePolicy::None;
 };
 
 /** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */

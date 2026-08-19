@@ -3,7 +3,7 @@
  * @brief 实现 DataTable 驱动的对话、阅读、条件分支和一次性剧情事件；稳定 FName ID 进入存档，显示全文与推进下一句的二段确认由控制层维护。
  *
  * 关联文件：Narrative 目录内调用该公共契约的实现文件；所属领域：Narrative。
- * 设计依据：Docs/Design/01_GameDesignSummary.md 与 Docs/Technical/04_TechnicalDesign.md。
+ * 设计依据：Docs/Technical/08_ArchitectureBoundaries.md。
  * 除带 EditDefaultsOnly、EditAnywhere 或 EditInstanceOnly 的字段外，其余成员均为运行时状态，不应由蓝图直接改写。
  */
 #include "Narrative/LRDialogueSubsystem.h"
@@ -13,6 +13,7 @@
 #include "Data/LRGameContentSet.h"
 #include "Data/LRLevelEventDefinition.h"
 #include "Narrative/LRNarrativeRules.h"
+#include "Narrative/LRStoryStateSubsystem.h"
 
 /**
  * @brief 检查关卡事件条件和一次性标记，成功后提交剧情进度及其显式存档策略。
@@ -30,13 +31,22 @@ FLRNarrativeResult ULRDialogueSubsystem::TryCompleteEvent(const FName eventId)
 	{
 		return Reject(eventId, LRGameplayTags::NarrativeRejectConditions);
 	}
-	if (definition->bOneShot && CompletedEventIds.Contains(eventId))
+	ULRStoryStateSubsystem* storyState = ResolveStoryState();
+	if (!storyState)
+	{
+		UE_LOG(LogLostRunicNarrative, Warning, TEXT("NarrativeEvent=%s rejected because StoryState is unavailable."),
+			*eventId.ToString());
+		return Reject(eventId, LRGameplayTags::NarrativeRejectConditions);
+	}
+
+	FLRStoryEventCommit eventCommit;
+	eventCommit.EventId = eventId;
+	eventCommit.SavePolicy = definition->SavePolicy;
+	if (!storyState->CommitEvent(eventCommit))
 	{
 		return Reject(eventId, LRGameplayTags::NarrativeRejectAlreadyCompleted);
 	}
 
-	CompletedEventIds.Add(eventId);
-	OnEventCommitted.Broadcast(eventId, definition->SavePolicy);
 	UE_LOG(LogLostRunicNarrative, Log, TEXT("NarrativeEvent=%s completed savePolicy=%d"),
 		*eventId.ToString(), static_cast<int32>(definition->SavePolicy));
 	FLRNarrativeResult result;
@@ -55,13 +65,10 @@ void ULRDialogueSubsystem::SetContextTags(const FGameplayTagContainer& contextTa
 	ContextTags = contextTags;
 }
 
-/**
- * @brief 把 Restore Completed Events 数据应用到运行时对象，并显式处理缺失依赖。
- * @param eventIds 调用方提供的 `eventIds`，只在本次操作范围内使用。
- */
-void ULRDialogueSubsystem::RestoreCompletedEvents(const TSet<FName>& eventIds)
+bool ULRDialogueSubsystem::IsEventCompleted(const FName eventId) const
 {
-	CompletedEventIds = eventIds;
+	const ULRStoryStateSubsystem* storyState = ULRStoryStateSubsystem::Resolve(GetGameInstance());
+	return storyState ? storyState->IsEventCompleted(eventId) : false;
 }
 
 /**

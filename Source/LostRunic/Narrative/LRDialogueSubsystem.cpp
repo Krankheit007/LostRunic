@@ -3,7 +3,7 @@
  * @brief 驱动 SUDS Dialogue 与 Reading DataTable 会话，记录剧情状态，并向 UI 发布当前台词、阅读内容及结束事件。
  *
  * 关联文件：LRDialogueSubsystem.h；所属领域：Narrative。
- * 设计依据：Docs/Design/01_GameDesignSummary.md 与 Docs/Technical/04_TechnicalDesign.md。
+ * 设计依据：Docs/Technical/08_ArchitectureBoundaries.md。
  * 除带 EditDefaultsOnly、EditAnywhere 或 EditInstanceOnly 的字段外，其余成员均为运行时状态，不应由蓝图直接改写。
  */
 #include "Narrative/LRDialogueSubsystem.h"
@@ -48,9 +48,8 @@ void ULRDialogueSubsystem::Deinitialize()
 	ResetSession();
 	ContentSet = nullptr;
 	DialogueScriptRegistry = nullptr;
+	DialogueSpeakerRegistry = nullptr;
 	ContextTags.Reset();
-	CompletedEventIds.Reset();
-	MemoryEventIds.Reset();
 	Super::Deinitialize();
 }
 
@@ -80,9 +79,7 @@ FLRNarrativeResult ULRDialogueSubsystem::StartSUDSDialogue(const FLRDialogueStar
 			*request.ScriptId.ToString(), *RegistryError);
 		return Reject(request.ScriptId, LRGameplayTags::NarrativeRejectMissingContent);
 	}
-	UGameInstance* gameInstance = GetGameInstance();
-	ULRStoryStateSubsystem* storyState = gameInstance
-		? gameInstance->GetSubsystem<ULRStoryStateSubsystem>() : nullptr;
+	ULRStoryStateSubsystem* storyState = ResolveStoryState();
 	if (request.CompletionStoryTag.IsValid() && storyState && storyState->HasStoryFlag(request.CompletionStoryTag))
 	{
 		return Reject(request.ScriptId, LRGameplayTags::NarrativeRejectAlreadyCompleted);
@@ -253,9 +250,7 @@ void ULRDialogueSubsystem::FinishSUDSSession(const ELRDialogueEndReason reason)
 	ActiveEndReason = reason;
 	const FName finalContentId = CurrentPage.ContentId;
 	const FGameplayTag completionTag = ActiveCompletionStoryTag;
-	UGameInstance* gameInstance = GetGameInstance();
-	ULRStoryStateSubsystem* storyState = gameInstance
-		? gameInstance->GetSubsystem<ULRStoryStateSubsystem>() : nullptr;
+	ULRStoryStateSubsystem* storyState = ResolveStoryState();
 	if (reason == ELRDialogueEndReason::CompletedNaturally && completionTag.IsValid() && storyState)
 	{
 		storyState->AddStoryFlag(completionTag);
@@ -438,4 +433,9 @@ FLRNarrativeResult ULRDialogueSubsystem::Reject(const FName contentId, const FGa
 void ULRDialogueSubsystem::ResetSession()
 {
 	CurrentPage = FLRNarrativePage();
+}
+
+ULRStoryStateSubsystem* ULRDialogueSubsystem::ResolveStoryState() const
+{
+	return ULRStoryStateSubsystem::Resolve(GetGameInstance());
 }
