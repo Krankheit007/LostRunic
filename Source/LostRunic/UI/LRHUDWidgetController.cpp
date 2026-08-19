@@ -13,6 +13,7 @@
 #include "Framework/LRCharacter.h"
 #include "Framework/LRPlayerController.h"
 #include "Interaction/LRInteractionComponent.h"
+#include "Input/LRInputConfig.h"
 #include "InputCoreTypes.h"
 #include "InputAction.h"
 #include "State/LRStateComponent.h"
@@ -64,7 +65,7 @@ void ULRHUDWidgetController::SetObservedCharacter(ALRCharacter* character)
 	if (ULRInteractionComponent* interaction = character->GetInteractionComponent())
 	{
 		interaction->OnFocusedInteractionChanged.AddDynamic(this, &ULRHUDWidgetController::HandleFocusedInteractionChanged);
-		SourceInteractionPrompt = interaction->GetFocusedPrompt();
+		SourceInteractionFocus = interaction->GetFocusSnapshot();
 	}
 	RefreshInteractionDisplayKey();
 }
@@ -109,7 +110,7 @@ void ULRHUDWidgetController::Deinitialize()
 	InputDeviceSubsystem.Reset();
 	CurrentMode = ELRPerceptionMode::Normal;
 	CurrentInputMode = ELRInputMode::Gameplay;
-	SourceInteractionPrompt = FLRInteractionPromptView();
+	SourceInteractionFocus = FLRInteractionFocusSnapshot();
 	CurrentInteractionPrompt = FLRInteractionPromptView();
 }
 
@@ -125,9 +126,9 @@ void ULRHUDWidgetController::HandleStateChanged(const ELRPerceptionMode currentM
 }
 
 /** Stores and forwards the Focus prompt produced by the interaction component. */
-void ULRHUDWidgetController::HandleFocusedInteractionChanged(const FLRInteractionPromptView promptView)
+void ULRHUDWidgetController::HandleFocusedInteractionChanged(const FLRInteractionFocusSnapshot focusSnapshot)
 {
-	SourceInteractionPrompt = promptView;
+	SourceInteractionFocus = focusSnapshot;
 	RefreshInteractionDisplayKey();
 }
 
@@ -182,15 +183,40 @@ void ULRHUDWidgetController::HandleUserSettingsInitialized(const UEnhancedInputU
 /** Rebuilds the presentation copy while keeping the gameplay prompt owned by the interaction component. */
 void ULRHUDWidgetController::RefreshInteractionDisplayKey()
 {
-	CurrentInteractionPrompt = SourceInteractionPrompt;
-	CurrentInteractionPrompt.InputKeyText = CurrentInputMode == ELRInputMode::Gameplay
-		? ResolveInteractionDisplayKey(SourceInteractionPrompt.InputAction.Get())
-		: FText::GetEmpty();
-	if (CurrentInputMode != ELRInputMode::Gameplay)
+	const FLRInteractionPromptView nextPrompt = BuildInteractionPromptView(SourceInteractionFocus);
+	const bool bPromptChanged = !CurrentInteractionPrompt.HasSamePresentationAs(nextPrompt);
+	CurrentInteractionPrompt = nextPrompt;
+	if (bPromptChanged)
 	{
-		CurrentInteractionPrompt.bVisible = false;
+		OnInteractionPromptChanged.Broadcast(CurrentInteractionPrompt);
 	}
-	OnInteractionPromptChanged.Broadcast(CurrentInteractionPrompt);
+}
+
+/** Keeps interaction focus data in the interaction domain and adds input presentation only inside the HUD boundary. */
+FLRInteractionPromptView ULRHUDWidgetController::BuildInteractionPromptView(
+	const FLRInteractionFocusSnapshot& focusSnapshot) const
+{
+	FLRInteractionPromptView promptView;
+	promptView.CopyFocusSnapshot(focusSnapshot);
+	promptView.InputAction = ResolvePromptInputAction(focusSnapshot.ActionTag);
+	promptView.InputKeyText = CurrentInputMode == ELRInputMode::Gameplay
+		? ResolveInteractionDisplayKey(promptView.InputAction)
+		: FText::GetEmpty();
+	promptView.bVisible = CurrentInputMode == ELRInputMode::Gameplay && focusSnapshot.Target.IsValid();
+	return promptView;
+}
+
+/** The interaction HUD always reflects the controller's primary interaction semantic rather than a world-owned asset. */
+UInputAction* ULRHUDWidgetController::ResolvePromptInputAction(const FGameplayTag actionTag) const
+{
+	if (!actionTag.IsValid())
+	{
+		return nullptr;
+	}
+
+	const ALRPlayerController* playerController = ObservedPlayerController.Get();
+	const ULRInputConfig* inputConfig = playerController ? playerController->GetInputConfig() : nullptr;
+	return inputConfig ? inputConfig->InteractAction : nullptr;
 }
 
 /** Queries the current active Enhanced Input mappings instead of scanning a default mapping context. */

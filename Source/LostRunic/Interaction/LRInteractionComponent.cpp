@@ -8,6 +8,7 @@
  */
 #include "Interaction/LRInteractionComponent.h"
 
+#include "Core/LRCollisionChannels.h"
 #include "Core/LRGameplayTags.h"
 #include "Core/LRLog.h"
 #include "Data/LRGameTuningSet.h"
@@ -17,8 +18,6 @@
 #include "Engine/World.h"
 #include "Components/SceneComponent.h"
 #include "Framework/LRGameInstanceSubsystem.h"
-#include "Framework/LRPlayerController.h"
-#include "Input/LRInputConfig.h"
 #include "Interaction/LRInteractable.h"
 #include "Interaction/LRInteractionPresentationComponent.h"
 #include "Interaction/LRInteractionRules.h"
@@ -108,11 +107,6 @@ FLRInteractionResult ULRInteractionComponent::PerformPrimaryInteraction()
 		result = ILRInteractable::Execute_ExecuteInteraction(CurrentTarget.Get(), GetOwner(), CurrentOption.ActionTag);
 	}
 	OnInteractionExecuted.Broadcast(result);
-	if (result.bSuccess && CurrentPrompt.bVisible)
-	{
-		CurrentPrompt.bVisible = false;
-		OnFocusedInteractionChanged.Broadcast(CurrentPrompt);
-	}
 	RefreshInteractionState();
 	return result;
 }
@@ -158,7 +152,7 @@ void ULRInteractionComponent::BuildEvaluations(TArray<FEvaluation>& outEvaluatio
 	const FGameplayTagContainer ownedTags = Inventory->GetOwnedItemTags();
 	TArray<FOverlapResult> overlaps;
 	FCollisionQueryParams queryParams(SCENE_QUERY_STAT(LRInteractionQuery), false, GetOwner());
-	const FCollisionObjectQueryParams objectParams(ECC_GameTraceChannel1);
+	const FCollisionObjectQueryParams objectParams(LR::CollisionChannels::Interaction);
 	GetWorld()->OverlapMultiByObjectType(overlaps, ownerLocation, FQuat::Identity, objectParams,
 		FCollisionShape::MakeSphere(tuning.FarHintDistance), queryParams);
 
@@ -294,34 +288,28 @@ void ULRInteractionComponent::ApplySelection(const TArray<FEvaluation>& evaluati
 		OnTargetChanged.Broadcast(selectedTarget, CurrentOption, CurrentRange);
 	}
 
-	FLRInteractionPromptView nextPrompt;
-	nextPrompt.Target = selectedTarget;
-	nextPrompt.Prompt = selectedOption.Prompt;
-	nextPrompt.ActionTag = selectedOption.ActionTag;
-	nextPrompt.bVisible = selectedTarget != nullptr;
+	FLRInteractionFocusSnapshot nextFocusSnapshot;
+	nextFocusSnapshot.Target = selectedTarget;
+	nextFocusSnapshot.Prompt = selectedOption.Prompt;
+	nextFocusSnapshot.ActionTag = selectedOption.ActionTag;
 	if (selectedTarget)
 	{
-		const APawn* ownerPawn = Cast<APawn>(GetOwner());
-		const ALRPlayerController* controller = ownerPawn ? Cast<ALRPlayerController>(ownerPawn->GetController()) : nullptr;
-		const ULRInputConfig* inputConfig = controller ? controller->GetInputConfig() : nullptr;
-		nextPrompt.InputAction = inputConfig ? inputConfig->InteractAction : nullptr;
-
 		USceneComponent* defaultAnchor = ResolveDefaultPromptAnchor(selectedTarget);
 		ULRInteractionPresentationComponent* presentation = selectedTarget->FindComponentByClass<ULRInteractionPresentationComponent>();
-		nextPrompt.PromptAnchor = presentation
+		nextFocusSnapshot.PromptAnchor = presentation
 			? presentation->ResolvePromptAnchorComponent(defaultAnchor)
 			: defaultAnchor;
 		const float promptZOffset = presentation
 			? presentation->ResolvePromptZOffset(GetEffectiveTuning().InteractionPromptZOffset)
 			: GetEffectiveTuning().InteractionPromptZOffset;
-		nextPrompt.PromptWorldOffset = FVector(0.0f, 0.0f, promptZOffset);
+		nextFocusSnapshot.PromptWorldOffset = FVector(0.0f, 0.0f, promptZOffset);
 	}
 
-	const bool bPromptChanged = !CurrentPrompt.HasSamePresentationAs(nextPrompt);
-	CurrentPrompt = nextPrompt;
-	if (bPromptChanged)
+	const bool bFocusChanged = !CurrentFocusSnapshot.HasSameFocusAs(nextFocusSnapshot);
+	CurrentFocusSnapshot = nextFocusSnapshot;
+	if (bFocusChanged)
 	{
-		OnFocusedInteractionChanged.Broadcast(CurrentPrompt);
+		OnFocusedInteractionChanged.Broadcast(CurrentFocusSnapshot);
 	}
 }
 

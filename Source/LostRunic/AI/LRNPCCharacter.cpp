@@ -10,6 +10,7 @@
 
 #include "AI/LRNPCController.h"
 #include "Components/SphereComponent.h"
+#include "Core/LRCollisionChannels.h"
 #include "Core/LRGameplayTags.h"
 #include "Core/LRLog.h"
 #include "Data/LRNPCDefinition.h"
@@ -30,9 +31,9 @@ ALRNPCCharacter::ALRNPCCharacter()
 	InteractionCollision->SetupAttachment(RootComponent);
 	InteractionCollision->InitSphereRadius(32.0f);
 	InteractionCollision->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
-	InteractionCollision->SetCollisionObjectType(ECC_GameTraceChannel1);
+	InteractionCollision->SetCollisionObjectType(LR::CollisionChannels::Interaction);
 	InteractionCollision->SetCollisionResponseToAllChannels(ECR_Ignore);
-	InteractionCollision->SetCollisionResponseToChannel(ECC_GameTraceChannel1, ECR_Overlap);
+	InteractionCollision->SetCollisionResponseToChannel(LR::CollisionChannels::Interaction, ECR_Overlap);
 	PresentationComponent = CreateDefaultSubobject<ULRInteractionPresentationComponent>(TEXT("Presentation"));
 	DialogueComponent = CreateDefaultSubobject<ULRDialogueComponent>(TEXT("DialogueComponent"));
 }

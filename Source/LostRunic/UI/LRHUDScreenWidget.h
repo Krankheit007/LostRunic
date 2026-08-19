@@ -4,7 +4,6 @@
  */
 #pragma once
 
-#include "Interaction/LRInteractionTypes.h"
 #include "Layout/Geometry.h"
 #include "UI/LRScreenWidget.h"
 

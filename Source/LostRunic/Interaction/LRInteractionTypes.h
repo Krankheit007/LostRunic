@@ -13,7 +13,7 @@
 
 #include "LRInteractionTypes.generated.h"
 
-class UInputAction;
+class AActor;
 class USceneComponent;
 
 /** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
@@ -83,13 +83,13 @@ struct LOSTRUNIC_API FLRInteractionResult
 
 };
 
-/** HUD-owned copy of the focused interaction. The weak target never extends actor lifetime. */
-USTRUCT(BlueprintType, meta = (DisplayName = "Lost Runic Interaction Prompt"))
-struct LOSTRUNIC_API FLRInteractionPromptView
+/** Interaction-owned world snapshot for the currently focused interaction target. */
+USTRUCT(BlueprintType, meta = (DisplayName = "Lost Runic Interaction Focus Snapshot"))
+struct LOSTRUNIC_API FLRInteractionFocusSnapshot
 {
 	GENERATED_BODY()
 
-	/** Weak world target used for diagnostics; the HUD never extends actor lifetime. */
+	/** Weak world target used for diagnostics; the interaction domain never extends actor lifetime. */
 	UPROPERTY(BlueprintReadOnly, Category = "Interaction")
 	TWeakObjectPtr<AActor> Target;
 
@@ -99,10 +99,6 @@ struct LOSTRUNIC_API FLRInteractionPromptView
 	UPROPERTY(BlueprintReadOnly, Category = "Interaction")
 	FGameplayTag ActionTag;
 
-	/** Semantic Enhanced Input action used by the widget to resolve the current device icon. */
-	UPROPERTY(BlueprintReadOnly, Category = "Interaction")
-	TObjectPtr<UInputAction> InputAction;
-
 	/** Scene component followed by the HUD for world-space prompt projection. */
 	UPROPERTY(BlueprintReadOnly, Category = "Interaction|Presentation")
 	TWeakObjectPtr<USceneComponent> PromptAnchor;
@@ -111,24 +107,14 @@ struct LOSTRUNIC_API FLRInteractionPromptView
 	UPROPERTY(BlueprintReadOnly, Category = "Interaction|Presentation")
 	FVector PromptWorldOffset = FVector::ZeroVector;
 
-	/** Device-specific display text resolved by the HUD controller from the active mappings. */
-	UPROPERTY(BlueprintReadOnly, Category = "Interaction|Presentation")
-	FText InputKeyText;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Interaction")
-	bool bVisible = false;
-
-	/** Compares all controller-relevant prompt fields, including same-target presentation changes. */
-	bool HasSamePresentationAs(const FLRInteractionPromptView& other) const
+	/** Compares the full interaction-owned focus payload, including same-target anchor changes. */
+	bool HasSameFocusAs(const FLRInteractionFocusSnapshot& other) const
 	{
 		return Target == other.Target
 			&& Prompt.EqualTo(other.Prompt)
 			&& ActionTag == other.ActionTag
-			&& InputAction == other.InputAction
 			&& PromptAnchor == other.PromptAnchor
-			&& PromptWorldOffset.Equals(other.PromptWorldOffset)
-			&& InputKeyText.EqualTo(other.InputKeyText)
-			&& bVisible == other.bVisible;
+			&& PromptWorldOffset.Equals(other.PromptWorldOffset);
 	}
 };
 

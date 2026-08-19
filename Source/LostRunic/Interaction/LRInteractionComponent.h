@@ -21,7 +21,7 @@ class ULRStateComponent;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FLRInteractionTargetChanged, AActor*, target,
 	FLRInteractionOption, option, ELRInteractionRange, range);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FLRInteractionExecuted, FLRInteractionResult, result);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FLRFocusedInteractionChanged, FLRInteractionPromptView, promptView);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FLRFocusedInteractionChanged, FLRInteractionFocusSnapshot, focusSnapshot);
 
 /** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
 UCLASS(ClassGroup = "Lost Runic", BlueprintType, meta = (BlueprintSpawnableComponent, DisplayName = "Lost Runic Interaction"))
@@ -70,9 +70,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Lost Runic|Interaction")
 	FLRInteractionOption GetCurrentOption() const { return CurrentOption; }
 
-	/** Returns the HUD data for the only actor currently allowed to receive primary interaction. */
+	/** Returns the interaction-owned world snapshot for the current primary interaction focus. */
 	UFUNCTION(BlueprintPure, Category = "Lost Runic|Interaction")
-	FLRInteractionPromptView GetFocusedPrompt() const { return CurrentPrompt; }
+	FLRInteractionFocusSnapshot GetFocusSnapshot() const { return CurrentFocusSnapshot; }
 
 	/**
 	 * @brief 查询 Current Range；不修改领域状态。
@@ -157,8 +157,8 @@ private:
 	FLRInteractionOption CurrentOption;
 	/** Current Range 的运行时状态；由所属类型维护，不在蓝图中配置。 */
 	ELRInteractionRange CurrentRange = ELRInteractionRange::None;
-	/** Last prompt supplied to the HUD. Target is weak to avoid owning a world actor from UI. */
-	FLRInteractionPromptView CurrentPrompt;
+	/** Last focus snapshot supplied to the HUD. Target is weak to avoid owning a world actor from UI. */
+	FLRInteractionFocusSnapshot CurrentFocusSnapshot;
 	/** Components changed by the prior scan; reset before the next state map is applied. */
 	TArray<TWeakObjectPtr<ULRInteractionPresentationComponent>> PresentedComponents;
 	/** Query Timer 的运行时句柄，用于取消回调并避免 Tick；不在蓝图中配置。 */

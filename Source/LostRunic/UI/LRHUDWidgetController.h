@@ -11,6 +11,7 @@
 #include "Core/LRTypes.h"
 #include "GameFramework/InputDeviceSubsystem.h"
 #include "Interaction/LRInteractionTypes.h"
+#include "UI/LRUITypes.h"
 #include "UObject/Object.h"
 
 #include "LRHUDWidgetController.generated.h"
@@ -65,9 +66,9 @@ private:
 	 */
 	UFUNCTION()
 	void HandleStateChanged(ELRPerceptionMode currentMode, FGameplayTag reason);
-	/** Forwards the player component's selected Focus prompt without interpreting target rules. */
+	/** Stores the player component's focus snapshot before UI presentation concerns are applied. */
 	UFUNCTION()
-	void HandleFocusedInteractionChanged(FLRInteractionPromptView promptView);
+	void HandleFocusedInteractionChanged(FLRInteractionFocusSnapshot focusSnapshot);
 
 	/** Re-resolves the display key when the PlayerController changes its input layer. */
 	UFUNCTION()
@@ -91,6 +92,10 @@ private:
 
 	/** Central input-display refresh used by every mapping/device lifecycle event. */
 	void RefreshInteractionDisplayKey();
+	/** Builds the UI-only prompt view from the interaction snapshot plus current input presentation state. */
+	FLRInteractionPromptView BuildInteractionPromptView(const FLRInteractionFocusSnapshot& focusSnapshot) const;
+	/** Resolves the semantic gameplay action displayed for the current primary interaction prompt. */
+	UInputAction* ResolvePromptInputAction(FGameplayTag actionTag) const;
 
 	/** Resolves the active key for the semantic action and formats the current UI policy. */
 	FText ResolveInteractionDisplayKey(const UInputAction* action) const;
@@ -107,6 +112,6 @@ private:
 	/** 当前已提交的心理状态；仅状态组件可修改，蓝图只能读取。该字段由 C++ 在运行时维护，不在蓝图中配置。 */
 	ELRPerceptionMode CurrentMode = ELRPerceptionMode::Normal;
 	ELRInputMode CurrentInputMode = ELRInputMode::Gameplay;
-	FLRInteractionPromptView SourceInteractionPrompt;
+	FLRInteractionFocusSnapshot SourceInteractionFocus;
 	FLRInteractionPromptView CurrentInteractionPrompt;
 };

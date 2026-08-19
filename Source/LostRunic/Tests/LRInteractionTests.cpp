@@ -12,6 +12,7 @@
 
 #include "Data/LRInteractionTuning.h"
 #include "Components/SceneComponent.h"
+#include "Core/LRGameplayTags.h"
 #include "Interaction/LRInteractionPresentationComponent.h"
 #include "Interaction/LRInteractionRules.h"
 #include "Interaction/LRInteractionTypes.h"
@@ -95,14 +96,31 @@ bool FLRInteractionPromptPresentationConfigTest::RunTest(const FString& paramete
 	TestEqual(TEXT("Instance prompt Z offset overrides the shared tuning value"),
 		presentation->ResolvePromptZOffset(tuning->InteractionPromptZOffset), 75.0f);
 
-	FLRInteractionPromptView before;
+	FLRInteractionFocusSnapshot before;
 	before.Target = actor;
 	before.Prompt = FText::FromString(TEXT("打开"));
-	before.bVisible = true;
-	FLRInteractionPromptView after = before;
-	after.Prompt = FText::FromString(TEXT("关闭"));
-	TestFalse(TEXT("Same target with changed prompt text is not treated as the same presentation"),
-		before.HasSamePresentationAs(after));
+	before.ActionTag = LRGameplayTags::InteractionActionInteract;
+	before.PromptAnchor = root;
+	before.PromptWorldOffset = FVector(0.0f, 0.0f, tuning->InteractionPromptZOffset);
+
+	FLRInteractionFocusSnapshot identical = before;
+	TestTrue(TEXT("Identical focus snapshots are treated as the same interaction boundary payload"),
+		before.HasSameFocusAs(identical));
+
+	FLRInteractionFocusSnapshot promptChanged = before;
+	promptChanged.Prompt = FText::FromString(TEXT("关闭"));
+	TestFalse(TEXT("Changing prompt text invalidates the interaction focus snapshot"),
+		before.HasSameFocusAs(promptChanged));
+
+	FLRInteractionFocusSnapshot anchorChanged = before;
+	anchorChanged.PromptAnchor = nullptr;
+	TestFalse(TEXT("Changing the prompt anchor invalidates the interaction focus snapshot"),
+		before.HasSameFocusAs(anchorChanged));
+
+	FLRInteractionFocusSnapshot offsetChanged = before;
+	offsetChanged.PromptWorldOffset.Z += 10.0f;
+	TestFalse(TEXT("Changing the prompt offset invalidates the interaction focus snapshot"),
+		before.HasSameFocusAs(offsetChanged));
 	return true;
 }
 

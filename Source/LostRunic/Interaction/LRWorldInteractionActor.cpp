@@ -6,6 +6,7 @@
 
 #include "Components/SceneComponent.h"
 #include "Components/SphereComponent.h"
+#include "Core/LRCollisionChannels.h"
 #include "Core/LRGameplayTags.h"
 #include "Interaction/LRInteractionPresentationComponent.h"
 #include "NiagaraComponent.h"
@@ -20,9 +21,9 @@ ALRWorldInteractionActor::ALRWorldInteractionActor()
 	InteractionCollision->SetupAttachment(SceneRoot);
 	InteractionCollision->InitSphereRadius(32.0f);
 	InteractionCollision->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
-	InteractionCollision->SetCollisionObjectType(ECC_GameTraceChannel1);
+	InteractionCollision->SetCollisionObjectType(LR::CollisionChannels::Interaction);
 	InteractionCollision->SetCollisionResponseToAllChannels(ECR_Ignore);
-	InteractionCollision->SetCollisionResponseToChannel(ECC_GameTraceChannel1, ECR_Overlap);
+	InteractionCollision->SetCollisionResponseToChannel(LR::CollisionChannels::Interaction, ECR_Overlap);
 	FarHintEffect = CreateDefaultSubobject<UNiagaraComponent>(TEXT("FarHintEffect"));
 	FarHintEffect->SetupAttachment(SceneRoot);
 	FarHintEffect->SetAutoActivate(false);

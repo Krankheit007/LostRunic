@@ -15,6 +15,7 @@
 #include "Blueprint/UserWidget.h"
 #include "Components/CanvasPanel.h"
 #include "Components/CanvasPanelSlot.h"
+#include "Components/SceneComponent.h"
 #include "Components/TextBlock.h"
 #include "Core/LRGameplayTags.h"
 #include "Data/LRCollectibleDefinition.h"
@@ -24,6 +25,7 @@
 #include "Data/LRProjectSettings.h"
 #include "Data/LRUITuning.h"
 #include "Engine/Texture2D.h"
+#include "GameFramework/Actor.h"
 #include "EnhancedActionKeyMapping.h"
 #include "Input/LRInputConfig.h"
 #include "Items/LRInventoryComponent.h"
@@ -818,6 +820,44 @@ bool FLRInteractionWidgetBlueprintContractTest::RunTest(const FString& parameter
 			interactionWidget->GetClass()->IsChildOf(ULRInteractionWidget::StaticClass()));
 		TestTrue(TEXT("InteractionWidget is a direct child of Background"), background->HasChild(interactionWidget));
 	}
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLRInteractionPromptViewRefreshTest,
+	"LostRunic.UI.InteractionPromptViewRefreshesForInputPresentation",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FLRInteractionPromptViewRefreshTest::RunTest(const FString& parameters)
+{
+	AActor* actor = NewObject<AActor>();
+	USceneComponent* anchor = NewObject<USceneComponent>(actor, TEXT("PromptAnchor"));
+
+	FLRInteractionFocusSnapshot focusSnapshot;
+	focusSnapshot.Target = actor;
+	focusSnapshot.Prompt = FText::FromString(TEXT("对话"));
+	focusSnapshot.ActionTag = LRGameplayTags::InteractionActionTalk;
+	focusSnapshot.PromptAnchor = anchor;
+	focusSnapshot.PromptWorldOffset = FVector(0.0f, 0.0f, 40.0f);
+
+	FLRInteractionPromptView baseView;
+	baseView.CopyFocusSnapshot(focusSnapshot);
+	baseView.InputAction = NewObject<UInputAction>();
+	baseView.InputKeyText = FText::FromString(TEXT("E"));
+	baseView.bVisible = true;
+
+	FLRInteractionPromptView identical = baseView;
+	TestTrue(TEXT("Copying the same focus snapshot preserves UI presentation equality"),
+		baseView.HasSamePresentationAs(identical));
+
+	FLRInteractionPromptView remappedKey = baseView;
+	remappedKey.InputKeyText = FText::FromString(TEXT("X"));
+	TestFalse(TEXT("Changing the resolved device key forces a HUD prompt refresh"),
+		baseView.HasSamePresentationAs(remappedKey));
+
+	FLRInteractionPromptView hiddenView = baseView;
+	hiddenView.bVisible = false;
+	TestFalse(TEXT("Changing input-mode visibility forces a HUD prompt refresh"),
+		baseView.HasSamePresentationAs(hiddenView));
 	return true;
 }
 

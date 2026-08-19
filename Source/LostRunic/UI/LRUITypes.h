@@ -10,10 +10,14 @@
 
 #include "Core/LRTypes.h"
 #include "GameplayTagContainer.h"
+#include "Interaction/LRInteractionTypes.h"
 #include "Narrative/LRNarrativeTypes.h"
 
 #include "LRUITypes.generated.h"
 
+class AActor;
+class UInputAction;
+class USceneComponent;
 class UTexture2D;
 
 /** 通用 UI 命令；Screen 基类只理解这些命令、方向导航与焦点生命周期，不理解背包、笔记或收藏品等具体页面类型。 */
@@ -43,6 +47,65 @@ enum class ELRScreenType : uint8
 	Pause UMETA(DisplayName = "Pause"),
 	SaveSlots UMETA(DisplayName = "Save Slots"),
 	Transition UMETA(DisplayName = "Transition")
+};
+
+/** HUD-owned copy of the focused interaction. The weak target never extends actor lifetime. */
+USTRUCT(BlueprintType, meta = (DisplayName = "Lost Runic Interaction Prompt"))
+struct LOSTRUNIC_API FLRInteractionPromptView
+{
+	GENERATED_BODY()
+
+	/** Weak world target used for diagnostics; the HUD never extends actor lifetime. */
+	UPROPERTY(BlueprintReadOnly, Category = "Interaction")
+	TWeakObjectPtr<AActor> Target;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Interaction")
+	FText Prompt;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Interaction")
+	FGameplayTag ActionTag;
+
+	/** Semantic Enhanced Input action used by the widget to resolve the current device icon. */
+	UPROPERTY(BlueprintReadOnly, Category = "Interaction")
+	TObjectPtr<UInputAction> InputAction;
+
+	/** Scene component followed by the HUD for world-space prompt projection. */
+	UPROPERTY(BlueprintReadOnly, Category = "Interaction|Presentation")
+	TWeakObjectPtr<USceneComponent> PromptAnchor;
+
+	/** World-space offset applied to the resolved prompt anchor, normally a Z lift. */
+	UPROPERTY(BlueprintReadOnly, Category = "Interaction|Presentation")
+	FVector PromptWorldOffset = FVector::ZeroVector;
+
+	/** Device-specific display text resolved by the HUD controller from the active mappings. */
+	UPROPERTY(BlueprintReadOnly, Category = "Interaction|Presentation")
+	FText InputKeyText;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Interaction")
+	bool bVisible = false;
+
+	/** Copies the interaction-owned world snapshot into the HUD-owned presentation view. */
+	void CopyFocusSnapshot(const FLRInteractionFocusSnapshot& snapshot)
+	{
+		Target = snapshot.Target;
+		Prompt = snapshot.Prompt;
+		ActionTag = snapshot.ActionTag;
+		PromptAnchor = snapshot.PromptAnchor;
+		PromptWorldOffset = snapshot.PromptWorldOffset;
+	}
+
+	/** Compares all controller-relevant prompt fields, including same-target presentation changes. */
+	bool HasSamePresentationAs(const FLRInteractionPromptView& other) const
+	{
+		return Target == other.Target
+			&& Prompt.EqualTo(other.Prompt)
+			&& ActionTag == other.ActionTag
+			&& InputAction == other.InputAction
+			&& PromptAnchor == other.PromptAnchor
+			&& PromptWorldOffset.Equals(other.PromptWorldOffset)
+			&& InputKeyText.EqualTo(other.InputKeyText)
+			&& bVisible == other.bVisible;
+	}
 };
 
 /** 统一菜单背包页的物品条目视图；数量只对一次性物品显示，无限物品不显示数字。 */
