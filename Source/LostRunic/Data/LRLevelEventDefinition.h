@@ -3,7 +3,7 @@
  * @brief 定义 LostRunic 的内容数据和调优 DataAsset。设计文档中的速度、距离、角度、持续时间、冷却及表现强度都由这里提供编辑器权威值，C++ 默认值仅作安全回退。
  *
  * 关联文件：LRLevelEventDefinition.cpp；所属领域：Data。
- * 设计依据：Docs/Design/01_GameDesignSummary.md 与 Docs/Technical/04_TechnicalDesign.md。
+ * 设计依据：Docs/Technical/08_ArchitectureBoundaries.md。
  * 除带 EditDefaultsOnly、EditAnywhere 或 EditInstanceOnly 的字段外，其余成员均为运行时状态，不应由蓝图直接改写。
  */
 #pragma once
@@ -40,6 +40,10 @@ public:
 	/** Save Policy 的领域数据，由所属类型负责维护和校验。 C++ 安全默认值为 `ELRSavePolicy::None`。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Event|Save")
 	ELRSavePolicy SavePolicy = ELRSavePolicy::None;
+
+	/** Optional Story flag committed atomically with this event. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Event|Result")
+	FGameplayTag CompletionStoryFlag;
 
 	/**
 	 * @brief 查询 Primary Asset Id；不修改领域状态。

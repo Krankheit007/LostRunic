@@ -54,7 +54,7 @@ void ULRSaveSubsystem::StartWrite()
 		return;
 	}
 
-	OperationState = ELRSaveOperationState::Capturing;
+	SetOperationState(ELRSaveOperationState::Capturing);
 	if (!SaveCatalog || !ActiveOperation.bHasCapturedData)
 	{
 		CompleteOperation(ELRSaveResultCode::ProviderUnavailable,
@@ -95,7 +95,7 @@ void ULRSaveSubsystem::StartWrite()
 	SaveCatalog->PendingOperation.Type = ELRCatalogPendingType::Write;
 	SaveCatalog->PendingOperation.PreviousMetadata = previous ? *previous : FLRSaveSlotMetadata();
 	SaveCatalog->PendingOperation.TargetMetadata = ActivePayload->MetadataSnapshot;
-	OperationState = ELRSaveOperationState::CommittingCatalog;
+	SetOperationState(ELRSaveOperationState::CommittingCatalog);
 	FString error;
 	if (!FLRSaveCatalogStore::CommitCatalog(*SaveCatalog, error))
 	{
@@ -104,7 +104,7 @@ void ULRSaveSubsystem::StartWrite()
 		return;
 	}
 
-	OperationState = ELRSaveOperationState::WritingPayload;
+	SetOperationState(ELRSaveOperationState::WritingPayload);
 	FAsyncSaveGameToSlotDelegate saveDelegate = FAsyncSaveGameToSlotDelegate::CreateWeakLambda(this,
 		[this, operationId = ActiveOperation.OperationId](const FString& slotName, const int32 userIndex,
 			const bool bSuccess)
@@ -186,7 +186,7 @@ void ULRSaveSubsystem::HandlePayloadWritten(const FGuid operationId, const FStri
 
 void ULRSaveSubsystem::StartDelete()
 {
-	OperationState = ELRSaveOperationState::CommittingCatalog;
+	SetOperationState(ELRSaveOperationState::CommittingCatalog);
 	const FLRSaveSlotMetadata* target = SaveCatalog ? SaveCatalog->FindSlot(ActiveOperation.SlotId) : nullptr;
 	if (!target)
 	{
@@ -204,7 +204,7 @@ void ULRSaveSubsystem::StartDelete()
 		CompleteOperation(ELRSaveResultCode::DeleteFailed, error);
 		return;
 	}
-	OperationState = ELRSaveOperationState::DeletingPayload;
+	SetOperationState(ELRSaveOperationState::DeletingPayload);
 	if (!targetMetadata.PayloadKey.IsEmpty()
 		&& UGameplayStatics::DoesSaveGameExist(targetMetadata.PayloadKey, V2SaveUserIndex)
 		&& !UGameplayStatics::DeleteGameInSlot(targetMetadata.PayloadKey, V2SaveUserIndex))
@@ -235,8 +235,8 @@ void ULRSaveSubsystem::StartRepairHealth()
 {
 	const bool bRecoveringCatalog = !ActiveOperation.SlotId.IsValid()
 		&& ActiveOperation.RequestedHealth == ELRSaveSlotHealth::Healthy;
-	OperationState = bRecoveringCatalog ? ELRSaveOperationState::RecoveringCatalog
-		: ELRSaveOperationState::RepairingHealth;
+	SetOperationState(bRecoveringCatalog ? ELRSaveOperationState::RecoveringCatalog
+		: ELRSaveOperationState::RepairingHealth);
 	FString error;
 	if (ActiveOperation.SlotId.IsValid())
 	{

@@ -78,6 +78,9 @@ struct LOSTRUNIC_API FLRStoryEventCommit
 	FName EventId = NAME_None;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Narrative|Events")
+	FGameplayTag StoryFlag;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Narrative|Events")
 	ELRSavePolicy SavePolicy = ELRSavePolicy::None;
 };
 

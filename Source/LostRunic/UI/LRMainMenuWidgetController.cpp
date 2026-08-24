@@ -1,6 +1,7 @@
 #include "UI/LRMainMenuWidgetController.h"
 
 #include "Framework/LRGameFlowSubsystem.h"
+#include "Save/LRSaveSubsystem.h"
 
 void ULRMainMenuWidgetController::Initialize(ULRSaveSubsystem* saveSubsystem)
 {

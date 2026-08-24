@@ -11,7 +11,7 @@
 
 void ULRSaveSubsystem::StartLoad()
 {
-	OperationState = ELRSaveOperationState::ReadingPayload;
+	SetOperationState(ELRSaveOperationState::ReadingPayload);
 	TArray<FLRSaveSlotMetadata> candidates;
 	if (ActiveOperation.Type == ELRSaveOperationType::Continue)
 	{
@@ -43,7 +43,7 @@ void ULRSaveSubsystem::StartLoad()
 		if (ActivePayload)
 		{
 			ActiveOperation.SlotId = metadata.SlotId;
-			OperationState = ELRSaveOperationState::AwaitingWorld;
+			SetOperationState(ELRSaveOperationState::AwaitingWorld);
 			FLRSaveFlowRequest request;
 			request.GameFlowTransactionId = ActiveOperation.GameFlowTransactionId;
 			request.OperationId = ActiveOperation.OperationId;
@@ -68,7 +68,7 @@ void ULRSaveSubsystem::NotifyLoadWorldReady(const FGuid gameFlowTransactionId, c
 	{
 		return;
 	}
-	OperationState = ELRSaveOperationState::Restoring;
+	SetOperationState(ELRSaveOperationState::Restoring);
 	FString error;
 	if (!LRSaveProviders::RestoreNonPlayer(SaveProviders, *GetGameInstance(), ActivePayload->Data, error)
 		|| !LRSaveProviders::RestorePlayer(SaveProviders, *GetGameInstance(), ActivePayload->Data, error))
@@ -100,7 +100,7 @@ void ULRSaveSubsystem::StartNewGame()
 		CompleteOperation(ELRSaveResultCode::RejectedNotEligible, TEXT("New Game map is not configured."));
 		return;
 	}
-	OperationState = ELRSaveOperationState::AwaitingWorld;
+	SetOperationState(ELRSaveOperationState::AwaitingWorld);
 	FLRSaveFlowRequest request;
 	request.GameFlowTransactionId = ActiveOperation.GameFlowTransactionId;
 	request.OperationId = ActiveOperation.OperationId;

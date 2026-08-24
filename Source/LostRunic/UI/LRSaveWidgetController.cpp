@@ -3,6 +3,7 @@
 #include "Core/LRLog.h"
 #include "Data/LRGameContentSet.h"
 #include "Framework/LRGameFlowSubsystem.h"
+#include "Save/LRSaveSubsystem.h"
 
 namespace
 {

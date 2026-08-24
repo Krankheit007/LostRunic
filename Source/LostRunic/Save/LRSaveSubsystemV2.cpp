@@ -96,7 +96,9 @@ void ULRSaveSubsystem::StartNextOperation()
 	{
 		return;
 	}
-	OperationState = ELRSaveOperationState::Capturing;
+	OnSaveOperationStarted.Broadcast(ActiveOperation.GameFlowTransactionId,
+		ActiveOperation.OperationId, ActiveOperation.Type, ActiveOperation.SlotId);
+	SetOperationState(ELRSaveOperationState::Capturing);
 	const FGuid operationId = ActiveOperation.OperationId;
 	if (UWorld* world = GetCurrentWorld())
 	{
@@ -108,6 +110,19 @@ void ULRSaveSubsystem::StartNextOperation()
 	DispatchActiveOperation();
 }
 
+void ULRSaveSubsystem::SetOperationState(const ELRSaveOperationState newState)
+{
+	if (OperationState == newState)
+	{
+		return;
+	}
+	OperationState = newState;
+	if (ActiveOperation.OperationId.IsValid())
+	{
+		OnSaveOperationPhaseChanged.Broadcast(ActiveOperation.GameFlowTransactionId,
+			ActiveOperation.OperationId, OperationState, ActiveOperation.Type, ActiveOperation.SlotId);
+	}
+}
 void ULRSaveSubsystem::DispatchActiveOperation()
 {
 	switch (ActiveOperation.Type)
@@ -223,9 +238,9 @@ void ULRSaveSubsystem::CompleteOperation(const ELRSaveResultCode code, const FSt
 			*result.OperationId.ToString(), static_cast<int32>(result.Operation), static_cast<int32>(result.Code),
 			*completedOperation.ReasonId.ToString(), *diagnostic);
 	}
+	SetOperationState(ELRSaveOperationState::Idle);
 	ActiveOperation = FLRQueuedSaveOperation();
 	ActivePayload = nullptr;
-	OperationState = ELRSaveOperationState::Idle;
 	OnSaveOperationCompleted.Broadcast(result);
 
 	if (bRecoveryOperation && !bSucceeded)
@@ -309,6 +324,11 @@ FLRSaveOperationResult ULRSaveSubsystem::RequestLoadSave(const FLRSaveSlotId slo
 
 FLRSaveOperationResult ULRSaveSubsystem::RequestLoadSaveForFlow(const FLRSaveSlotId slotId, const FGuid gameFlowTransactionId)
 {
+	if (!gameFlowTransactionId.IsValid())
+	{
+		return MakeRejected(ELRSaveOperationType::Load, slotId, ELRSaveResultCode::InvalidData,
+		TEXT("Load requires a valid GameFlowTransactionId."), FGuid(), gameFlowTransactionId);
+	}
 	if (!IsCatalogReady() || bPersistenceBlocked)
 	{
 		return MakeRejected(ELRSaveOperationType::Load, slotId, ELRSaveResultCode::RejectedBusy,
@@ -350,6 +370,11 @@ FLRSaveOperationResult ULRSaveSubsystem::RequestContinue()
 
 FLRSaveOperationResult ULRSaveSubsystem::RequestContinueForFlow(const FGuid gameFlowTransactionId)
 {
+	if (!gameFlowTransactionId.IsValid())
+	{
+		return MakeRejected(ELRSaveOperationType::Continue, FLRSaveSlotId(), ELRSaveResultCode::InvalidData,
+		TEXT("Continue requires a valid GameFlowTransactionId."), FGuid(), gameFlowTransactionId);
+	}
 	if (!IsCatalogReady() || bPersistenceBlocked)
 	{
 		return MakeRejected(ELRSaveOperationType::Continue, FLRSaveSlotId(), ELRSaveResultCode::RejectedBusy,
@@ -372,6 +397,11 @@ FLRSaveOperationResult ULRSaveSubsystem::RequestNewGame()
 
 FLRSaveOperationResult ULRSaveSubsystem::RequestNewGameForFlow(const FGuid gameFlowTransactionId)
 {
+	if (!gameFlowTransactionId.IsValid())
+	{
+		return MakeRejected(ELRSaveOperationType::NewGame, MakeAutoSlotId(), ELRSaveResultCode::InvalidData,
+		TEXT("New Game requires a valid GameFlowTransactionId."), FGuid(), gameFlowTransactionId);
+	}
 	if (!IsCatalogReady() || bPersistenceBlocked)
 	{
 		return MakeRejected(ELRSaveOperationType::NewGame, MakeAutoSlotId(), ELRSaveResultCode::RejectedBusy,

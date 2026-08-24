@@ -42,6 +42,7 @@ FLRNarrativeResult ULRDialogueSubsystem::TryCompleteEvent(const FName eventId)
 	FLRStoryEventCommit eventCommit;
 	eventCommit.EventId = eventId;
 	eventCommit.SavePolicy = definition->SavePolicy;
+	eventCommit.StoryFlag = definition->CompletionStoryFlag;
 	if (!storyState->CommitEvent(eventCommit))
 	{
 		return Reject(eventId, LRGameplayTags::NarrativeRejectAlreadyCompleted);

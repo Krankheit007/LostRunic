@@ -180,6 +180,49 @@ bool FLRSaveMemoryStateOwnerRoundTripTest::RunTest(const FString& parameters)
 	return true;
 }
 
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLRSaveMemoryHomeSnapshotDeltaInvariantTest,
+	"LostRunic.Save.MemoryCriticalSaveUsesHomeSnapshotAndNarrativeDelta",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FLRSaveMemoryHomeSnapshotDeltaInvariantTest::RunTest(const FString& parameters)
+{
+	FLRSaveDataV2 homeSnapshot;
+	homeSnapshot.Player.CurrentMapId = TEXT("Home");
+	homeSnapshot.Player.ResumeAnchor.MapId = TEXT("Home");
+	homeSnapshot.Player.ResumeAnchor.AnchorId = TEXT("Home.Start");
+	homeSnapshot.Story.CompletedEventIds.Add(TEXT("Home.Event.Introduction"));
+
+	FLRNarrativePersistentState committedState;
+	LRStorySaveAdapter::ToPersistentState(homeSnapshot.Story, committedState);
+	committedState.MemoryEventIds.Add(TEXT("Memory.Entry"));
+
+	FLRNarrativePersistentDelta durableDelta;
+	durableDelta.AddedMemoryEventIds.Add(TEXT("Memory.Entry"));
+	FString validationError;
+	TestTrue(TEXT("Durable delta must already be committed in StoryState"),
+		LRStorySaveAdapter::ValidateDeltaAgainstState(committedState, durableDelta, validationError));
+
+	FLRSaveDataV2 mergedSnapshot = homeSnapshot;
+	LRStorySaveAdapter::ApplyDeltaToSaveChunk(durableDelta, mergedSnapshot.Story);
+	TestEqual(TEXT("Critical Save keeps the Home map from HomeSnapshot"),
+		mergedSnapshot.Player.CurrentMapId, FName(TEXT("Home")));
+	TestTrue(TEXT("Critical Save keeps Home narrative facts"),
+		mergedSnapshot.Story.CompletedEventIds.Contains(TEXT("Home.Event.Introduction")));
+	TestTrue(TEXT("Critical Save adds only the durable Memory event"),
+		mergedSnapshot.Story.MemoryEventIds.Contains(TEXT("Memory.Entry")));
+
+	FLRSaveDataV2 memoryWorld = homeSnapshot;
+	memoryWorld.Player.CurrentMapId = TEXT("Memory");
+	TestFalse(TEXT("Memory world state is not used as the Critical Save source"),
+		mergedSnapshot.Player.CurrentMapId == memoryWorld.Player.CurrentMapId);
+
+	FLRNarrativePersistentDelta uncommittedDelta;
+	uncommittedDelta.AddedMemoryEventIds.Add(TEXT("Memory.NotCommitted"));
+	TestFalse(TEXT("Uncommitted durable delta is rejected"),
+		LRStorySaveAdapter::ValidateDeltaAgainstState(committedState, uncommittedDelta, validationError));
+	return true;
+}
+
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLRSaveProtectedAutomaticOverwriteTest,
 	"LostRunic.Save.V2.OverwriteAutomaticSlotIsAlwaysProtected",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)

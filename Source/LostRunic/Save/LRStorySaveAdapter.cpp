@@ -25,4 +25,34 @@ namespace LRStorySaveAdapter
 		inOutStory.CompletedEventIds.Append(persistentDelta.AddedCompletedEventIds);
 		inOutStory.MemoryEventIds.Append(persistentDelta.AddedMemoryEventIds);
 	}
+
+	bool ValidateDeltaAgainstState(const FLRNarrativePersistentState& persistentState,
+		const FLRNarrativePersistentDelta& persistentDelta, FString& outError)
+	{
+		for (const FGameplayTag& flag : persistentDelta.AddedStoryFlags)
+		{
+			if (!persistentState.StoryFlags.HasTag(flag))
+			{
+				outError = TEXT("Durable narrative delta contains an uncommitted Story flag.");
+				return false;
+			}
+		}
+		for (const FName eventId : persistentDelta.AddedCompletedEventIds)
+		{
+			if (!persistentState.CompletedEventIds.Contains(eventId))
+			{
+				outError = TEXT("Durable narrative delta contains an uncommitted completed event.");
+				return false;
+			}
+		}
+		for (const FName eventId : persistentDelta.AddedMemoryEventIds)
+		{
+			if (!persistentState.MemoryEventIds.Contains(eventId))
+			{
+				outError = TEXT("Durable narrative delta contains an uncommitted Memory event.");
+				return false;
+			}
+		}
+		return true;
+	}
 }

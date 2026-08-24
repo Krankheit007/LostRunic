@@ -93,17 +93,21 @@ bool FLRStoryStateCommitBroadcastOrdering::RunTest(const FString& Parameters)
 	UGameInstance* GameInstance = NewObject<UGameInstance>(GetTransientPackage());
 	ULRStoryStateSubsystem* StoryState = NewObject<ULRStoryStateSubsystem>(GameInstance);
 	bool bObservedCommittedState = false;
+	bool bObservedCommittedFlag = false;
 	StoryState->OnStoryEventCommittedNative.AddLambda(
-		[&bObservedCommittedState, StoryState](const FLRStoryEventCommit& EventCommit)
+		[&bObservedCommittedState, &bObservedCommittedFlag, StoryState](const FLRStoryEventCommit& EventCommit)
 		{
 			bObservedCommittedState = StoryState->IsEventCompleted(EventCommit.EventId);
+			bObservedCommittedFlag = StoryState->HasStoryFlag(EventCommit.StoryFlag);
 		});
 
 	FLRStoryEventCommit EventCommit;
 	EventCommit.EventId = TEXT("Home.Event.BroadcastOrder");
+	EventCommit.StoryFlag = FGameplayTag::RequestGameplayTag(FName(TEXT("Story.Dialogue.Butler.IntroductionCompleted")), false);
 	EventCommit.SavePolicy = ELRSavePolicy::Critical;
 	TestTrue(TEXT("First commit succeeds"), StoryState->CommitEvent(EventCommit));
 	TestTrue(TEXT("Broadcast observes committed state"), bObservedCommittedState);
+	TestTrue(TEXT("Broadcast observes committed Story flag"), bObservedCommittedFlag);
 	TestFalse(TEXT("Duplicate completion is rejected"), StoryState->CommitEvent(EventCommit));
 	return true;
 }

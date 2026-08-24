@@ -10,4 +10,6 @@ namespace LRStorySaveAdapter
 	LOSTRUNIC_API void ToPersistentState(const FLRSaveStoryChunk& storyChunk, FLRNarrativePersistentState& outState);
 	LOSTRUNIC_API void ApplyDeltaToSaveChunk(const FLRNarrativePersistentDelta& persistentDelta,
 		FLRSaveStoryChunk& inOutStory);
+	LOSTRUNIC_API bool ValidateDeltaAgainstState(const FLRNarrativePersistentState& persistentState,
+		const FLRNarrativePersistentDelta& persistentDelta, FString& outError);
 }

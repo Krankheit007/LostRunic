@@ -209,8 +209,10 @@ bool ULRSaveSubsystem::ResetProvidersForNewGame(FString& outError)
 }
 
 FLRSaveOperationResult ULRSaveSubsystem::RequestCriticalSaveFromSnapshot(const FLRSaveDataV2& snapshot,
-	const FLRNarrativePersistentDelta& narrativeDelta, const FName reasonId, const FGuid gameFlowTransactionId,
-	const ELRSaveMemoryPurpose memoryPurpose, const FGuid requestedOperationId)
+	const FLRNarrativePersistentState& committedState,
+	const FLRNarrativePersistentDelta& narrativeDelta, const FName reasonId,
+	const FGuid gameFlowTransactionId, const ELRSaveMemoryPurpose memoryPurpose,
+	const FGuid requestedOperationId)
 {
 	if (!gameFlowTransactionId.IsValid())
 	{
@@ -223,41 +225,11 @@ FLRSaveOperationResult ULRSaveSubsystem::RequestCriticalSaveFromSnapshot(const F
 			TEXT("Persistence is blocked until catalog recovery succeeds."), requestedOperationId,
 			gameFlowTransactionId);
 	}
-	ULRStoryStateSubsystem* storyState = ULRStoryStateSubsystem::Resolve(GetGameInstance());
-	FLRNarrativePersistentState currentState;
-	if (!storyState)
+	FString validationError;
+	if (!LRStorySaveAdapter::ValidateDeltaAgainstState(committedState, narrativeDelta, validationError))
 	{
-		return MakeRejected(ELRSaveOperationType::CriticalSave, FLRSaveSlotId(), ELRSaveResultCode::ProviderUnavailable,
-			TEXT("StoryState is unavailable while validating the durable narrative delta."), requestedOperationId,
-			gameFlowTransactionId);
-	}
-	storyState->CapturePersistentState(currentState);
-	for (const FGameplayTag& flag : narrativeDelta.AddedStoryFlags)
-	{
-		if (!currentState.StoryFlags.HasTag(flag))
-		{
-			return MakeRejected(ELRSaveOperationType::CriticalSave, FLRSaveSlotId(), ELRSaveResultCode::InvalidData,
-				TEXT("Durable narrative delta contains an uncommitted Story flag."), requestedOperationId,
-				gameFlowTransactionId);
-		}
-	}
-	for (const FName eventId : narrativeDelta.AddedCompletedEventIds)
-	{
-		if (!currentState.CompletedEventIds.Contains(eventId))
-		{
-			return MakeRejected(ELRSaveOperationType::CriticalSave, FLRSaveSlotId(), ELRSaveResultCode::InvalidData,
-				TEXT("Durable narrative delta contains an uncommitted completed event."), requestedOperationId,
-				gameFlowTransactionId);
-		}
-	}
-	for (const FName eventId : narrativeDelta.AddedMemoryEventIds)
-	{
-		if (!currentState.MemoryEventIds.Contains(eventId))
-		{
-			return MakeRejected(ELRSaveOperationType::CriticalSave, FLRSaveSlotId(), ELRSaveResultCode::InvalidData,
-				TEXT("Durable narrative delta contains an uncommitted Memory event."), requestedOperationId,
-				gameFlowTransactionId);
-		}
+		return MakeRejected(ELRSaveOperationType::CriticalSave, FLRSaveSlotId(), ELRSaveResultCode::InvalidData,
+			validationError, requestedOperationId, gameFlowTransactionId);
 	}
 	FLRSaveDataV2 mergedSnapshot = snapshot;
 	LRStorySaveAdapter::ApplyDeltaToSaveChunk(narrativeDelta, mergedSnapshot.Story);
@@ -267,6 +239,7 @@ FLRSaveOperationResult ULRSaveSubsystem::RequestCriticalSaveFromSnapshot(const F
 	return EnqueueOperation(ELRSaveOperationType::CriticalSave, autoSlot, reasonId, &mergedSnapshot,
 		memoryPurpose, ELRSaveSlotHealth::Healthy, false, requestedOperationId, gameFlowTransactionId);
 }
+
 void ULRSaveSubsystem::SetResumeAnchor(const FLRResumeAnchor& anchor)
 {
 	if (!anchor.IsValid())

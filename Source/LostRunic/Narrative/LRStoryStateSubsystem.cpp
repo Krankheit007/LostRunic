@@ -147,12 +147,21 @@ bool ULRStoryStateSubsystem::CommitEvent(const FLRStoryEventCommit& eventCommit)
 		return false;
 	}
 
+	const bool bStoryFlagAdded = eventCommit.StoryFlag.IsValid()
+		&& !PersistentState.StoryFlags.HasTag(eventCommit.StoryFlag);
 	PersistentState.CompletedEventIds.Add(eventCommit.EventId);
+	if (eventCommit.StoryFlag.IsValid())
+	{
+		PersistentState.StoryFlags.AddTag(eventCommit.StoryFlag);
+	}
+	if (bStoryFlagAdded)
+	{
+		OnStoryFlagAdded.Broadcast(eventCommit.StoryFlag);
+	}
 	OnStoryEventCommittedNative.Broadcast(eventCommit);
 	OnStoryEventCommitted.Broadcast(eventCommit);
 	return true;
 }
-
 bool ULRStoryStateSubsystem::CommitMemoryEvent(const FName eventId, FLRNarrativePersistentDelta* outDelta)
 {
 	if (!IsValidPersistentEventId(eventId) || PersistentState.MemoryEventIds.Contains(eventId))

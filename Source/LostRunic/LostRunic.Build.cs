@@ -41,18 +41,11 @@ public class LostRunic : ModuleRules
 			"Niagara",
 			"PhysicsCore",
 			"Slate",
-			"SlateCore"
+			"SlateCore",
+			"AssetRegistry"
 		});
 
-		PublicIncludePaths.AddRange(new string[] {
-			"LostRunic",
-			"LostRunic/Variant_Strategy",
-			"LostRunic/Variant_Strategy/UI",
-			"LostRunic/Variant_TwinStick",
-			"LostRunic/Variant_TwinStick/AI",
-			"LostRunic/Variant_TwinStick/Gameplay",
-			"LostRunic/Variant_TwinStick/UI"
-		});
+		PublicIncludePaths.Add("LostRunic");
 
 		// 仅在未来启用在线功能时加入 OnlineSubsystem；当前设计为 Windows 单机。
 		// PrivateDependencyModuleNames.Add("OnlineSubsystem");

@@ -14,6 +14,10 @@ class ULRSavePayload;
 class ULRSaveTuning;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FLRSaveOperationCompleted, FLRSaveOperationResult, result);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_FourParams(FLRSaveOperationStarted, FGuid, gameFlowTransactionId, FGuid, operationId,
+	ELRSaveOperationType, operation, FLRSaveSlotId, slotId);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_FiveParams(FLRSaveOperationPhaseChanged, FGuid, gameFlowTransactionId, FGuid, operationId,
+	ELRSaveOperationState, state, ELRSaveOperationType, operation, FLRSaveSlotId, slotId);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FLRSaveLoadRequested, FLRSaveFlowRequest, request);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FLRSaveNewGameRequested, FLRSaveFlowRequest, request);
 
@@ -78,6 +82,7 @@ public:
 	bool RestoreProviderState(const FLRSaveDataV2& data, FString& outError);
 	bool ResetProvidersForNewGame(FString& outError);
 	FLRSaveOperationResult RequestCriticalSaveFromSnapshot(const FLRSaveDataV2& snapshot,
+		const FLRNarrativePersistentState& committedState,
 		const FLRNarrativePersistentDelta& narrativeDelta, FName reasonId, FGuid gameFlowTransactionId,
 		ELRSaveMemoryPurpose memoryPurpose, FGuid requestedOperationId = FGuid());
 
@@ -99,6 +104,12 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category = "Lost Runic|Save")
 	FLRSaveOperationCompleted OnSaveOperationCompleted;
+
+	UPROPERTY(BlueprintAssignable, Category = "Lost Runic|Save")
+	FLRSaveOperationStarted OnSaveOperationStarted;
+
+	UPROPERTY(BlueprintAssignable, Category = "Lost Runic|Save")
+	FLRSaveOperationPhaseChanged OnSaveOperationPhaseChanged;
 
 	UPROPERTY(BlueprintAssignable, Category = "Lost Runic|Save")
 	FLRSaveLoadRequested OnSaveLoadRequested;
@@ -125,6 +136,7 @@ private:
 	bool CaptureCurrentData(FLRSaveDataV2& outData, FString& outError);
 	void CapturePendingAutoSave();
 	void StartNextOperation();
+	void SetOperationState(ELRSaveOperationState newState);
 	void DispatchActiveOperation();
 	void StartWrite();
 	void StartLoad();

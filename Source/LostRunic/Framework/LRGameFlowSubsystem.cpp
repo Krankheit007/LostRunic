@@ -75,6 +75,7 @@ void ULRGameFlowSubsystem::HandleLoadRequested(const FLRSaveFlowRequest request)
 	if (GetCurrentMapId() == request.MapId)
 	{
 		SetFlowPhase(request.GameFlowTransactionId, ELRGameFlowPhase::WaitingForWorld, request.MapId);
+		NotifyWorldReady(nullptr);
 		return;
 	}
 	if (!TravelToMap(request.MapId))
@@ -104,6 +105,7 @@ void ULRGameFlowSubsystem::HandleNewGameRequested(const FLRSaveFlowRequest reque
 	if (GetCurrentMapId() == request.MapId)
 	{
 		SetFlowPhase(request.GameFlowTransactionId, ELRGameFlowPhase::WaitingForWorld, request.MapId);
+		NotifyWorldReady(nullptr);
 		return;
 	}
 	if (!TravelToMap(request.MapId))
@@ -152,7 +154,10 @@ void ULRGameFlowSubsystem::NotifyWorldReady(ALRCharacter* character)
 			}
 		}
 		SetFlowPhase(MemoryTransactionId, ELRGameFlowPhase::EnteringMemory, mapId);
-		QueueMemoryCriticalSave(ELRSaveMemoryPurpose::Entry, LRSaveIds::MemoryEntryReason);
+		if (!QueueMemoryCriticalSave(ELRSaveMemoryPurpose::Entry, LRSaveIds::MemoryEntryReason))
+		{
+			SetFlowPhase(MemoryTransactionId, FGuid(), ELRGameFlowPhase::Idle, mapId);
+		}
 		return;
 	}
 	if (bHasHomeSnapshot && FlowPhase == ELRGameFlowPhase::ReturningFromMemory
@@ -175,11 +180,25 @@ bool ULRGameFlowSubsystem::RequestEnterMemory(ALRCharacter* character)
 	}
 	if (bHasHomeSnapshot)
 	{
-		if (GetCurrentMapId() == LRSaveIds::MemoryMapId && !bMemoryWorldActive)
+		if (bMemoryWorldActive || FlowPhase != ELRGameFlowPhase::Idle)
 		{
-			return QueueMemoryCriticalSave(ELRSaveMemoryPurpose::Entry, LRSaveIds::MemoryEntryReason);
+			return false;
 		}
-		return false;
+		SetFlowPhase(MemoryTransactionId, ELRGameFlowPhase::PreparingTravel, LRSaveIds::MemoryMapId);
+		if (GetCurrentMapId() == LRSaveIds::MemoryMapId)
+		{
+			SetFlowPhase(MemoryTransactionId, ELRGameFlowPhase::WaitingForWorld, LRSaveIds::MemoryMapId);
+			NotifyWorldReady(character);
+			return PendingMemorySaveOperationId.IsValid();
+		}
+		if (!TravelToMap(LRSaveIds::MemoryMapId))
+		{
+			SetFlowPhase(MemoryTransactionId, ELRGameFlowPhase::Idle, GetCurrentMapId());
+			return false;
+		}
+		SetFlowPhase(MemoryTransactionId, ELRGameFlowPhase::Traveling, LRSaveIds::MemoryMapId);
+		SetFlowPhase(MemoryTransactionId, ELRGameFlowPhase::WaitingForWorld, LRSaveIds::MemoryMapId);
+		return true;
 	}
 	if (FlowPhase != ELRGameFlowPhase::Idle)
 	{
@@ -262,8 +281,16 @@ bool ULRGameFlowSubsystem::QueueMemoryCriticalSave(const ELRSaveMemoryPurpose pu
 	{
 		return false;
 	}
+	ULRStoryStateSubsystem* storyState = ULRStoryStateSubsystem::Resolve(GetGameInstance());
+	FLRNarrativePersistentState committedState;
+	if (!storyState)
+	{
+		UE_LOG(LogLostRunicNarrative, Warning, TEXT("Memory Critical Save rejected because StoryState is unavailable."));
+		return false;
+	}
+	storyState->CapturePersistentState(committedState);
 	const FLRSaveOperationResult result = save->RequestCriticalSaveFromSnapshot(HomeSnapshot,
-		DurableNarrativeDelta, reasonId, MemoryTransactionId, purpose);
+		committedState, DurableNarrativeDelta, reasonId, MemoryTransactionId, purpose);
 	if (result.Code != ELRSaveResultCode::Queued)
 	{
 		return false;
@@ -325,17 +352,18 @@ void ULRGameFlowSubsystem::HandleSaveOperationCompleted(const FLRSaveOperationRe
 		return;
 	}
 	const ELRSaveMemoryPurpose purpose = PendingMemoryPurpose;
+	const FGuid completedOperationId = result.OperationId;
 	PendingMemorySaveOperationId.Invalidate();
 	PendingMemoryPurpose = ELRSaveMemoryPurpose::None;
 	if (result.Code != ELRSaveResultCode::Succeeded)
 	{
-		SetFlowPhase(MemoryTransactionId, ELRGameFlowPhase::Idle, GetCurrentMapId());
+		SetFlowPhase(MemoryTransactionId, completedOperationId, ELRGameFlowPhase::Idle, GetCurrentMapId());
 		return;
 	}
 	if (purpose == ELRSaveMemoryPurpose::Entry)
 	{
 		bMemoryWorldActive = true;
-		SetFlowPhase(MemoryTransactionId, ELRGameFlowPhase::Idle, GetCurrentMapId());
+		SetFlowPhase(MemoryTransactionId, completedOperationId, ELRGameFlowPhase::Idle, GetCurrentMapId());
 	}
 	else if (purpose == ELRSaveMemoryPurpose::Return)
 	{
