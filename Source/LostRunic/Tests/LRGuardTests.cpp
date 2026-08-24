@@ -154,31 +154,23 @@ bool FLRAlertTierTest::RunTest(const FString& parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLRAlertComponentWorkflowTest, "LostRunic.AI.AlertComponentWorkflow",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLRAlertComponentSnapshotTest, "LostRunic.AI.AlertComponentReadOnlySnapshot",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
-bool FLRAlertComponentWorkflowTest::RunTest(const FString& parameters)
+bool FLRAlertComponentSnapshotTest::RunTest(const FString& parameters)
 {
-	ULRAlertComponent* alert = NewObject<ULRAlertComponent>(GetTransientPackage());
+	const ULRAlertComponent* alert = NewObject<ULRAlertComponent>(GetTransientPackage());
 	if (!TestNotNull(TEXT("Alert component created"), alert))
 	{
 		return false;
 	}
-
-	alert->ApplyAlertDelta(6, FVector(100.0f, 0.0f, 0.0f), nullptr, LRGameplayTags::NoiseInteraction);
-	TestEqual(TEXT("Alert stimulus enters investigate"), alert->GetBehaviorState(), ELRGuardBehaviorState::Investigate);
-	alert->MarkInvestigationReached();
-	TestEqual(TEXT("Reached investigation enters search"), alert->GetBehaviorState(), ELRGuardBehaviorState::Search);
-	alert->SetSightTarget(nullptr, true, FVector::ZeroVector);
-	TestEqual(TEXT("Confirmed sight at max alert enters chase"), alert->GetBehaviorState(), ELRGuardBehaviorState::Chase);
-	alert->SetSightTarget(nullptr, false, FVector::ZeroVector);
-	TestEqual(TEXT("Lost sight returns to search"), alert->GetBehaviorState(), ELRGuardBehaviorState::Search);
-	alert->ResetAfterSearch();
-	TestEqual(TEXT("Search reset returns to patrol"), alert->GetBehaviorState(), ELRGuardBehaviorState::IdlePatrol);
-	TestEqual(TEXT("Search reset clears alert"), alert->GetAlertLevel(), 0);
+	const FLRAlertSnapshot snapshot = alert->GetAlertSnapshot();
+	TestEqual(TEXT("New alert starts at zero"), snapshot.Level, 0);
+	TestEqual(TEXT("New alert tier is hidden"), snapshot.Tier, ELRGuardAlertTier::Hidden);
+	TestEqual(TEXT("Pure Alert snapshot does not resolve behavior"), snapshot.Behavior,
+		ELRGuardBehaviorState::IdlePatrol);
 	return true;
 }
-
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLRGuardPerceptionRulesTest, "LostRunic.AI.PerceptionConeOcclusionAndHearing",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 

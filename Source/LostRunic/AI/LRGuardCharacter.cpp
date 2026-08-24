@@ -10,6 +10,7 @@
 
 #include "AI/LRAlertComponent.h"
 #include "AI/LRGuardAIController.h"
+#include "AI/LRGuardKnowledgeComponent.h"
 #include "Components/WidgetComponent.h"
 #include "Core/LRGameplayTags.h"
 #include "Engine/GameInstance.h"
@@ -28,6 +29,7 @@ ALRGuardCharacter::ALRGuardCharacter()
 	AIControllerClass = ALRGuardAIController::StaticClass();
 	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
 	Alert = CreateDefaultSubobject<ULRAlertComponent>(TEXT("Alert"));
+	Knowledge = CreateDefaultSubobject<ULRGuardKnowledgeComponent>(TEXT("Knowledge"));
 	CourageResponse = CreateDefaultSubobject<ULRCourageResponseComponent>(TEXT("CourageResponse"));
 	AlertWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("AlertWidget"));
 	AlertWidget->SetupAttachment(GetMesh());

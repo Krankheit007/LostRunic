@@ -8,7 +8,7 @@
  */
 #include "Stealth/LRNoiseEmitterComponent.h"
 
-#include "AI/LRAlertComponent.h"
+#include "AI/LRGuardAIController.h"
 #include "Core/LRGameplayTags.h"
 #include "Data/LRGameTuningSet.h"
 #include "Data/LRGuardTuning.h"
@@ -16,6 +16,7 @@
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
 #include "Framework/LRGameInstanceSubsystem.h"
+#include "GameFramework/Pawn.h"
 #include "Gameplay/LRLocomotionComponent.h"
 #include "Gameplay/LRMovementRules.h"
 #include "Gameplay/LRRoomVolume.h"
@@ -120,49 +121,53 @@ void ULRNoiseEmitterComponent::ApplyIndoorRunNoise(const FVector location)
 		return;
 	}
 
-	// 对每位守卫收集其所属房间的候选目标值：当前房与相邻房（多房间取最大、不累加），一次应用。
-	TSet<AActor*> applied;
+	TMap<AActor*, ELRGuardNoisePropagationMode> recipients;
 	for (const ALRRoomVolume* room : rooms)
 	{
 		for (const TWeakObjectPtr<AActor>& guardWeak : room->GetOverlappingGuards())
 		{
-			AActor* guard = guardWeak.Get();
-			ULRAlertComponent* alert = guard ? guard->FindComponentByClass<ULRAlertComponent>() : nullptr;
-			if (!alert || applied.Contains(guard))
+			if (AActor* guard = guardWeak.Get())
+			{
+				recipients.FindOrAdd(guard) = ELRGuardNoisePropagationMode::CurrentRoom;
+			}
+		}
+		for (const TWeakObjectPtr<ALRRoomVolume>& adjacentWeak : room->GetAdjacentRooms())
+		{
+			const ALRRoomVolume* adjacent = adjacentWeak.Get();
+			if (!adjacent)
 			{
 				continue;
 			}
-			applied.Add(guard);
-			const int32 currentAlert = alert->GetAlertLevel();
-			int32 bestTarget = currentAlert;
-			for (const ALRRoomVolume* containingRoom : rooms)
+			for (const TWeakObjectPtr<AActor>& guardWeak : adjacent->GetOverlappingGuards())
 			{
-				if (containingRoom->GetOverlappingGuards().Contains(guard))
+				AActor* guard = guardWeak.Get();
+				if (guard && !recipients.Contains(guard))
 				{
-					bestTarget = FMath::Max(bestTarget,
-						LRMovementRules::ResolveRoomRunTargetLevel(true, currentAlert, *GuardTuning));
+					recipients.Add(guard, ELRGuardNoisePropagationMode::AdjacentRoom);
 				}
-				for (const TWeakObjectPtr<ALRRoomVolume>& adjacentWeak : containingRoom->GetAdjacentRooms())
-				{
-					const ALRRoomVolume* adjacent = adjacentWeak.Get();
-					if (adjacent && adjacent->GetOverlappingGuards().Contains(guard))
-					{
-						bestTarget = FMath::Max(bestTarget,
-							LRMovementRules::ResolveRoomRunTargetLevel(false, currentAlert, *GuardTuning));
-					}
-				}
-			}
-			if (bestTarget > currentAlert)
-			{
-				alert->ApplyAlertDelta(bestTarget - currentAlert, location, GetOwner(), LRGameplayTags::NoiseFootstepRunIndoor);
 			}
 		}
 	}
 
-	// 表现钩子：房间路径只广播表现事件，绝不 ReportNoiseEvent（防与听觉分支双计）。
+	for (const TPair<AActor*, ELRGuardNoisePropagationMode>& recipient : recipients)
+	{
+		const APawn* guardPawn = Cast<APawn>(recipient.Key);
+		ALRGuardAIController* controller = guardPawn
+			? Cast<ALRGuardAIController>(guardPawn->GetController()) : nullptr;
+		if (!controller)
+		{
+			continue;
+		}
+		FLRGuardNoiseStimulus stimulus;
+		stimulus.Source = GetOwner();
+		stimulus.Location = location;
+		stimulus.Reason = LRGameplayTags::NoiseFootstepRunIndoor;
+		stimulus.PropagationMode = recipient.Value;
+		stimulus.TimeSeconds = GetWorld()->GetTimeSeconds();
+		controller->ReceiveNoiseStimulus(stimulus);
+	}
 	OnNoiseEmitted.Broadcast(location, Tuning->IndoorRunNoiseRadius, LRGameplayTags::NoiseFootstepRunIndoor);
 }
-
 /**
  * @brief 处理 Handle Interaction 事件，将引擎回调转换为对应领域状态更新。
  * @param result 本次领域操作的结构化数据 `result`；字段语义由对应 USTRUCT 定义。

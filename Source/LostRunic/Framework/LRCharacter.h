@@ -8,6 +8,7 @@
  */
 #pragma once
 
+#include "AI/LRGuardPerceptionTarget.h"
 #include "GameFramework/Character.h"
 
 #include "LRCharacter.generated.h"
@@ -26,7 +27,7 @@ class USpringArmComponent;
 
 /** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
 UCLASS(BlueprintType, meta = (DisplayName = "Lost Runic Character"))
-class LOSTRUNIC_API ALRCharacter : public ACharacter
+class LOSTRUNIC_API ALRCharacter : public ACharacter, public ILRGuardPerceptionTarget
 {
 	GENERATED_BODY()
 
@@ -35,6 +36,8 @@ public:
 	 * @brief 创建对象并设置默认子对象、能力开关和安全初值；需要 World、资产或玩家的依赖延迟到初始化阶段解析。
 	 */
 	ALRCharacter();
+
+	virtual bool IsRelevantGuardSightTarget_Implementation() const override { return true; }
 
 	/**
 	 * @brief 把二维移动语义转换为角色世界方向输入；速度限制由 LRLocomotionComponent 和调优资产维护。

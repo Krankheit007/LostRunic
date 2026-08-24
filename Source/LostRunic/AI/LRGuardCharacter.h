@@ -16,6 +16,7 @@ class AActor;
 class ALRGuardAIController;
 class ULRCourageResponseComponent;
 class ULRAlertComponent;
+class ULRGuardKnowledgeComponent;
 class ULRGuardDefinition;
 class UWidgetComponent;
 
@@ -44,6 +45,10 @@ public:
 	 */
 	UFUNCTION(BlueprintPure, Category = "Lost Runic|AI")
 	ULRAlertComponent* GetAlertComponent() const { return Alert; }
+
+	/** Returns the controller-fed, read-only guard knowledge component. */
+	UFUNCTION(BlueprintPure, Category = "Lost Runic|AI")
+	ULRGuardKnowledgeComponent* GetKnowledgeComponent() const { return Knowledge; }
 
 	/**
 	 * @brief 确认目标仍可捕获后提交死亡状态请求，并启动死亡到 Memory 的存档事务。
@@ -96,6 +101,9 @@ private:
 	/** Alert 的领域数据，由所属类型负责维护和校验。 仅在蓝图或详情面板中查看，不可编辑。 */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<ULRAlertComponent> Alert;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<ULRGuardKnowledgeComponent> Knowledge;
 
 	/** Courage Response 的领域数据，由所属类型负责维护和校验。 仅在蓝图或详情面板中查看，不可编辑。 */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))

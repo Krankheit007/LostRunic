@@ -11,6 +11,130 @@
 #include "Core/LRGameplayTags.h"
 #include "Data/LRGuardTuning.h"
 
+namespace
+{
+	float ClampVisibilityFactor(const float factor)
+	{
+		return FMath::Clamp(factor, 0.0f, 1.0f);
+	}
+
+	bool PassesVisibilityGates(const FLRGuardVisibilityResult& sample)
+	{
+		return sample.bRangeGate && sample.bConeGate && sample.bLOSGate
+			&& sample.bValidContactGate && sample.bHardVisibilityGate;
+	}
+}
+
+FLRGuardVisibilityResult LRGuardPerceptionRules::EvaluateVisibility(const float distance, const float forwardDot,
+	const bool bHasValidContact, const bool bHasLineOfSight, const bool bHardVisibility,
+	const float movementFactor, const float exposureFactor, const float lightingFactor, const float postureFactor,
+	const ULRGuardTuning& tuning)
+{
+	FLRGuardVisibilityResult result;
+	result.bRangeGate = distance >= 0.0f && distance <= tuning.SightRadius;
+	const float halfAngleRadians = FMath::DegreesToRadians(tuning.SightConeDegrees * 0.5f);
+	result.bConeGate = forwardDot >= FMath::Cos(halfAngleRadians);
+	result.bLOSGate = bHasLineOfSight;
+	result.bValidContactGate = bHasValidContact;
+	result.bHardVisibilityGate = bHardVisibility;
+	result.DistanceFactor = ResolveDistanceFactor(distance, tuning);
+	result.MovementFactor = ClampVisibilityFactor(movementFactor);
+	result.ExposureFactor = ClampVisibilityFactor(exposureFactor);
+	result.LightingFactor = ClampVisibilityFactor(lightingFactor);
+	result.PostureFactor = ClampVisibilityFactor(postureFactor);
+	result.VisibilityScore = CalculateVisibilityScore(result);
+	return result;
+}
+
+float LRGuardPerceptionRules::ResolveDistanceFactor(const float distance, const ULRGuardTuning& tuning)
+{
+	if (tuning.SightRadius <= 0.0f || distance < 0.0f || distance > tuning.SightRadius)
+	{
+		return 0.0f;
+	}
+
+	const float alpha = FMath::Clamp(distance / tuning.SightRadius, 0.0f, 1.0f);
+	return FMath::Lerp(1.0f, tuning.SightEdgeDetectionMultiplier, alpha);
+}
+
+float LRGuardPerceptionRules::CalculateVisibilityScore(const FLRGuardVisibilityResult& sample)
+{
+	if (!PassesVisibilityGates(sample))
+	{
+		return 0.0f;
+	}
+
+	return ClampVisibilityFactor(sample.DistanceFactor)
+		* ClampVisibilityFactor(sample.MovementFactor)
+		* ClampVisibilityFactor(sample.ExposureFactor)
+		* ClampVisibilityFactor(sample.LightingFactor)
+		* ClampVisibilityFactor(sample.PostureFactor);
+}
+
+ELRGuardDetectionStage LRGuardPerceptionRules::ResolveDetectionStage(const float effectiveExposureSeconds,
+	const ULRGuardTuning& tuning)
+{
+	const float exposure = FMath::Max(effectiveExposureSeconds, 0.0f);
+	if (exposure >= tuning.ConfirmedExposureThresholdSeconds)
+	{
+		return ELRGuardDetectionStage::Confirmed;
+	}
+	if (exposure >= tuning.InvestigateExposureThresholdSeconds)
+	{
+		return ELRGuardDetectionStage::Investigate;
+	}
+	if (exposure >= tuning.SuspiciousExposureThresholdSeconds)
+	{
+		return ELRGuardDetectionStage::Suspicious;
+	}
+	return ELRGuardDetectionStage::None;
+}
+
+bool LRGuardPerceptionRules::HasNewInvestigationContext(const FLRGuardKnowledgeSnapshot& previousSnapshot,
+	const FLRGuardKnowledgeSnapshot& currentSnapshot)
+{
+	if (!currentSnapshot.bPendingThreatInvestigation)
+	{
+		return false;
+	}
+	if (!previousSnapshot.bPendingThreatInvestigation)
+	{
+		return true;
+	}
+	return previousSnapshot.bHasLastKnownThreatLocation != currentSnapshot.bHasLastKnownThreatLocation
+		|| !previousSnapshot.LastKnownThreatLocation.Equals(currentSnapshot.LastKnownThreatLocation)
+		|| previousSnapshot.bHasLastDisturbanceLocation != currentSnapshot.bHasLastDisturbanceLocation
+		|| !previousSnapshot.LastDisturbanceLocation.Equals(currentSnapshot.LastDisturbanceLocation)
+		|| previousSnapshot.ConfirmedThreat != currentSnapshot.ConfirmedThreat
+		|| previousSnapshot.VisualCandidate != currentSnapshot.VisualCandidate
+		|| previousSnapshot.LastAcceptedStimulusSource != currentSnapshot.LastAcceptedStimulusSource
+		|| previousSnapshot.LastAcceptedStimulusReason != currentSnapshot.LastAcceptedStimulusReason;
+}
+
+float LRGuardPerceptionRules::DecayDetectionExposure(const float currentExposureSeconds, const float deltaSeconds,
+	const ULRGuardTuning& tuning)
+{
+	const float boundedDelta = FMath::Clamp(deltaSeconds, 0.0f, tuning.MaxDetectionIntegrationDeltaSeconds);
+	return FMath::Max(currentExposureSeconds - boundedDelta * tuning.DetectionExposureDecayRate, 0.0f);
+}
+
+float LRGuardPerceptionRules::IntegrateDetectionExposure(const float currentExposureSeconds,
+	const FLRGuardVisibilityResult& sample, const float deltaSeconds, const ULRGuardTuning& tuning)
+{
+	const float boundedDelta = FMath::Clamp(deltaSeconds, 0.0f, tuning.MaxDetectionIntegrationDeltaSeconds);
+	if (boundedDelta <= 0.0f)
+	{
+		return FMath::Max(currentExposureSeconds, 0.0f);
+	}
+
+	const float score = CalculateVisibilityScore(sample);
+	if (score <= 0.0f)
+	{
+		return DecayDetectionExposure(currentExposureSeconds, boundedDelta, tuning);
+	}
+	return FMath::Max(currentExposureSeconds, 0.0f) + score * boundedDelta;
+}
+
 /**
  * @brief 判断 Can Confirm Sight 对应条件；不产生玩法副作用。
  * @param distance 空间值 `distance`；距离和位置使用 Unreal 厘米单位。
@@ -23,8 +147,8 @@
 bool LRGuardPerceptionRules::CanConfirmSight(const float distance, const float forwardDot, const bool bOccluded,
 	const bool bHidden, const ULRGuardTuning& tuning)
 {
-	const float halfAngleRadians = FMath::DegreesToRadians(tuning.SightConeDegrees * 0.5f);
-	return distance <= tuning.SightRadius && forwardDot >= FMath::Cos(halfAngleRadians) && !bOccluded && !bHidden;
+	return EvaluateVisibility(distance, forwardDot, true, !bOccluded, !bHidden,
+		1.0f, 1.0f, 1.0f, 1.0f, tuning).IsActive();
 }
 
 /**

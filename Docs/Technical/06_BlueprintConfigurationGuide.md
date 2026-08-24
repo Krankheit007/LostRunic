@@ -311,7 +311,7 @@ Editor Contract Test 名称：
 
 ### 敌人警戒（4.2.1 全量）
 
-- **行为语义**（C++ 权威）：吸引噪声 +1（1-5 档 CD 0.5s；首次进入 6-10 档 0.5s、其后 0.2s；CD 内刺激完全忽略）；看见玩家 警戒<6→6、6-10→11、11 丢失→10；观察 3s（0→1 与抵达调查点）与衰减 0.5s/-1 由 `ULRAlertComponent` 计时器驱动；`ResolveTargetBehavior` 为行为唯一权威（眩晕优先）。警戒条 UI 只读 `FLRAlertSnapshot`（Level/Fraction/Tier/Behavior/bFullAlert）+ `OnAlertSnapshotChanged`，绑定后立即推送初值。
+- **行为语义（2026-08-24 更新）**：旧版“两次 Sight 回调升级”已废弃；视觉改为有效暴露秒积分，目标/位置/检测阶段由 `ULRGuardKnowledgeComponent` 持有，警戒值由纯化后的 `ULRAlertComponent` 持有，最终行为只从 `FLRGuardAwarenessSnapshot` 解析。详细配置与验收见文末「Guard Awareness / 连续视觉配置」。
 - **`WBP_GuardAlertBar`**：继承 `ULRWorldAlertBarWidgetBase`；覆盖 `HandleAlertSnapshotChanged` 只做表现：`Tier=Hidden` 隐藏、`White` 白色进度条、`Red` 红色、`Full` 满值+额外红色特效（样式需重新设计）。由 `BP_Guard` 的 `AlertWidget` 组件初始化，Widget 不自行猜测所属守卫。
 - **`ALRRoomVolume` 摆放**：在关卡中摆放 Box 体积（Trigger profile），填写 `RoomId`（稳定 FName），`AdjacentRooms` 连线到相邻房间体积（门/窗拓扑）；守卫进入体积自动注册。**支持旋转与缩放**（包含判定用局部空间 + UnscaledBoxExtent，缩放由变换逆变换处理）。室内奔跑：当前房间守卫警戒至少提升到 `RoomRunAlertLevel`(5)、相邻房间 +1；同一守卫属多房间时取最大效果、不累加；无房间体积时回退 1200 半径听觉事件。房间体积必须早于守卫生成。
 - **`ST_Guard` 资产（编辑器人工创建 + MCP 检查）**：见「守卫 AI 与 StateTree」小节接线要求；自动化契约覆盖 AI Schema、上下文类型、Root + 六状态、节点枚举和 `ForceChanged` 重选转换。
@@ -735,3 +735,62 @@ StringTable 的 `Source String` 只填写源语言（本项目约定为 `zh-Hans
 - 旧 TopDown class redirect 保留，目标为 LRCharacter、LRGameMode、LRPlayerController；本次不删除 Redirect。
 
 正式边界文档：Docs/Technical/08_ArchitectureBoundaries.md。
+## Guard Awareness / 连续视觉配置（2026-08-24）
+
+本节覆盖前文 4.2.1 中旧的二次 Sight 回调语义，是当前 Guard 配置的权威说明。
+
+### 资产和组件关系
+
+- 守卫蓝图：`/Game/LostRunic/Blueprints/Guard/BP_Guard`，父类必须为 `ALRGuardCharacter`。C++ 自动创建 `Alert`、`Knowledge`、`StateTreeAI`、`AlertWidget`，蓝图不得重复添加。
+- 守卫定义：`/Game/LostRunic/Data/Guard/DA_LRGuard1`；`Behavior` 指向 `/Game/LostRunic/Blueprints/Guard/ST_Guard`，`Tuning` 指向 `/Game/LostRunic/Data/Tuning/DA_LRGuardTuning`。
+- 世界警戒条：`/Game/LostRunic/UI/WBP_GuardAlertBar`，继承 `ULRWorldAlertBarWidgetBase`。既有 `HandleAlertSnapshotChanged` 蓝图事件继续可用；其中 `Behavior` 仅为表现兼容字段，权威行为在组合快照 `FLRGuardAwarenessSnapshot.ResolvedBehavior`。
+- 玩家目标契约：`ALRCharacter` 已原生实现 `ILRGuardPerceptionTarget` 并返回 true；`ALRGuardCharacter`、普通 NPC 和其他 Pawn 默认不会成为视觉目标。自定义玩家若继承 `ALRCharacter` 无需额外操作；其他蓝图类需在 **Class Settings > Implemented Interfaces** 添加 `Lost Runic Guard Perception Target`，并实现 `Is Relevant Guard Sight Target` 返回 true。
+
+### BP_Guard 配置步骤
+
+1. 在 Content Browser 打开 `BP_Guard`，进入 **Class Defaults**。
+2. 在 **Lost Runic|AI**（或搜索 `Definition`）把 **Definition** 设置为 `DA_LRGuard1`。
+3. 在 **Pawn** 分类确认 **AI Controller Class = LRGuardAIController**，**Auto Possess AI = Placed in World or Spawned**。
+4. 选择组件树中的 **AlertWidget**，把 **Widget Class** 设置为 `WBP_GuardAlertBar`；仅配置 Draw Size、Pivot、相对位置和表现，不在 Widget Tick 中写警戒。
+5. 编译并保存。当前资产已通过 UE MCP 编译（Warnings as Errors）并保存；`Definition`、AIController 和 Auto Possess 值已回读确认。
+
+### DA_LRGuard1 与 StateTree
+
+1. 打开 `DA_LRGuard1`，确认 **Behavior = ST_Guard**、**Tuning = DA_LRGuardTuning**。
+2. 打开 `ST_Guard`。保留 `Root` 下六个平级状态：`IdlePatrol / Suspicious / Investigate / Search / Chase / Stunned`；宏观行为仍由 `ResolveTargetBehavior` 唯一决定。
+3. 行为枚举变化才发送 `AI.Event.BehaviorChanged` 并从 Root 重选；调查位置变化但仍为 Investigate 时由 Controller 的 `RefreshBehaviorContext` 重定位，不伪造 BehaviorChanged，也不会每 0.1 秒刷新导航。
+4. `PendingThreatInvestigation` 优先于满警戒 Search：有尚未抵达的可靠位置时 Investigate；抵达后且仍处红档才 Search。`Alert.Level == 11` 本身绝不代表已确认威胁，也不能单独进入 Chase。
+
+### DA_LRGuardTuning 配置
+
+打开 `DA_LRGuardTuning`，在 Details 中填写或确认：
+
+| Details 分类 | 字段 | 当前基线 | 语义 |
+| --- | --- | ---: | --- |
+| Guard\|Detection | Detection Sample Interval Seconds | 0.1 s | Controller 的连续视觉采样周期 |
+| Guard\|Detection | Max Detection Integration Delta Seconds | 0.2 s | 卡顿/断点时单次积分上限 |
+| Guard\|Detection | Suspicious Exposure Threshold Seconds | 0.2 s | 跨入 Suspicious 的有效暴露秒 |
+| Guard\|Detection | Investigate Exposure Threshold Seconds | 0.6 s | 跨入 Investigate 的有效暴露秒 |
+| Guard\|Detection | Confirmed Exposure Threshold Seconds | 1.5 s | 确认威胁的有效暴露秒 |
+| Guard\|Detection | Detection Exposure Decay Rate | 1.0 | 失去有效视觉时每现实秒减少的有效暴露秒 |
+| Guard\|Visibility | Sight Edge Detection Multiplier | 0.5 | SightRadius 边缘的线性距离倍率 |
+| Guard\|Visibility | Sneak / Walk / Run Visibility Multiplier | 0.5 / 0.75 / 1.0 | 当前步态倍率 |
+| Guard\|Movement | Investigation Retarget Distance | 75 cm | 调查点变化达到该距离才刷新导航 |
+| Guard\|Sight | Sight Radius / Lose Sight Radius | 500 / 600 cm | 连续积分只允许 Distance <= SightRadius；LoseSightRadius 仅保留 UE 接触迟滞 |
+
+首版公式：`EffectiveExposure += VisibilityScore * ActualDeltaSeconds`；失视时按 Decay Rate 递减。距离在 `SightRadius` 内使用 `Lerp(1.0, EdgeMultiplier, Distance / SightRadius)`，超过 `SightRadius` 直接为 0。Range、Cone、LOS、UE Contact 和目标硬可见性均为 0/1 gate；掩体硬隐藏返回 0，Lighting/Exposure/Posture 首版为 1。阶段只在边沿变化时把 Alert 下限提升到 1/6/11，不重复广播。
+
+### 噪声、Knowledge 与只读蓝图边界
+
+- AI Hearing、房间传播和未来证据统一进入 `ALRGuardAIController::ReceiveNoiseStimulus`。噪声先解析接受/冷却；被拒绝的 Faint 或冷却刺激不会提交 `LastDisturbanceLocation`。
+- 已确认玩家发出的脚步声更新 `LastKnownThreatLocation`；瓶子等其他声源只更新 `LastDisturbanceLocation`，不能替换 `ConfirmedThreatActor`。
+- `ULRAlertComponent` 与 `ULRGuardKnowledgeComponent` 的核心 mutation API 均为 C++ 内部入口；Blueprint 只读 Snapshot/Delegate。UI 和 StateTree 以 Controller 一次性提交后的 Awareness 为完整状态，不监听中间半状态。
+- 持续有效视觉会阻止 Alert 自然衰减；Alert 归零、Search Reset 与 UnPossess 的 Knowledge 清理由 Controller 协调。
+
+### 验收记录
+
+- 构建：`LostRunicEditor Win64 Development` 成功。
+- UE MCP 自动化：`LostRunic.AI` 14/14 通过；Movement/Noise/Framework 定向契约 7/7 通过。
+- UE MCP 资产检查：`BP_Guard` 和 `DA_LRGuardTuning` 已编译、保存并回读上述引用/数值；`ST_Guard` 六状态名称未改变。
+- PIE：`/Game/LostRunic/Levels/PIE_Test/L_PIE_Test` 已启动并完成基础冒烟；本次 PIE 时间窗内没有新增项目级 Warning/Error。
+- 手工玩法复验建议：Guard 看到 Guard/NPC 不追逐；连续看玩家依次跨 0.2/0.6/1.5 秒；掩体使分数为 0；追逐时听到瓶子不替换玩家；失视后玩家脚步更新调查点；纯噪声把 Alert 推到 11 仍不得 Chase。

@@ -44,6 +44,16 @@ namespace LRAlertRules
 	 */
 	LOSTRUNIC_API ELRGuardBehaviorState ResolveTargetBehavior(bool bStunned, int32 alertLevel, bool bHasSight,
 		bool bSearching);
+	/** Snapshot-aware behavior resolver; Alert alone never promotes to Chase. */
+	LOSTRUNIC_API ELRGuardBehaviorState ResolveTargetBehavior(bool bStunned, const FLRAlertSnapshot& alert,
+		const FLRGuardKnowledgeSnapshot& knowledge, bool bSearchFlag, const ULRGuardTuning& tuning);
+	LOSTRUNIC_API ELRGuardBehaviorState ResolveTargetBehavior(const FLRAlertSnapshot& alert,
+		const FLRGuardKnowledgeSnapshot& knowledge, bool bStunned, bool bSearchFlag,
+		const ULRGuardTuning& tuning);
+	LOSTRUNIC_API ELRGuardBehaviorState ResolveTargetBehavior(const FLRAlertSnapshot& alert,
+		const FLRGuardKnowledgeSnapshot& knowledge, bool bStunned, bool bSearchFlag);
+	LOSTRUNIC_API ELRGuardBehaviorState ResolveTargetBehavior(const FLRGuardAwarenessSnapshot& awareness,
+		bool bStunned, bool bSearchFlag, const ULRGuardTuning& tuning);
 	/**
 	 * @brief 解析警戒显示档位：0 隐藏、1-5 白色、6-10 红色、11 满值。
 	 * @param alertLevel 本次操作使用的计数、增量或索引 `alertLevel`；由函数校验合法范围。
@@ -58,6 +68,12 @@ namespace LRAlertRules
 	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
 	 */
 	LOSTRUNIC_API bool ShouldDecay(bool bObserving, bool bHasConfirmedSight, ELRGuardBehaviorState currentState);
+	/** Snapshot-aware decay gate; active visual exposure/current visibility blocks decay. */
+	LOSTRUNIC_API bool ShouldDecay(const FLRAlertSnapshot& alert, const FLRGuardKnowledgeSnapshot& knowledge,
+		bool bObserving, ELRGuardBehaviorState resolvedBehavior);
+	/** Resolves pending threat first, then disturbance, then the last-known threat location. */
+	LOSTRUNIC_API FVector ResolveInvestigationLocation(const FLRGuardKnowledgeSnapshot& knowledge);
+	LOSTRUNIC_API FVector ResolveInvestigationLocation(const FLRGuardAwarenessSnapshot& awareness);
 	/**
 	 * @brief 解析吸引增加的冷却时长：1-5 档与首次进入 6-10 档使用 AlertIncreaseCooldownSeconds，6-10 档后续使用 InvestigateIncreaseCooldownSeconds。
 	 * @param currentAlert 本次操作使用的计数、增量或索引 `currentAlert`；由函数校验合法范围。

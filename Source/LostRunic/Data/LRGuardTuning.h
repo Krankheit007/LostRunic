@@ -31,6 +31,41 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|Sight", meta = (ClampMin = "1.0", ClampMax = "180.0", Units = "deg", ToolTip = "Full sight cone; UE perception receives half this value."))
 	float SightConeDegrees = 45.0f;
 
+	/** Continuous sight sample interval; the controller owns the timer and the knowledge component remains event-driven. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|Detection", meta = (ClampMin = "0.01", ClampMax = "1.0", Units = "s"))
+	float DetectionSampleIntervalSeconds = 0.1f;
+
+	/** Maximum delta integrated by one visibility sample, preventing large frame gaps from skipping exposure stages. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|Detection", meta = (ClampMin = "0.01", ClampMax = "1.0", Units = "s"))
+	float MaxDetectionIntegrationDeltaSeconds = 0.2f;
+
+	/** Effective exposure thresholds for the continuous sight stage resolver. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|Detection", meta = (ClampMin = "0.0", ClampMax = "60.0", Units = "s"))
+	float SuspiciousExposureThresholdSeconds = 0.2f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|Detection", meta = (ClampMin = "0.0", ClampMax = "60.0", Units = "s"))
+	float InvestigateExposureThresholdSeconds = 0.6f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|Detection", meta = (ClampMin = "0.0", ClampMax = "60.0", Units = "s"))
+	float ConfirmedExposureThresholdSeconds = 1.5f;
+
+	/** Effective exposure seconds removed per real second while visual exposure is inactive. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|Detection", meta = (ClampMin = "0.0", ClampMax = "10.0"))
+	float DetectionExposureDecayRate = 1.0f;
+
+	/** Score at the edge of the configured sight radius; distance uses a linear interpolation from 1.0 to this value. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|Visibility", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+	float SightEdgeDetectionMultiplier = 0.5f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|Visibility", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+	float SneakVisibilityMultiplier = 0.5f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|Visibility", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+	float WalkVisibilityMultiplier = 0.75f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|Visibility", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+	float RunVisibilityMultiplier = 1.0f;
+
 	/** 对噪声事件半径应用的听觉倍率；默认 1。 C++ 安全默认值为 `1.0f`。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。编辑器约束：最小值 `0.0`，最大值 `10.0`。 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|Hearing", meta = (ClampMin = "0.0", ClampMax = "10.0"))
 	float HearingRangeMultiplier = 1.0f;
@@ -102,6 +137,10 @@ public:
 	/** 守卫导航到调查点时允许的到达误差；默认 50 cm。 C++ 安全默认值为 `50.0f`。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。编辑器约束：单位 `cm`，最小值 `1.0`，最大值 `500.0`。 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|Movement", meta = (ClampMin = "1.0", ClampMax = "500.0", Units = "cm"))
 	float MoveAcceptanceRadius = 50.0f;
+
+	/** Distance below which a new accepted disturbance may retarget investigation. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|Movement", meta = (ClampMin = "1.0", ClampMax = "1000.0", Units = "cm"))
+	float InvestigationRetargetDistance = 75.0f;
 
 	/**
 	 * @brief 校验当前资产的必填引用、数值边界及跨字段关系，并输出可诊断错误。

@@ -8,6 +8,7 @@
  */
 #pragma once
 
+#include "AI/LRGuardTypes.h"
 #include "GameplayTagContainer.h"
 
 class ULRGuardTuning;
@@ -25,6 +26,27 @@ struct LOSTRUNIC_API FLRNoiseResponse
 
 namespace LRGuardPerceptionRules
 {
+	/** Resolves the continuous sight score after all binary gates have passed. */
+	LOSTRUNIC_API FLRGuardVisibilityResult EvaluateVisibility(float distance, float forwardDot,
+		bool bHasValidContact, bool bHasLineOfSight, bool bHardVisibility,
+		float movementFactor, float exposureFactor, float lightingFactor, float postureFactor,
+		const ULRGuardTuning& tuning);
+	/** Applies the approved linear distance curve inside SightRadius. */
+	LOSTRUNIC_API float ResolveDistanceFactor(float distance, const ULRGuardTuning& tuning);
+	/** Recomputes a score from a sample without changing any state. */
+	LOSTRUNIC_API float CalculateVisibilityScore(const FLRGuardVisibilityResult& sample);
+	/** Resolves the stage from effective exposure seconds without emitting transition events. */
+	LOSTRUNIC_API ELRGuardDetectionStage ResolveDetectionStage(float effectiveExposureSeconds,
+		const ULRGuardTuning& tuning);
+	/** Returns whether a pending investigation snapshot contains a new location or stimulus context. */
+	LOSTRUNIC_API bool HasNewInvestigationContext(const FLRGuardKnowledgeSnapshot& previousSnapshot,
+		const FLRGuardKnowledgeSnapshot& currentSnapshot);
+	/** Applies score-weighted exposure integration or configured decay, with a bounded delta. */
+	LOSTRUNIC_API float IntegrateDetectionExposure(float currentExposureSeconds,
+		const FLRGuardVisibilityResult& sample, float deltaSeconds, const ULRGuardTuning& tuning);
+	LOSTRUNIC_API float DecayDetectionExposure(float currentExposureSeconds, float deltaSeconds,
+		const ULRGuardTuning& tuning);
+
 	LOSTRUNIC_API bool CanConfirmSight(float distance, float forwardDot, bool bOccluded, bool bHidden,
 		const ULRGuardTuning& tuning);
 	/**

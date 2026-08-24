@@ -69,6 +69,59 @@ ELRGuardBehaviorState LRAlertRules::ResolveTargetBehavior(const bool bStunned, c
 	return bStunned ? ELRGuardBehaviorState::Stunned : ResolveState(alertLevel, bHasSight, bSearching);
 }
 
+ELRGuardBehaviorState LRAlertRules::ResolveTargetBehavior(const bool bStunned, const FLRAlertSnapshot& alert,
+	const FLRGuardKnowledgeSnapshot& knowledge, const bool bSearchFlag, const ULRGuardTuning& tuning)
+{
+	if (bStunned)
+	{
+		return ELRGuardBehaviorState::Stunned;
+	}
+
+	const int32 alertLevel = FMath::Clamp(alert.Level, MinAlertLevel, MaxAlertLevel);
+	const bool bConfirmedThreat = knowledge.bHasConfirmedThreat || knowledge.ConfirmedThreat.IsValid();
+	if (bConfirmedThreat && knowledge.CurrentVisibility.IsActive() && alertLevel >= tuning.SightChaseLevel)
+	{
+		return ELRGuardBehaviorState::Chase;
+	}
+	if (alertLevel <= MinAlertLevel)
+	{
+		return ELRGuardBehaviorState::IdlePatrol;
+	}
+	if (knowledge.bPendingThreatInvestigation && alertLevel >= tuning.SightInvestigateLevel)
+	{
+		return ELRGuardBehaviorState::Investigate;
+	}
+	if (bSearchFlag && alertLevel > SuspiciousMaxLevel && alertLevel < MaxAlertLevel)
+	{
+		return ELRGuardBehaviorState::Search;
+	}
+	if (alertLevel >= MaxAlertLevel)
+	{
+		return ELRGuardBehaviorState::Search;
+	}
+	return alertLevel <= SuspiciousMaxLevel
+		? ELRGuardBehaviorState::Suspicious : ELRGuardBehaviorState::Investigate;
+}
+
+ELRGuardBehaviorState LRAlertRules::ResolveTargetBehavior(const FLRAlertSnapshot& alert,
+	const FLRGuardKnowledgeSnapshot& knowledge, const bool bStunned, const bool bSearchFlag,
+	const ULRGuardTuning& tuning)
+{
+	return ResolveTargetBehavior(bStunned, alert, knowledge, bSearchFlag, tuning);
+}
+
+ELRGuardBehaviorState LRAlertRules::ResolveTargetBehavior(const FLRAlertSnapshot& alert,
+	const FLRGuardKnowledgeSnapshot& knowledge, const bool bStunned, const bool bSearchFlag)
+{
+	return ResolveTargetBehavior(bStunned, alert, knowledge, bSearchFlag, *GetDefault<ULRGuardTuning>());
+}
+
+ELRGuardBehaviorState LRAlertRules::ResolveTargetBehavior(const FLRGuardAwarenessSnapshot& awareness,
+	const bool bStunned, const bool bSearchFlag, const ULRGuardTuning& tuning)
+{
+	return ResolveTargetBehavior(bStunned, awareness.Alert, awareness.Knowledge, bSearchFlag, tuning);
+}
+
 /**
  * @brief 解析警戒显示档位：0 隐藏、1-5 白色、6-10 红色、11 满值。
  * @param alertLevel 本次操作使用的计数、增量或索引 `alertLevel`；由函数校验合法范围。
@@ -102,6 +155,35 @@ bool LRAlertRules::ShouldDecay(const bool bObserving, const bool bHasConfirmedSi
 		return false;
 	}
 	return currentState != ELRGuardBehaviorState::Investigate && currentState != ELRGuardBehaviorState::Chase;
+}
+
+bool LRAlertRules::ShouldDecay(const FLRAlertSnapshot& alert, const FLRGuardKnowledgeSnapshot& knowledge,
+	const bool bObserving, const ELRGuardBehaviorState resolvedBehavior)
+{
+	if (alert.Level <= MinAlertLevel || bObserving || knowledge.CurrentVisibility.IsActive())
+	{
+		return false;
+	}
+	return resolvedBehavior != ELRGuardBehaviorState::Investigate
+		&& resolvedBehavior != ELRGuardBehaviorState::Chase;
+}
+
+FVector LRAlertRules::ResolveInvestigationLocation(const FLRGuardKnowledgeSnapshot& knowledge)
+{
+	if (knowledge.bPendingThreatInvestigation && knowledge.bHasLastKnownThreatLocation)
+	{
+		return knowledge.LastKnownThreatLocation;
+	}
+	if (knowledge.bHasLastDisturbanceLocation)
+	{
+		return knowledge.LastDisturbanceLocation;
+	}
+	return knowledge.LastKnownThreatLocation;
+}
+
+FVector LRAlertRules::ResolveInvestigationLocation(const FLRGuardAwarenessSnapshot& awareness)
+{
+	return ResolveInvestigationLocation(awareness.Knowledge);
 }
 
 /**

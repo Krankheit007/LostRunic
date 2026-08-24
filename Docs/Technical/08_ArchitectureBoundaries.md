@@ -138,3 +138,36 @@ Content/TopDown was not deleted wholesale. Asset Registry found current BP_LRPla
 - Docs/Technical is the human-maintained architecture source of truth.
 - CLAUDE.md describes agent workflow and links here.
 - .agents/ue-project-context.md is an agent context summary and should link here; it is not the source of architecture truth.
+## Guard awareness boundary
+
+Guard runtime state follows this one-way ownership flow:
+
+    UE AI Perception / Room Noise
+                 |
+                 v
+    ALRGuardAIController (adapter + coordinator)
+          |                         |
+          v                         v
+    GuardKnowledge             AlertComponent
+          \_________________________/
+                       |
+                       v
+          FLRGuardAwarenessSnapshot
+                       |
+                       v
+       LRAlertRules::ResolveTargetBehavior
+                       |
+                       v
+                  StateTree
+
+- ALRGuardAIController is the sole mutation entry. AI Hearing and room propagation both call ReceiveNoiseStimulus. Blueprint and external gameplay code may read snapshots and delegates but may not mutate Alert or Knowledge directly.
+- GuardKnowledge owns visual candidate, confirmed threat, last-known threat location, last disturbance, effective exposure seconds, detection stage, pending investigation, and stimulus diagnostics. It performs no world, LOS, navigation, perception, or controller queries.
+- AlertComponent owns only the 0-11 meter, tier/fraction, observing/decay, search flag, alert reason, and noise cooldown acceptance. It does not own target identity, sight state, or behavior resolution.
+- A controller mutation is synchronous: evaluate raw stimulus, reject or accept it, update both peer components, resolve behavior from their snapshots, then publish one FLRGuardAwarenessSnapshot. Component delegates remain diagnostics; they do not drive controller control flow and UI/StateTree do not consume partial state.
+- Raw noise metadata is not authoritative evidence. bRespond=false or cooldown rejection commits neither LastDisturbanceLocation nor LastKnownThreatLocation. Accepted threat-source noise may update LastKnownThreatLocation; other accepted noise may update LastDisturbanceLocation.
+- Continuous visibility is sampled by the controller with actual elapsed time capped by tuning. Guard visibility rules are pure calculations. Hard target visibility, UE contact, range, cone and LOS are gates; distance and movement are multipliers. Knowledge integrates effective exposure and emits stage edges only.
+- Alert decay asks the controller for permission. Active visual exposure prevents decay without copying a sight boolean back into Alert. Alert reaching zero and search reset are coordinated resets, so Alert and Knowledge remain peer components with no cyclic dependency.
+- Behavior priority is Stunned; visible confirmed threat at chase threshold; zero alert patrol; pending reliable location at investigate floor; explicit red-band Search; max-alert Search; white-band Suspicious; remaining red-band Investigate.
+- Invariant: AlertLevel == 11 does not imply ConfirmedThreat. Chase requires Knowledge to contain a confirmed, currently visible threat. PendingThreatInvestigation takes precedence over Search until its location is reached.
+- BehaviorChanged is emitted only when the enum changes. Investigation location/revision changes use RefreshBehaviorContext and a retarget-distance gate, preserving StateTree state while updating navigation context.
+- FLRAlertSnapshot.Behavior is presentation compatibility only and is filled by the controller when composing legacy UI data. FLRGuardAwarenessSnapshot.ResolvedBehavior is authoritative.

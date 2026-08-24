@@ -1,18 +1,16 @@
 /**
  * @file LRGuardAIController.cpp
- * @brief 守卫控制器生命周期：构造、BeginPlay/EndPlay、OnPossess/OnUnPossess、调优解析与 StateTree 启动接线。感知与行为实现分别位于 LRGuardAIControllerPerception.cpp / LRGuardAIControllerBehavior.cpp。
- *
- * 关联文件：LRGuardAIController.h；所属领域：AI。
- * 设计依据：Docs/Technical/08_ArchitectureBoundaries.md。
- * 除带 EditDefaultsOnly、EditAnywhere 或 EditInstanceOnly 的字段外，其余成员均为运行时状态，不应由蓝图直接改写。
+ * @brief Guard controller lifecycle and transactional Awareness coordination.
  */
 #include "AI/LRGuardAIController.h"
 
 #include "AI/LRAlertComponent.h"
 #include "AI/LRAlertRules.h"
 #include "AI/LRGuardCharacter.h"
+#include "AI/LRGuardKnowledgeComponent.h"
 #include "AI/LRGuardPerceptionRules.h"
 #include "Components/StateTreeAIComponent.h"
+#include "Core/LRGameplayTags.h"
 #include "Core/LRLog.h"
 #include "Data/LRGameTuningSet.h"
 #include "Data/LRGuardDefinition.h"
@@ -27,9 +25,6 @@
 #include "Perception/AISenseConfig_Sight.h"
 #include "TimerManager.h"
 
-/**
- * @brief 创建对象并设置默认子对象、能力开关和安全初值；需要 World、资产或玩家的依赖延迟到初始化阶段解析。
- */
 ALRGuardAIController::ALRGuardAIController()
 {
 	PrimaryActorTick.bCanEverTick = false;
@@ -37,7 +32,6 @@ ALRGuardAIController::ALRGuardAIController()
 	bStopAILogicOnUnposses = true;
 	bAttachToPawn = true;
 	StateTreeAI = CreateDefaultSubobject<UStateTreeAIComponent>(TEXT("StateTreeAI"));
-	// StateTree 由 OnPossess 依次完成定义解析、引用校验、SetStateTree、StartLogic，禁用自动启动。
 	StateTreeAI->SetStartLogicAutomatically(false);
 	AIPerception = CreateDefaultSubobject<UAIPerceptionComponent>(TEXT("AIPerception"));
 	SetPerceptionComponent(*AIPerception);
@@ -45,14 +39,12 @@ ALRGuardAIController::ALRGuardAIController()
 	HearingConfig = CreateDefaultSubobject<UAISenseConfig_Hearing>(TEXT("HearingConfig"));
 }
 
-/**
- * @brief 在进入世界后解析运行时依赖、绑定事件并启动所需计时器；构造阶段不访问 World 或玩家对象。
- */
 void ALRGuardAIController::BeginPlay()
 {
 	Super::BeginPlay();
 	const UGameInstance* gameInstance = GetWorld() ? GetWorld()->GetGameInstance() : nullptr;
-	const ULRGameInstanceSubsystem* subsystem = gameInstance ? gameInstance->GetSubsystem<ULRGameInstanceSubsystem>() : nullptr;
+	const ULRGameInstanceSubsystem* subsystem = gameInstance
+		? gameInstance->GetSubsystem<ULRGameInstanceSubsystem>() : nullptr;
 	if (subsystem && subsystem->GetTuningSet())
 	{
 		Tuning = subsystem->GetTuningSet()->Guard;
@@ -64,14 +56,15 @@ void ALRGuardAIController::BeginPlay()
 	}
 	ConfigurePerception();
 	AIPerception->OnTargetPerceptionUpdated.AddDynamic(this, &ALRGuardAIController::HandlePerception);
-	GetWorld()->GetTimerManager().SetTimer(CaptureTimer, this, &ALRGuardAIController::HandleCaptureTimer,
+	FTimerManager& timers = GetWorld()->GetTimerManager();
+	timers.SetTimer(CaptureTimer, this, &ALRGuardAIController::HandleCaptureTimer,
 		Tuning->CaptureCheckIntervalSeconds, true);
+	timers.SetTimer(DetectionSampleTimer, this, &ALRGuardAIController::HandleDetectionSample,
+		Tuning->DetectionSampleIntervalSeconds, true);
+	LastDetectionSampleTime = GetWorld()->GetTimeSeconds();
+	CachedAwareness = GetAwarenessSnapshot();
 }
 
-/**
- * @brief 解除委托并清理计时器或缓存，避免关卡切换和对象销毁后继续收到回调。
- * @param endPlayReason Unreal 提供的结束原因，用于区分销毁、关卡切换和退出。
- */
 void ALRGuardAIController::EndPlay(const EEndPlayReason::Type endPlayReason)
 {
 	if (AIPerception)
@@ -81,55 +74,50 @@ void ALRGuardAIController::EndPlay(const EEndPlayReason::Type endPlayReason)
 	if (GetWorld())
 	{
 		GetWorld()->GetTimerManager().ClearTimer(CaptureTimer);
+		GetWorld()->GetTimerManager().ClearTimer(DetectionSampleTimer);
 		GetWorld()->GetTimerManager().ClearTimer(StunTimer);
 	}
 	Super::EndPlay(endPlayReason);
 }
 
-/**
- * @brief 处理 On Possess 事件：解析定义并校验引用、SetStateTree 后 StartLogic，绑定警戒与击退事件。
- * @param inPawn Controller 新接管的 Pawn；期望为 ALRGuardCharacter。
- */
 void ALRGuardAIController::OnPossess(APawn* inPawn)
 {
 	Super::OnPossess(inPawn);
 	ALRGuardCharacter* guard = Cast<ALRGuardCharacter>(inPawn);
 	Alert = guard ? guard->GetAlertComponent() : nullptr;
-	if (Alert.IsValid())
+	Knowledge = guard ? guard->GetKnowledgeComponent() : nullptr;
+	if (!ensureMsgf(Alert.IsValid() && Knowledge.IsValid(), TEXT("%s requires Alert and Knowledge."),
+		*GetNameSafe(guard)))
 	{
-		Alert->OnAlertChanged.AddDynamic(this, &ALRGuardAIController::HandleAlertChanged);
+		return;
 	}
-	if (guard)
+	Alert->OnDecayRequested.AddUObject(this, &ALRGuardAIController::HandleAlertDecayRequested);
+	if (ULRCourageResponseComponent* courage = guard->GetCourageResponseComponent())
 	{
-		if (ULRCourageResponseComponent* courage = guard->GetCourageResponseComponent())
+		courage->OnKnockbackApplied.AddDynamic(this, &ALRGuardAIController::HandleKnockback);
+	}
+	ULRGuardDefinition* definition = guard->GetDefinition();
+	if (definition && definition->Behavior)
+	{
+		StateTreeAI->SetStateTree(definition->Behavior);
+		if (!StateTreeAI->IsRunning())
 		{
-			courage->OnKnockbackApplied.AddDynamic(this, &ALRGuardAIController::HandleKnockback);
-		}
-		ULRGuardDefinition* definition = guard->GetDefinition();
-		if (definition && definition->Behavior)
-		{
-			StateTreeAI->SetStateTree(definition->Behavior);
-			if (!StateTreeAI->IsRunning())
-			{
-				StateTreeAI->StartLogic();
-			}
-		}
-		else
-		{
-			UE_LOG(LogLostRunicAI, Warning, TEXT("Guard=%s definition or Behavior StateTree is missing; using controller fallback."),
-				*GetNameSafe(guard));
+			StateTreeAI->StartLogic();
 		}
 	}
+	else
+	{
+		UE_LOG(LogLostRunicAI, Warning, TEXT("Guard=%s definition or Behavior StateTree is missing; using fallback."),
+			*GetNameSafe(guard));
+	}
+	CachedAwareness = GetAwarenessSnapshot();
 }
 
-/**
- * @brief 处理 On Un Possess 事件：解绑警戒与击退委托，停止 StateTree 逻辑。
- */
 void ALRGuardAIController::OnUnPossess()
 {
 	if (Alert.IsValid())
 	{
-		Alert->OnAlertChanged.RemoveDynamic(this, &ALRGuardAIController::HandleAlertChanged);
+		Alert->OnDecayRequested.RemoveAll(this);
 	}
 	if (ALRGuardCharacter* guard = Cast<ALRGuardCharacter>(GetPawn()))
 	{
@@ -138,6 +126,8 @@ void ALRGuardAIController::OnUnPossess()
 			courage->OnKnockbackApplied.RemoveDynamic(this, &ALRGuardAIController::HandleKnockback);
 		}
 	}
+	PerceivedSightContact.Reset();
+	LastDetectionSampleTime = 0.0;
 	if (GetWorld())
 	{
 		GetWorld()->GetTimerManager().ClearTimer(StunTimer);
@@ -147,23 +137,166 @@ void ALRGuardAIController::OnUnPossess()
 		StateTreeAI->StopLogic(TEXT("OnUnPossess"));
 	}
 	Alert.Reset();
+	Knowledge.Reset();
+	CachedAwareness = FLRGuardAwarenessSnapshot();
 	Super::OnUnPossess();
 }
 
-/**
- * @brief 查询 Resolved Behavior；行为状态唯一权威解析（眩晕优先，否则警戒推导），StateTree 只执行该结果。
- * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
- */
-ELRGuardBehaviorState ALRGuardAIController::GetResolvedBehavior() const
+FLRGuardAwarenessSnapshot ALRGuardAIController::GetAwarenessSnapshot() const
 {
-	return LRAlertRules::ResolveTargetBehavior(bStunned, Alert.IsValid() ? Alert->GetAlertLevel() : 0,
-		Alert.IsValid() && Alert->HasConfirmedSight(), Alert.IsValid() && Alert->IsSearching());
+	FLRGuardAwarenessSnapshot snapshot;
+	if (Alert.IsValid())
+	{
+		snapshot.Alert = Alert->GetAlertSnapshot();
+	}
+	if (Knowledge.IsValid())
+	{
+		snapshot.Knowledge = Knowledge->GetSnapshot();
+	}
+	snapshot.ResolvedBehavior = LRAlertRules::ResolveTargetBehavior(snapshot.Alert, snapshot.Knowledge,
+		bStunned, Alert.IsValid() && Alert->IsSearching(), GetEffectiveTuning());
+	snapshot.InvestigationLocation = LRAlertRules::ResolveInvestigationLocation(snapshot.Knowledge);
+	snapshot.Alert.Behavior = snapshot.ResolvedBehavior;
+	return snapshot;
 }
 
-/**
- * @brief 查询 Effective Tuning；不修改领域状态。
- * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
- */
+ELRGuardBehaviorState ALRGuardAIController::GetResolvedBehavior() const
+{
+	return GetAwarenessSnapshot().ResolvedBehavior;
+}
+
+void ALRGuardAIController::ReceiveNoiseStimulus(const FLRGuardNoiseStimulus& stimulus)
+{
+	if (!Alert.IsValid() || !Knowledge.IsValid() || !stimulus.Reason.IsValid())
+	{
+		return;
+	}
+	const FLRGuardAwarenessSnapshot previous = GetAwarenessSnapshot();
+	const int32 previousLevel = Alert->GetAlertLevel();
+	FLRNoiseResponse response = LRGuardPerceptionRules::ResolveNoiseAlertDelta(
+		stimulus.Reason, previousLevel, GetEffectiveTuning());
+	if (stimulus.PropagationMode == ELRGuardNoisePropagationMode::CurrentRoom)
+	{
+		response.bRespond = true;
+		response.bIsAttract = false;
+		response.Delta = FMath::Max(GetEffectiveTuning().RoomRunAlertLevel - previousLevel, 0);
+	}
+	else if (stimulus.PropagationMode == ELRGuardNoisePropagationMode::AdjacentRoom)
+	{
+		response.bRespond = true;
+		response.bIsAttract = false;
+		response.Delta = GetEffectiveTuning().AdjacentRoomRunAlertAmount;
+	}
+	if (!response.bRespond)
+	{
+		return;
+	}
+
+	const double now = GetWorld() ? GetWorld()->GetTimeSeconds() : stimulus.TimeSeconds;
+	if (response.bIsAttract)
+	{
+		if (!Alert->TryApplyAttract(now))
+		{
+			return;
+		}
+	}
+	else
+	{
+		Alert->ApplyDelta(response.Delta);
+	}
+	const AActor* confirmed = previous.Knowledge.ConfirmedThreat.Get();
+	Knowledge->CommitAcceptedNoise(stimulus, confirmed && confirmed == stimulus.Source.Get(),
+		GetEffectiveTuning().InvestigationRetargetDistance);
+	CommitAwareness(previous, previousLevel, stimulus.Reason);
+}
+
+void ALRGuardAIController::MarkInvestigationReached()
+{
+	if (!Alert.IsValid() || !Knowledge.IsValid())
+	{
+		return;
+	}
+	const FLRGuardAwarenessSnapshot previous = GetAwarenessSnapshot();
+	const int32 previousLevel = Alert->GetAlertLevel();
+	Knowledge->MarkInvestigationReached();
+	Alert->MarkInvestigationReached();
+	CommitAwareness(previous, previousLevel, LRGameplayTags::SearchReached, true);
+}
+
+void ALRGuardAIController::ResetSearch()
+{
+	if (!Alert.IsValid() || !Knowledge.IsValid())
+	{
+		return;
+	}
+	const FLRGuardAwarenessSnapshot previous = GetAwarenessSnapshot();
+	const int32 previousLevel = Alert->GetAlertLevel();
+	Alert->ResetAfterSearch();
+	Knowledge->ResetAwareness();
+	PerceivedSightContact.Reset();
+	CommitAwareness(previous, previousLevel, LRGameplayTags::SearchTimeout, true);
+}
+
+void ALRGuardAIController::HandleAlertDecayRequested()
+{
+	if (!Alert.IsValid() || !Knowledge.IsValid())
+	{
+		return;
+	}
+	const FLRGuardAwarenessSnapshot previous = GetAwarenessSnapshot();
+	if (!LRAlertRules::ShouldDecay(previous.Alert, previous.Knowledge, Alert->IsObserving(),
+		previous.ResolvedBehavior))
+	{
+		return;
+	}
+	const int32 previousLevel = Alert->GetAlertLevel();
+	Alert->ApplyDelta(-GetEffectiveTuning().AlertDecayAmount);
+	if (Alert->GetAlertLevel() == 0)
+	{
+		Knowledge->ResetAwareness();
+		PerceivedSightContact.Reset();
+	}
+	CommitAwareness(previous, previousLevel, LRGameplayTags::SearchAlertDecay);
+}
+
+void ALRGuardAIController::CommitAwareness(const FLRGuardAwarenessSnapshot& previous,
+	const int32 previousAlertLevel, const FGameplayTag reason, const bool bForcePublish)
+{
+	const FLRGuardAwarenessSnapshot current = GetAwarenessSnapshot();
+	const bool bBehaviorChanged = previous.ResolvedBehavior != current.ResolvedBehavior;
+	const bool bSignificant = bForcePublish || previous.Alert.Level != current.Alert.Level
+		|| bBehaviorChanged || previous.Knowledge.Stage != current.Knowledge.Stage
+		|| previous.Knowledge.bPendingThreatInvestigation != current.Knowledge.bPendingThreatInvestigation
+		|| previous.Knowledge.InvestigationContextRevision != current.Knowledge.InvestigationContextRevision
+		|| previous.Knowledge.ConfirmedThreat != current.Knowledge.ConfirmedThreat
+		|| previous.Knowledge.VisualCandidate != current.Knowledge.VisualCandidate
+		|| previous.Knowledge.CurrentVisibility.IsActive() != current.Knowledge.CurrentVisibility.IsActive();
+
+	if (bBehaviorChanged)
+	{
+		if (StateTreeAI->IsRunning())
+		{
+			StateTreeAI->SendStateTreeEvent(LRGameplayTags::AIEventBehaviorChanged, FConstStructView(), FName());
+		}
+		else
+		{
+			EnterBehavior(current.ResolvedBehavior);
+		}
+	}
+	else
+	{
+		RefreshBehaviorContext(previous, current);
+	}
+	CachedAwareness = current;
+	Knowledge->PublishIfChanged(previous.Knowledge);
+	if (bSignificant)
+	{
+		Alert->PublishCommittedChange(previousAlertLevel, current.ResolvedBehavior, reason,
+			current.InvestigationLocation);
+		OnGuardAwarenessChanged.Broadcast(current);
+	}
+}
+
 const ULRGuardTuning& ALRGuardAIController::GetEffectiveTuning() const
 {
 	return Tuning ? *Tuning : *GetDefault<ULRGuardTuning>();

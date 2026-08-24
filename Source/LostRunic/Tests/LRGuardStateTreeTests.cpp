@@ -165,7 +165,7 @@ bool FLRGuardStateTreePersistentRunningTest::RunTest(const FString& parameters)
 		&& TestNotNull(TEXT("Isolated guard controller creates StateTree component"), stateTreeAI);
 	if (bTestPassed)
 	{
-		ULRGuardDefinition* definition = LoadObject<ULRGuardDefinition>(nullptr, TEXT("/Game/LostRunic/Data/Guard/DA_LRGuardDefinition.DA_LRGuardDefinition"));
+		ULRGuardDefinition* definition = LoadObject<ULRGuardDefinition>(nullptr, TEXT("/Game/LostRunic/Data/Guard/DA_LRGuard1.DA_LRGuard1"));
 		FObjectPropertyBase* definitionProperty = FindFProperty<FObjectPropertyBase>(ALRGuardCharacter::StaticClass(), TEXT("Definition"));
 		bTestPassed &= TestNotNull(TEXT("Guard Definition asset loads"), definition);
 		bTestPassed &= TestNotNull(TEXT("Guard Definition property is available"), definitionProperty);
@@ -212,50 +212,69 @@ bool FLRGuardStateTreePersistentRunningTest::RunTest(const FString& parameters)
 		ReselectFromRoot();
 		bTestPassed &= TestEqual(TEXT("BehaviorChanged leaves the task Running after re-selection"), stateTreeAI->GetStateTreeRunStatus(), EStateTreeRunStatus::Running);
 
-		guard->GetAlertComponent()->ApplyAlertDelta(1, FVector(50.0f, 0.0f, 0.0f), nullptr, LRGameplayTags::NoiseInteraction);
-		bTestPassed &= TestEqual(TEXT("Guard controller resolves Suspicious"), controller->GetResolvedBehavior(), ELRGuardBehaviorState::Suspicious);
+		auto SendRoomNoise = [controller, guard, testWorld](const FVector& location,
+			const ELRGuardNoisePropagationMode mode)
+		{
+			FLRGuardNoiseStimulus stimulus;
+			stimulus.Source = guard;
+			stimulus.Location = location;
+			stimulus.Reason = LRGameplayTags::NoiseFootstepRunIndoor;
+			stimulus.PropagationMode = mode;
+			stimulus.TimeSeconds = testWorld->GetTimeSeconds();
+			controller->ReceiveNoiseStimulus(stimulus);
+		};
+
+		SendRoomNoise(FVector(50.0f, 0.0f, 0.0f), ELRGuardNoisePropagationMode::CurrentRoom);
+		bTestPassed &= TestEqual(TEXT("Guard controller resolves Suspicious"),
+			controller->GetResolvedBehavior(), ELRGuardBehaviorState::Suspicious);
 		ReselectFromRoot();
 	#if WITH_GAMEPLAY_DEBUGGER
-		bTestPassed &= TestTrue(TEXT("Root re-selection selects Suspicious"), stateTreeAI->GetActiveStateNames().Contains(FName(TEXT("Suspicious"))));
+		bTestPassed &= TestTrue(TEXT("Root re-selection selects Suspicious"),
+			stateTreeAI->GetActiveStateNames().Contains(FName(TEXT("Suspicious"))));
 	#endif
 
 		const FVector firstInvestigationLocation(100.0f, 0.0f, 0.0f);
-		guard->GetAlertComponent()->ApplyAlertDelta(5, firstInvestigationLocation, nullptr, LRGameplayTags::NoiseInteraction);
-		bTestPassed &= TestEqual(TEXT("Guard controller resolves Investigate"), controller->GetResolvedBehavior(), ELRGuardBehaviorState::Investigate);
+		SendRoomNoise(firstInvestigationLocation, ELRGuardNoisePropagationMode::AdjacentRoom);
+		bTestPassed &= TestEqual(TEXT("Guard controller resolves Investigate"),
+			controller->GetResolvedBehavior(), ELRGuardBehaviorState::Investigate);
 		ReselectFromRoot();
 	#if WITH_GAMEPLAY_DEBUGGER
-		bTestPassed &= TestTrue(TEXT("BehaviorChanged selects Investigate"), stateTreeAI->GetActiveStateNames().Contains(FName(TEXT("Investigate"))));
+		bTestPassed &= TestTrue(TEXT("BehaviorChanged selects Investigate"),
+			stateTreeAI->GetActiveStateNames().Contains(FName(TEXT("Investigate"))));
 	#endif
 
 		const FVector secondInvestigationLocation(250.0f, 50.0f, 0.0f);
-		guard->GetAlertComponent()->ApplyAlertDelta(0, secondInvestigationLocation, nullptr, LRGameplayTags::NoiseInteraction);
-		for (int32 eventUpdateIndex = 0; eventUpdateIndex < 3; ++eventUpdateIndex)
+		SendRoomNoise(secondInvestigationLocation, ELRGuardNoisePropagationMode::AdjacentRoom);
+		bTestPassed &= TestEqual(TEXT("Investigate updates its disturbance location"),
+			controller->GetAwarenessSnapshot().InvestigationLocation, secondInvestigationLocation);
+	#if WITH_GAMEPLAY_DEBUGGER
+		bTestPassed &= TestTrue(TEXT("Same-state Investigate update remains Active"),
+			stateTreeAI->GetActiveStateNames().Contains(FName(TEXT("Investigate"))));
+	#endif
+
+		controller->MarkInvestigationReached();
+		ReselectFromRoot();
+	#if WITH_GAMEPLAY_DEBUGGER
+		bTestPassed &= TestTrue(TEXT("A real behavior change reselects Search"),
+			stateTreeAI->GetActiveStateNames().Contains(FName(TEXT("Search"))));
+	#endif
+
+		for (int32 alertStep = 0; alertStep < 4; ++alertStep)
 		{
-			stateTreeAI->TickComponent(0.016f, LEVELTICK_All, nullptr);
+			SendRoomNoise(secondInvestigationLocation, ELRGuardNoisePropagationMode::AdjacentRoom);
 		}
-		bTestPassed &= TestEqual(TEXT("Investigate updates its disturbance location"), guard->GetAlertComponent()->GetLastDisturbanceLocation(), secondInvestigationLocation);
-	#if WITH_GAMEPLAY_DEBUGGER
-		bTestPassed &= TestTrue(TEXT("Same-state Investigate update remains Active"), stateTreeAI->GetActiveStateNames().Contains(FName(TEXT("Investigate"))));
-	#endif
+		controller->MarkInvestigationReached();
+		bTestPassed &= TestEqual(TEXT("Alert 11 without confirmed threat resolves Search"),
+			controller->GetResolvedBehavior(), ELRGuardBehaviorState::Search);
+		ReselectFromRoot();
 
-		guard->GetAlertComponent()->MarkInvestigationReached();
+		controller->ResetSearch();
+		bTestPassed &= TestEqual(TEXT("Guard controller resolves IdlePatrol after reset"),
+			controller->GetResolvedBehavior(), ELRGuardBehaviorState::IdlePatrol);
 		ReselectFromRoot();
 	#if WITH_GAMEPLAY_DEBUGGER
-		bTestPassed &= TestTrue(TEXT("A real behavior change reselects Search"), stateTreeAI->GetActiveStateNames().Contains(FName(TEXT("Search"))));
-	#endif
-
-		guard->GetAlertComponent()->SetSightTarget(guard, true, FVector(300.0f, 0.0f, 0.0f));
-		bTestPassed &= TestEqual(TEXT("Guard controller resolves Chase"), controller->GetResolvedBehavior(), ELRGuardBehaviorState::Chase);
-		ReselectFromRoot();
-	#if WITH_GAMEPLAY_DEBUGGER
-		bTestPassed &= TestTrue(TEXT("Root re-selection selects Chase"), stateTreeAI->GetActiveStateNames().Contains(FName(TEXT("Chase"))));
-	#endif
-
-		guard->GetAlertComponent()->ResetAfterSearch();
-		bTestPassed &= TestEqual(TEXT("Guard controller resolves IdlePatrol after reset"), controller->GetResolvedBehavior(), ELRGuardBehaviorState::IdlePatrol);
-		ReselectFromRoot();
-	#if WITH_GAMEPLAY_DEBUGGER
-		bTestPassed &= TestTrue(TEXT("Root re-selection returns to IdlePatrol"), stateTreeAI->GetActiveStateNames().Contains(FName(TEXT("IdlePatrol"))));
+		bTestPassed &= TestTrue(TEXT("Root re-selection returns to IdlePatrol"),
+			stateTreeAI->GetActiveStateNames().Contains(FName(TEXT("IdlePatrol"))));
 	#endif
 
 	}
