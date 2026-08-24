@@ -1,6 +1,7 @@
 // Copyright LostRunic. All Rights Reserved.
 #include "Misc/AutomationTest.h"
 
+#include "Core/LRGameplayTags.h"
 #include "Engine/GameInstance.h"
 #include "Narrative/LRDialogueScriptRegistry.h"
 #include "Narrative/LRStoryStateSubsystem.h"
@@ -57,8 +58,8 @@ bool FLRStoryStateReplaceAndDeltaPersistence::RunTest(const FString& Parameters)
 {
 	UGameInstance* GameInstance = NewObject<UGameInstance>(GetTransientPackage());
 	ULRStoryStateSubsystem* StoryState = NewObject<ULRStoryStateSubsystem>(GameInstance);
-	const FGameplayTag FirstFlag = FGameplayTag::RequestGameplayTag(FName(TEXT("Story.Dialogue.Home.First")), false);
-	const FGameplayTag SecondFlag = FGameplayTag::RequestGameplayTag(FName(TEXT("Story.Dialogue.Home.Second")), false);
+	const FGameplayTag FirstFlag = FGameplayTag::RequestGameplayTag(FName(TEXT("Story.Dialogue.Butler")), false);
+	const FGameplayTag SecondFlag = FGameplayTag::RequestGameplayTag(FName(TEXT("Story.Dialogue.Butler.IntroductionCompleted")), false);
 	TestTrue(TEXT("First flag is registered"), FirstFlag.IsValid());
 	TestTrue(TEXT("Second flag is registered"), SecondFlag.IsValid());
 
@@ -94,11 +95,13 @@ bool FLRStoryStateCommitBroadcastOrdering::RunTest(const FString& Parameters)
 	ULRStoryStateSubsystem* StoryState = NewObject<ULRStoryStateSubsystem>(GameInstance);
 	bool bObservedCommittedState = false;
 	bool bObservedCommittedFlag = false;
+	bool bObservedInvalidBroadcast = false;
 	StoryState->OnStoryEventCommittedNative.AddLambda(
-		[&bObservedCommittedState, &bObservedCommittedFlag, StoryState](const FLRStoryEventCommit& EventCommit)
+		[&bObservedCommittedState, &bObservedCommittedFlag, &bObservedInvalidBroadcast, StoryState](const FLRStoryEventCommit& EventCommit)
 		{
 			bObservedCommittedState = StoryState->IsEventCompleted(EventCommit.EventId);
 			bObservedCommittedFlag = StoryState->HasStoryFlag(EventCommit.StoryFlag);
+			bObservedInvalidBroadcast = bObservedInvalidBroadcast || EventCommit.EventId == FName(TEXT("Home.Event.InvalidFlag"));
 		});
 
 	FLRStoryEventCommit EventCommit;
@@ -109,6 +112,14 @@ bool FLRStoryStateCommitBroadcastOrdering::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Broadcast observes committed state"), bObservedCommittedState);
 	TestTrue(TEXT("Broadcast observes committed Story flag"), bObservedCommittedFlag);
 	TestFalse(TEXT("Duplicate completion is rejected"), StoryState->CommitEvent(EventCommit));
+
+	FLRStoryEventCommit InvalidFlagCommit = EventCommit;
+	InvalidFlagCommit.EventId = TEXT("Home.Event.InvalidFlag");
+	InvalidFlagCommit.StoryFlag = LRGameplayTags::InteractionActionUse;
+	TestFalse(TEXT("Non-Story flag is rejected"), StoryState->CommitEvent(InvalidFlagCommit));
+	TestFalse(TEXT("Rejected event does not mutate completion state"), StoryState->IsEventCompleted(InvalidFlagCommit.EventId));
+	TestFalse(TEXT("Rejected event does not mutate Story flag state"), StoryState->HasStoryFlag(InvalidFlagCommit.StoryFlag));
+	TestFalse(TEXT("Rejected event is not broadcast"), bObservedInvalidBroadcast);
 	return true;
 }
 

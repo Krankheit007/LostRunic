@@ -129,13 +129,15 @@ private:
 		FName reasonId, const FLRSaveDataV2* capturedData = nullptr,
 		ELRSaveMemoryPurpose memoryPurpose = ELRSaveMemoryPurpose::None,
 		ELRSaveSlotHealth requestedHealth = ELRSaveSlotHealth::Healthy, bool bFront = false,
-		FGuid requestedOperationId = FGuid(), FGuid gameFlowTransactionId = FGuid());
+		FGuid requestedOperationId = FGuid(), FGuid gameFlowTransactionId = FGuid(),
+		bool bDeferStart = false);
 	FLRSaveOperationResult MakeRejected(ELRSaveOperationType type, const FLRSaveSlotId& slotId,
 		ELRSaveResultCode code, const FString& diagnostic, FGuid requestedOperationId = FGuid(),
 		FGuid gameFlowTransactionId = FGuid()) const;
 	bool CaptureCurrentData(FLRSaveDataV2& outData, FString& outError);
 	void CapturePendingAutoSave();
 	void StartNextOperation();
+	void ScheduleStartNextOperation();
 	void SetOperationState(ELRSaveOperationState newState);
 	void DispatchActiveOperation();
 	void StartWrite();
@@ -184,4 +186,5 @@ private:
 	FTimerHandle ExplicitRetryTimer;
 	FTimerHandle OperationTimeoutTimer;
 	FTimerHandle AsyncWatchdogTimer;
+	bool bOperationStartDeferred = false;
 };

@@ -38,8 +38,12 @@ namespace
 FLRSaveOperationResult ULRSaveSubsystem::EnqueueOperation(const ELRSaveOperationType type,
 	const FLRSaveSlotId& slotId, const FName reasonId, const FLRSaveDataV2* capturedData,
 	const ELRSaveMemoryPurpose memoryPurpose, const ELRSaveSlotHealth requestedHealth,
-	const bool bFront, const FGuid requestedOperationId, const FGuid gameFlowTransactionId)
+	const bool bFront, const FGuid requestedOperationId, const FGuid gameFlowTransactionId, const bool bDeferStart)
 {
+	if (bDeferStart)
+	{
+		bOperationStartDeferred = true;
+	}
 	FLRQueuedSaveOperation operation;
 	operation.GameFlowTransactionId = gameFlowTransactionId;
 	operation.OperationId = requestedOperationId.IsValid() ? requestedOperationId : FGuid::NewGuid();
@@ -63,9 +67,30 @@ FLRSaveOperationResult ULRSaveSubsystem::EnqueueOperation(const ELRSaveOperation
 	{
 		LRSaveOperationQueue::Enqueue(OperationQueue, MoveTemp(operation));
 	}
-	StartNextOperation();
+	if (bDeferStart)
+	{
+		ScheduleStartNextOperation();
+	}
+	else
+	{
+		StartNextOperation();
+	}
 	return result;
 }
+
+void ULRSaveSubsystem::ScheduleStartNextOperation()
+{
+	TWeakObjectPtr<ULRSaveSubsystem> weakThis(this);
+	AsyncTask(ENamedThreads::GameThread, [weakThis]()
+	{
+		if (ULRSaveSubsystem* save = weakThis.Get())
+		{
+			save->bOperationStartDeferred = false;
+			save->StartNextOperation();
+		}
+	});
+}
+
 void ULRSaveSubsystem::EnqueuePendingCatalogRepair()
 {
 	if (!SaveCatalog || !SaveCatalog->PendingOperation.IsSet())
@@ -88,7 +113,7 @@ void ULRSaveSubsystem::EnqueueHealthRepair(const FLRSaveSlotId& slotId, const EL
 
 void ULRSaveSubsystem::StartNextOperation()
 {
-	if (OperationState != ELRSaveOperationState::Idle || !SaveCatalog || OperationQueue.IsEmpty())
+	if (OperationState != ELRSaveOperationState::Idle || bOperationStartDeferred || !SaveCatalog || OperationQueue.IsEmpty())
 	{
 		return;
 	}

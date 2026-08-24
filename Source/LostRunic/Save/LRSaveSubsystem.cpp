@@ -1,5 +1,6 @@
 #include "Save/LRSaveSubsystem.h"
 
+#include "Async/Async.h"
 #include "Core/LRGameplayTags.h"
 #include "Core/LRLog.h"
 #include "Data/LRGameContentSet.h"
@@ -237,7 +238,7 @@ FLRSaveOperationResult ULRSaveSubsystem::RequestCriticalSaveFromSnapshot(const F
 	autoSlot.Type = ELRSaveSlotType::Auto;
 	autoSlot.Guid = LRSaveV2Ids::AutoSlotGuid;
 	return EnqueueOperation(ELRSaveOperationType::CriticalSave, autoSlot, reasonId, &mergedSnapshot,
-		memoryPurpose, ELRSaveSlotHealth::Healthy, false, requestedOperationId, gameFlowTransactionId);
+		memoryPurpose, ELRSaveSlotHealth::Healthy, false, requestedOperationId, gameFlowTransactionId, true);
 }
 
 void ULRSaveSubsystem::SetResumeAnchor(const FLRResumeAnchor& anchor)
@@ -306,8 +307,14 @@ FLRSaveOperationResult ULRSaveSubsystem::RequestAutoSave(const FName reasonId)
 	FLRSaveSlotId autoSlot;
 	autoSlot.Type = ELRSaveSlotType::Auto;
 	autoSlot.Guid = LRSaveV2Ids::AutoSlotGuid;
-	const FGuid operationId = FGuid::NewGuid();
 	const FName effectiveReason = reasonId.IsNone() ? LRSaveIds::AutoSlotReason : reasonId;
+	if (PendingAutoSaveOperationId.IsValid() && AutoSaveDebounceTimer.IsValid())
+	{
+		PendingAutoSaveReason = effectiveReason;
+		return MakeOperationResult(FGuid(), PendingAutoSaveOperationId, ELRSaveOperationType::AutoSave, autoSlot,
+			ELRSaveResultCode::Queued, TEXT("Automatic save request was coalesced into the pending debounce operation."));
+	}
+	const FGuid operationId = FGuid::NewGuid();
 	if (GetEffectiveTuning().AutoSaveDebounceSeconds > 0.0f)
 	{
 		if (UWorld* world = GetCurrentWorld())
@@ -340,15 +347,21 @@ void ULRSaveSubsystem::CapturePendingAutoSave()
 	const FName reasonId = PendingAutoSaveReason;
 	PendingAutoSaveOperationId.Invalidate();
 	PendingAutoSaveReason = NAME_None;
-	if (!operationId.IsValid() || bPersistenceBlocked)
+	if (!operationId.IsValid())
 	{
+		return;
+	}
+	FLRSaveSlotId autoSlot;
+	autoSlot.Type = ELRSaveSlotType::Auto;
+	autoSlot.Guid = LRSaveV2Ids::AutoSlotGuid;
+	if (bPersistenceBlocked)
+	{
+		OnSaveOperationCompleted.Broadcast(MakeOperationResult(FGuid(), operationId, ELRSaveOperationType::AutoSave,
+			autoSlot, ELRSaveResultCode::Cancelled, TEXT("Automatic save was cancelled because persistence became blocked.")));
 		return;
 	}
 	FLRSaveDataV2 captured;
 	FString error;
-	FLRSaveSlotId autoSlot;
-	autoSlot.Type = ELRSaveSlotType::Auto;
-	autoSlot.Guid = LRSaveV2Ids::AutoSlotGuid;
 	if (!CaptureCurrentData(captured, error))
 	{
 		OnSaveOperationCompleted.Broadcast(MakeOperationResult(FGuid(), operationId, ELRSaveOperationType::AutoSave,
