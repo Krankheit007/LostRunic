@@ -153,7 +153,7 @@ bool ULRStoryStateSubsystem::CommitEvent(const FLRStoryEventCommit& eventCommit)
 	return true;
 }
 
-bool ULRStoryStateSubsystem::CommitMemoryEvent(const FName eventId)
+bool ULRStoryStateSubsystem::CommitMemoryEvent(const FName eventId, FLRNarrativePersistentDelta* outDelta)
 {
 	if (!IsValidPersistentEventId(eventId) || PersistentState.MemoryEventIds.Contains(eventId))
 	{
@@ -161,6 +161,10 @@ bool ULRStoryStateSubsystem::CommitMemoryEvent(const FName eventId)
 	}
 
 	PersistentState.MemoryEventIds.Add(eventId);
+	if (outDelta)
+	{
+		outDelta->AddedMemoryEventIds.Add(eventId);
+	}
 	return true;
 }
 

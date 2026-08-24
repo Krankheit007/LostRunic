@@ -16,6 +16,7 @@
 #include "LRPlayerUIComponent.generated.h"
 
 class ALRCharacter;
+enum class ELRGameFlowPhase : uint8;
 class ALRPlayerController;
 class ULRScreenWidget;
 class AActor;
@@ -144,6 +145,9 @@ private:
 	 * @param page 本次领域操作的结构化数据 `page`；字段语义由对应 USTRUCT 定义。
 	 */
 	UFUNCTION()
+	void HandleGameFlowPhaseChanged(FGuid gameFlowTransactionId, FGuid saveOperationId, ELRGameFlowPhase phase, FName mapId);
+
+	UFUNCTION()
 	void HandleNarrativePageChanged(FLRNarrativePage page);
 
 	/**
@@ -173,6 +177,7 @@ private:
 	/**
 	 * @brief 解除 UI 对叙事子系统的委托绑定，避免销毁或换图后重复回调。
 	 */
+	void UnbindGameFlow();
 	void UnbindNarrative();
 	/**
 	 * @brief 把仲裁出的唯一输入层应用到 Controller；只在值变化时调用 SetLRInputMode。
@@ -184,6 +189,7 @@ private:
 	TWeakObjectPtr<ALRPlayerController> OwnerController;
 	/** Dialogue Subsystem 的内部运行时数据；不参与蓝图配置。 */
 	TWeakObjectPtr<class ULRDialogueSubsystem> DialogueSubsystem;
+	TWeakObjectPtr<ULRGameFlowSubsystem> GameFlowSubsystem;
 	/** 交互选物模式的物品使用目标；为空时菜单为普通浏览模式。 */
 	TWeakObjectPtr<AActor> ItemSelectorTarget;
 	/** Transition 输入层激活状态；由 Save 子系统请求。 */

@@ -1,6 +1,6 @@
 #include "UI/LRMainMenuWidgetController.h"
 
-#include "Save/LRSaveSubsystem.h"
+#include "Framework/LRGameFlowSubsystem.h"
 
 void ULRMainMenuWidgetController::Initialize(ULRSaveSubsystem* saveSubsystem)
 {
@@ -29,7 +29,7 @@ void ULRMainMenuWidgetController::Deinitialize()
 void ULRMainMenuWidgetController::RequestNewGame()
 {
 	if (!SaveSubsystem || !ViewModel.bCanNewGame || PendingOperationId.IsValid()) return;
-	const FLRSaveOperationResult result = SaveSubsystem->RequestNewGame();
+	const FLRSaveOperationResult result = SaveSubsystem->GetGameInstance()->GetSubsystem<ULRGameFlowSubsystem>()->RequestNewGame();
 	if (result.Code == ELRSaveResultCode::Queued) PendingOperationId = result.OperationId;
 	Refresh();
 }
@@ -37,7 +37,7 @@ void ULRMainMenuWidgetController::RequestNewGame()
 void ULRMainMenuWidgetController::RequestContinue()
 {
 	if (!SaveSubsystem || !ViewModel.bCanContinue || PendingOperationId.IsValid()) return;
-	const FLRSaveOperationResult result = SaveSubsystem->RequestContinue();
+	const FLRSaveOperationResult result = SaveSubsystem->GetGameInstance()->GetSubsystem<ULRGameFlowSubsystem>()->RequestContinue();
 	if (result.Code == ELRSaveResultCode::Queued) PendingOperationId = result.OperationId;
 	Refresh();
 }

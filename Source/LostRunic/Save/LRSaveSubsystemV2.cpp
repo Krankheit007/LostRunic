@@ -12,10 +12,12 @@
 
 namespace
 {
-	FLRSaveOperationResult MakeV2OperationResult(const FGuid operationId, const ELRSaveOperationType type,
-		const FLRSaveSlotId& slotId, const ELRSaveResultCode code, const FString& diagnostic)
+	FLRSaveOperationResult MakeV2OperationResult(const FGuid gameFlowTransactionId, const FGuid operationId,
+		const ELRSaveOperationType type, const FLRSaveSlotId& slotId, const ELRSaveResultCode code,
+		const FString& diagnostic)
 	{
 		FLRSaveOperationResult result;
+		result.GameFlowTransactionId = gameFlowTransactionId;
 		result.OperationId = operationId;
 		result.Operation = type;
 		result.SlotId = slotId;
@@ -36,9 +38,10 @@ namespace
 FLRSaveOperationResult ULRSaveSubsystem::EnqueueOperation(const ELRSaveOperationType type,
 	const FLRSaveSlotId& slotId, const FName reasonId, const FLRSaveDataV2* capturedData,
 	const ELRSaveMemoryPurpose memoryPurpose, const ELRSaveSlotHealth requestedHealth,
-	const bool bFront, const FGuid requestedOperationId)
+	const bool bFront, const FGuid requestedOperationId, const FGuid gameFlowTransactionId)
 {
 	FLRQueuedSaveOperation operation;
+	operation.GameFlowTransactionId = gameFlowTransactionId;
 	operation.OperationId = requestedOperationId.IsValid() ? requestedOperationId : FGuid::NewGuid();
 	operation.Type = type;
 	operation.SlotId = slotId;
@@ -50,8 +53,8 @@ FLRSaveOperationResult ULRSaveSubsystem::EnqueueOperation(const ELRSaveOperation
 		operation.CapturedData = *capturedData;
 		operation.bHasCapturedData = true;
 	}
-	const FLRSaveOperationResult result = MakeV2OperationResult(operation.OperationId, operation.Type,
-		operation.SlotId, ELRSaveResultCode::Queued, FString());
+	const FLRSaveOperationResult result = MakeV2OperationResult(operation.GameFlowTransactionId,
+		operation.OperationId, operation.Type, operation.SlotId, ELRSaveResultCode::Queued, FString());
 	if (bFront)
 	{
 		LRSaveOperationQueue::EnqueueFront(OperationQueue, MoveTemp(operation));
@@ -169,8 +172,8 @@ void ULRSaveSubsystem::CancelQueuedOperations(const FString& diagnostic)
 	FLRQueuedSaveOperation operation;
 	while (LRSaveOperationQueue::Dequeue(OperationQueue, operation))
 	{
-		OnSaveOperationCompleted.Broadcast(MakeV2OperationResult(operation.OperationId, operation.Type,
-			operation.SlotId, ELRSaveResultCode::Cancelled, diagnostic));
+		OnSaveOperationCompleted.Broadcast(MakeV2OperationResult(operation.GameFlowTransactionId,
+			operation.OperationId, operation.Type, operation.SlotId, ELRSaveResultCode::Cancelled, diagnostic));
 	}
 }
 
@@ -189,7 +192,6 @@ void ULRSaveSubsystem::CompleteOperation(const ELRSaveResultCode code, const FSt
 	}
 	const FLRQueuedSaveOperation completedOperation = ActiveOperation;
 	const bool bSucceeded = code == ELRSaveResultCode::Succeeded;
-	UpdateMemoryPhaseAfterOperation(completedOperation, bSucceeded);
 	const bool bRecoveryOperation = completedOperation.Type == ELRSaveOperationType::RepairHealth
 		&& completedOperation.SlotId.IsValid() == false
 		&& completedOperation.RequestedHealth == ELRSaveSlotHealth::Healthy;
@@ -207,8 +209,8 @@ void ULRSaveSubsystem::CompleteOperation(const ELRSaveResultCode code, const FSt
 	{
 		PublishCatalogSnapshot();
 	}
-	const FLRSaveOperationResult result = MakeV2OperationResult(completedOperation.OperationId,
-		completedOperation.Type, completedOperation.SlotId, code, diagnostic);
+	const FLRSaveOperationResult result = MakeV2OperationResult(completedOperation.GameFlowTransactionId,
+		completedOperation.OperationId, completedOperation.Type, completedOperation.SlotId, code, diagnostic);
 	if (code == ELRSaveResultCode::Succeeded)
 	{
 		UE_LOG(LogLostRunicSave, Log, TEXT("Save operation=%s type=%d code=%d reason=%s detail=%s"),
@@ -302,17 +304,23 @@ FLRSaveOperationResult ULRSaveSubsystem::RequestOverwriteSave(const FLRSaveSlotI
 
 FLRSaveOperationResult ULRSaveSubsystem::RequestLoadSave(const FLRSaveSlotId slotId)
 {
+	return RequestLoadSaveForFlow(slotId, FGuid::NewGuid());
+}
+
+FLRSaveOperationResult ULRSaveSubsystem::RequestLoadSaveForFlow(const FLRSaveSlotId slotId, const FGuid gameFlowTransactionId)
+{
 	if (!IsCatalogReady() || bPersistenceBlocked)
 	{
 		return MakeRejected(ELRSaveOperationType::Load, slotId, ELRSaveResultCode::RejectedBusy,
-			TEXT("Persistence is blocked until catalog recovery succeeds."));
+			TEXT("Persistence is blocked until catalog recovery succeeds."), FGuid(), gameFlowTransactionId);
 	}
 	if (!slotId.IsValid() || !SaveCatalog || !SaveCatalog->FindSlot(slotId))
 	{
 		return MakeRejected(ELRSaveOperationType::Load, slotId, ELRSaveResultCode::RejectedInvalidSlot,
-			TEXT("Requested save slot does not exist."));
+			TEXT("Requested save slot does not exist."), FGuid(), gameFlowTransactionId);
 	}
-	return EnqueueOperation(ELRSaveOperationType::Load, slotId, TEXT("Load"));
+	return EnqueueOperation(ELRSaveOperationType::Load, slotId, TEXT("Load"), nullptr,
+		ELRSaveMemoryPurpose::None, ELRSaveSlotHealth::Healthy, false, FGuid(), gameFlowTransactionId);
 }
 
 FLRSaveOperationResult ULRSaveSubsystem::RequestDeleteSave(const FLRSaveSlotId slotId)
@@ -337,26 +345,37 @@ FLRSaveOperationResult ULRSaveSubsystem::RequestDeleteSave(const FLRSaveSlotId s
 
 FLRSaveOperationResult ULRSaveSubsystem::RequestContinue()
 {
+	return RequestContinueForFlow(FGuid::NewGuid());
+}
+
+FLRSaveOperationResult ULRSaveSubsystem::RequestContinueForFlow(const FGuid gameFlowTransactionId)
+{
 	if (!IsCatalogReady() || bPersistenceBlocked)
 	{
 		return MakeRejected(ELRSaveOperationType::Continue, FLRSaveSlotId(), ELRSaveResultCode::RejectedBusy,
-			TEXT("Catalog is not ready for Continue."));
+			TEXT("Catalog is not ready for Continue."), FGuid(), gameFlowTransactionId);
 	}
 	FLRSaveSlotId candidate;
 	if (!LRSaveRules::ResolveContinueCandidate(SaveCatalog->Slots, candidate))
 	{
 		return MakeRejected(ELRSaveOperationType::Continue, FLRSaveSlotId(), ELRSaveResultCode::RejectedNotEligible,
-			TEXT("No healthy save slot is available for Continue."));
+			TEXT("No healthy save slot is available for Continue."), FGuid(), gameFlowTransactionId);
 	}
-	return EnqueueOperation(ELRSaveOperationType::Continue, candidate, TEXT("Continue"));
+	return EnqueueOperation(ELRSaveOperationType::Continue, candidate, TEXT("Continue"), nullptr,
+		ELRSaveMemoryPurpose::None, ELRSaveSlotHealth::Healthy, false, FGuid(), gameFlowTransactionId);
 }
 
 FLRSaveOperationResult ULRSaveSubsystem::RequestNewGame()
 {
+	return RequestNewGameForFlow(FGuid::NewGuid());
+}
+
+FLRSaveOperationResult ULRSaveSubsystem::RequestNewGameForFlow(const FGuid gameFlowTransactionId)
+{
 	if (!IsCatalogReady() || bPersistenceBlocked)
 	{
 		return MakeRejected(ELRSaveOperationType::NewGame, MakeAutoSlotId(), ELRSaveResultCode::RejectedBusy,
-			TEXT("Catalog is not ready for New Game."));
+			TEXT("Catalog is not ready for New Game."), FGuid(), gameFlowTransactionId);
 	}
 	const ULRGameInstanceSubsystem* data = GetGameInstance()
 		? GetGameInstance()->GetSubsystem<ULRGameInstanceSubsystem>() : nullptr;
@@ -364,10 +383,11 @@ FLRSaveOperationResult ULRSaveSubsystem::RequestNewGame()
 	if (!content || content->NewGameMapId.IsNone())
 	{
 		return MakeRejected(ELRSaveOperationType::NewGame, MakeAutoSlotId(), ELRSaveResultCode::RejectedNotEligible,
-			TEXT("New Game map is not configured."));
+			TEXT("New Game map is not configured."), FGuid(), gameFlowTransactionId);
 	}
 	const FGuid operationId = FGuid::NewGuid();
 	const FLRSaveOperationResult result = EnqueueOperation(ELRSaveOperationType::NewGame, MakeAutoSlotId(),
-		TEXT("NewGame"), nullptr, ELRSaveMemoryPurpose::None, ELRSaveSlotHealth::Healthy, false, operationId);
+		TEXT("NewGame"), nullptr, ELRSaveMemoryPurpose::None, ELRSaveSlotHealth::Healthy, false, operationId,
+		gameFlowTransactionId);
 	return result;
 }

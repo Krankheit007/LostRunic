@@ -40,30 +40,8 @@ namespace LRSaveRules
 	 */
 	/**
 	 * @brief 判断 Is Manual Save Allowed 对应条件；不产生玩法副作用。
-	 * @param phase 本次操作使用的 `phase` 枚举或模式值。
+	 * @param bInMemoryMap 当前世界是否是 Memory 地图。
 	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
 	 */
-	LOSTRUNIC_API bool IsManualSaveAllowed(ELRMemoryTransactionPhase phase, bool bWorldPaused);
-	/**
-	 * @brief 判断 Can Begin Memory Transaction 对应条件；不产生玩法副作用。
-	 * @param phase 本次操作使用的 `phase` 枚举或模式值。
-	 * @param anchor 调用方提供的 `anchor`，只在本次操作范围内使用。
-	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
-	 */
-	LOSTRUNIC_API bool CanBeginMemoryTransaction(ELRMemoryTransactionPhase phase, const FLRResumeAnchor& anchor);
-	/**
-	 * @brief 判断 Is Memory Entry World 对应条件；不产生玩法副作用。
-	 * @param phase 本次操作使用的 `phase` 枚举或模式值。
-	 * @param currentMapId 稳定标识 `currentMapId`；用于内容查询和存档，不依赖显示名或数组序号。
-	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
-	 */
-	LOSTRUNIC_API bool IsMemoryEntryWorld(ELRMemoryTransactionPhase phase, FName currentMapId);
-	/**
-	 * @brief 判断 Is Resume World 对应条件；不产生玩法副作用。
-	 * @param phase 本次操作使用的 `phase` 枚举或模式值。
-	 * @param currentMapId 稳定标识 `currentMapId`；用于内容查询和存档，不依赖显示名或数组序号。
-	 * @param anchor 调用方提供的 `anchor`，只在本次操作范围内使用。
-	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
-	 */
-	LOSTRUNIC_API bool IsResumeWorld(ELRMemoryTransactionPhase phase, FName currentMapId, const FLRResumeAnchor& anchor);
+	LOSTRUNIC_API bool IsManualSaveAllowed(bool bInMemoryMap, bool bWorldPaused);
 }

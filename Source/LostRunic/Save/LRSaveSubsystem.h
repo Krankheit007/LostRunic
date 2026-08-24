@@ -9,15 +9,14 @@
 
 #include "LRSaveSubsystem.generated.h"
 
-class ALRCharacter;
 class ULRSaveCatalog;
 class ULRSavePayload;
 class ULRSaveTuning;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FLRSaveOperationCompleted, FLRSaveOperationResult, result);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FLRSaveLoadRequested, FGuid, operationId, FName, mapId);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FLRSaveNewGameRequested, FGuid, operationId, FName, mapId);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FLRMemoryTransactionChanged, ELRMemoryTransactionPhase, phase);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FLRSaveLoadRequested, FLRSaveFlowRequest, request);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FLRSaveNewGameRequested, FLRSaveFlowRequest, request);
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FLRSaveCatalogStateChanged, ELRSaveCatalogState, state);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FLRSaveCatalogSnapshotChanged, FLRSaveCatalogSnapshot, snapshot);
 
@@ -62,19 +61,29 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Lost Runic|Save")
 	FLRSaveOperationResult RequestLoadSave(FLRSaveSlotId slotId);
+	FLRSaveOperationResult RequestLoadSaveForFlow(FLRSaveSlotId slotId, FGuid gameFlowTransactionId);
 
 	UFUNCTION(BlueprintCallable, Category = "Lost Runic|Save")
 	FLRSaveOperationResult RequestDeleteSave(FLRSaveSlotId slotId);
 
 	UFUNCTION(BlueprintCallable, Category = "Lost Runic|Save")
 	FLRSaveOperationResult RequestContinue();
+	FLRSaveOperationResult RequestContinueForFlow(FGuid gameFlowTransactionId);
 
 	UFUNCTION(BlueprintCallable, Category = "Lost Runic|Save")
 	FLRSaveOperationResult RequestNewGame();
+	FLRSaveOperationResult RequestNewGameForFlow(FGuid gameFlowTransactionId);
 
-	void NotifyLoadWorldReady(FGuid operationId);
-	void NotifyLoadPreparationFailed(FGuid operationId, const FString& diagnostic);
-	void NotifyNewGameWorldReady(FGuid operationId);
+	bool CaptureProviderState(FLRSaveDataV2& outData, FString& outError);
+	bool RestoreProviderState(const FLRSaveDataV2& data, FString& outError);
+	bool ResetProvidersForNewGame(FString& outError);
+	FLRSaveOperationResult RequestCriticalSaveFromSnapshot(const FLRSaveDataV2& snapshot,
+		const FLRNarrativePersistentDelta& narrativeDelta, FName reasonId, FGuid gameFlowTransactionId,
+		ELRSaveMemoryPurpose memoryPurpose, FGuid requestedOperationId = FGuid());
+
+	void NotifyLoadWorldReady(FGuid gameFlowTransactionId, FGuid operationId);
+	void NotifyLoadPreparationFailed(FGuid gameFlowTransactionId, FGuid operationId, const FString& diagnostic);
+	void NotifyNewGameWorldReady(FGuid gameFlowTransactionId, FGuid operationId);
 
 	UFUNCTION(BlueprintPure, Category = "Lost Runic|Save")
 	ELRSaveOperationState GetOperationState() const { return OperationState; }
@@ -88,14 +97,6 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Lost Runic|Save")
 	FLRResumeAnchor GetResumeAnchor() const;
 
-	UFUNCTION(BlueprintPure, Category = "Lost Runic|Save|Memory")
-	ELRMemoryTransactionPhase GetMemoryPhase() const { return MemoryPhase; }
-
-	bool BeginDeathMemoryTransaction(ALRCharacter* character);
-	bool CommitMemoryEvent(FName eventId);
-	bool RequestReturnFromMemory();
-	void HandleWorldReady(ALRCharacter* character);
-
 	UPROPERTY(BlueprintAssignable, Category = "Lost Runic|Save")
 	FLRSaveOperationCompleted OnSaveOperationCompleted;
 
@@ -105,8 +106,6 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Lost Runic|Save")
 	FLRSaveNewGameRequested OnSaveNewGameRequested;
 
-	UPROPERTY(BlueprintAssignable, Category = "Lost Runic|Save|Memory")
-	FLRMemoryTransactionChanged OnMemoryTransactionChanged;
 
 	UPROPERTY(BlueprintAssignable, Category = "Lost Runic|Save|Catalog")
 	FLRSaveCatalogStateChanged OnCatalogStateChanged;
@@ -119,9 +118,10 @@ private:
 		FName reasonId, const FLRSaveDataV2* capturedData = nullptr,
 		ELRSaveMemoryPurpose memoryPurpose = ELRSaveMemoryPurpose::None,
 		ELRSaveSlotHealth requestedHealth = ELRSaveSlotHealth::Healthy, bool bFront = false,
-		FGuid requestedOperationId = FGuid());
+		FGuid requestedOperationId = FGuid(), FGuid gameFlowTransactionId = FGuid());
 	FLRSaveOperationResult MakeRejected(ELRSaveOperationType type, const FLRSaveSlotId& slotId,
-		ELRSaveResultCode code, const FString& diagnostic) const;
+		ELRSaveResultCode code, const FString& diagnostic, FGuid requestedOperationId = FGuid(),
+		FGuid gameFlowTransactionId = FGuid()) const;
 	bool CaptureCurrentData(FLRSaveDataV2& outData, FString& outError);
 	void CapturePendingAutoSave();
 	void StartNextOperation();
@@ -143,15 +143,8 @@ private:
 	void PublishCatalogSnapshot();
 
 	void HandleNarrativeEventCommitted(const FLRStoryEventCommit& eventCommit);
-
-	void UpdateMemoryPhaseAfterOperation(const FLRQueuedSaveOperation& operation, bool bSuccess);
-	void SetMemoryPhase(ELRMemoryTransactionPhase newPhase);
-	void SetTransitionInput(bool bVisible) const;
-	void ApplyMemoryState(ALRCharacter* character) const;
-	void ApplyDataToRuntime(const FLRSaveDataV2& data, ALRCharacter* character);
 	FName GetCurrentMapId() const;
 	UWorld* GetCurrentWorld() const;
-	bool TravelToMap(FName mapId);
 	const ULRSaveTuning& GetEffectiveTuning() const;
 	int32 GetManualSlotCount() const;
 	FLRSaveSlotMetadata BuildMetadata(const FLRSaveSlotId& slotId, int32 displayIndex,
@@ -171,13 +164,9 @@ private:
 	ELRSaveCatalogState CatalogState = ELRSaveCatalogState::Initializing;
 	FLRSaveCatalogSnapshot CatalogSnapshot;
 	FLRSaveDataV2 CurrentData;
-	FLRSaveDataV2 HomeResumeSnapshot;
-	ELRMemoryTransactionPhase MemoryPhase = ELRMemoryTransactionPhase::None;
-	bool bHasHomeResumeSnapshot = false;
 	bool bPersistenceBlocked = false;
 	FName PendingAutoSaveReason = NAME_None;
 	FGuid PendingAutoSaveOperationId;
-	FGuid PendingNewGameOperationId;
 
 	FTimerHandle AutoSaveDebounceTimer;
 	FTimerHandle ExplicitRetryTimer;

@@ -15,4 +15,14 @@ namespace LRStorySaveAdapter
 		outState.CompletedEventIds = storyChunk.CompletedEventIds;
 		outState.MemoryEventIds = storyChunk.MemoryEventIds;
 	}
+
+	void ApplyDeltaToSaveChunk(const FLRNarrativePersistentDelta& persistentDelta, FLRSaveStoryChunk& inOutStory)
+	{
+		for (const FGameplayTag& storyFlag : persistentDelta.AddedStoryFlags)
+		{
+			inOutStory.StoryFlags.AddTag(storyFlag);
+		}
+		inOutStory.CompletedEventIds.Append(persistentDelta.AddedCompletedEventIds);
+		inOutStory.MemoryEventIds.Append(persistentDelta.AddedMemoryEventIds);
+	}
 }

@@ -7,25 +7,22 @@
 #include "Data/LRSaveTuning.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
-#include "Framework/LRCharacter.h"
 #include "Framework/LRGameInstanceSubsystem.h"
-#include "Framework/LRPlayerController.h"
-#include "Kismet/GameplayStatics.h"
 #include "Narrative/LRStoryStateSubsystem.h"
 #include "Save/LRSaveCatalog.h"
 #include "Save/LRSaveCatalogStore.h"
 #include "Save/LRSaveProvider.h"
 #include "Save/LRSaveRules.h"
-#include "State/LRStateComponent.h"
-#include "UI/LRHUD.h"
-#include "UI/LRPlayerUIComponent.h"
+#include "Save/LRStorySaveAdapter.h"
 
 namespace
 {
-	FLRSaveOperationResult MakeOperationResult(const FGuid operationId, const ELRSaveOperationType type,
-		const FLRSaveSlotId& slotId, const ELRSaveResultCode code, const FString& diagnostic)
+	FLRSaveOperationResult MakeOperationResult(const FGuid gameFlowTransactionId, const FGuid operationId,
+		const ELRSaveOperationType type, const FLRSaveSlotId& slotId, const ELRSaveResultCode code,
+		const FString& diagnostic)
 	{
 		FLRSaveOperationResult result;
+		result.GameFlowTransactionId = gameFlowTransactionId;
 		result.OperationId = operationId;
 		result.Operation = type;
 		result.SlotId = slotId;
@@ -97,7 +94,6 @@ void ULRSaveSubsystem::Deinitialize()
 	SaveProviders.Reset();
 	OperationState = ELRSaveOperationState::Idle;
 	PendingAutoSaveOperationId.Invalidate();
-	PendingNewGameOperationId.Invalidate();
 	Tuning = nullptr;
 	Super::Deinitialize();
 }
@@ -154,9 +150,11 @@ int32 ULRSaveSubsystem::GetMaxManualSaveSlots() const
 }
 
 FLRSaveOperationResult ULRSaveSubsystem::MakeRejected(const ELRSaveOperationType type,
-	const FLRSaveSlotId& slotId, const ELRSaveResultCode code, const FString& diagnostic) const
+	const FLRSaveSlotId& slotId, const ELRSaveResultCode code, const FString& diagnostic,
+	const FGuid requestedOperationId, const FGuid gameFlowTransactionId) const
 {
-	return MakeOperationResult(FGuid::NewGuid(), type, slotId, code, diagnostic);
+	return MakeOperationResult(gameFlowTransactionId,
+		requestedOperationId.IsValid() ? requestedOperationId : FGuid::NewGuid(), type, slotId, code, diagnostic);
 }
 
 bool ULRSaveSubsystem::CaptureCurrentData(FLRSaveDataV2& outData, FString& outError)
@@ -177,6 +175,98 @@ bool ULRSaveSubsystem::CaptureCurrentData(FLRSaveDataV2& outData, FString& outEr
 	return true;
 }
 
+bool ULRSaveSubsystem::CaptureProviderState(FLRSaveDataV2& outData, FString& outError)
+{
+	return CaptureCurrentData(outData, outError);
+}
+
+bool ULRSaveSubsystem::RestoreProviderState(const FLRSaveDataV2& data, FString& outError)
+{
+	UGameInstance* gameInstance = GetGameInstance();
+	if (!gameInstance)
+	{
+		outError = TEXT("GameInstance is unavailable.");
+		return false;
+	}
+	if (!LRSaveProviders::RestoreNonPlayer(SaveProviders, *gameInstance, data, outError)
+		|| !LRSaveProviders::RestorePlayer(SaveProviders, *gameInstance, data, outError))
+	{
+		return false;
+	}
+	CurrentData = data;
+	return true;
+}
+
+bool ULRSaveSubsystem::ResetProvidersForNewGame(FString& outError)
+{
+	UGameInstance* gameInstance = GetGameInstance();
+	if (!gameInstance)
+	{
+		outError = TEXT("GameInstance is unavailable.");
+		return false;
+	}
+	return LRSaveProviders::ResetForNewGame(SaveProviders, *gameInstance, outError);
+}
+
+FLRSaveOperationResult ULRSaveSubsystem::RequestCriticalSaveFromSnapshot(const FLRSaveDataV2& snapshot,
+	const FLRNarrativePersistentDelta& narrativeDelta, const FName reasonId, const FGuid gameFlowTransactionId,
+	const ELRSaveMemoryPurpose memoryPurpose, const FGuid requestedOperationId)
+{
+	if (!gameFlowTransactionId.IsValid())
+	{
+		return MakeRejected(ELRSaveOperationType::CriticalSave, FLRSaveSlotId(), ELRSaveResultCode::RejectedNotEligible,
+			TEXT("Critical Save requires a valid GameFlowTransactionId."), requestedOperationId, gameFlowTransactionId);
+	}
+	if (!IsCatalogReady() || bPersistenceBlocked)
+	{
+		return MakeRejected(ELRSaveOperationType::CriticalSave, FLRSaveSlotId(), ELRSaveResultCode::RejectedBusy,
+			TEXT("Persistence is blocked until catalog recovery succeeds."), requestedOperationId,
+			gameFlowTransactionId);
+	}
+	ULRStoryStateSubsystem* storyState = ULRStoryStateSubsystem::Resolve(GetGameInstance());
+	FLRNarrativePersistentState currentState;
+	if (!storyState)
+	{
+		return MakeRejected(ELRSaveOperationType::CriticalSave, FLRSaveSlotId(), ELRSaveResultCode::ProviderUnavailable,
+			TEXT("StoryState is unavailable while validating the durable narrative delta."), requestedOperationId,
+			gameFlowTransactionId);
+	}
+	storyState->CapturePersistentState(currentState);
+	for (const FGameplayTag& flag : narrativeDelta.AddedStoryFlags)
+	{
+		if (!currentState.StoryFlags.HasTag(flag))
+		{
+			return MakeRejected(ELRSaveOperationType::CriticalSave, FLRSaveSlotId(), ELRSaveResultCode::InvalidData,
+				TEXT("Durable narrative delta contains an uncommitted Story flag."), requestedOperationId,
+				gameFlowTransactionId);
+		}
+	}
+	for (const FName eventId : narrativeDelta.AddedCompletedEventIds)
+	{
+		if (!currentState.CompletedEventIds.Contains(eventId))
+		{
+			return MakeRejected(ELRSaveOperationType::CriticalSave, FLRSaveSlotId(), ELRSaveResultCode::InvalidData,
+				TEXT("Durable narrative delta contains an uncommitted completed event."), requestedOperationId,
+				gameFlowTransactionId);
+		}
+	}
+	for (const FName eventId : narrativeDelta.AddedMemoryEventIds)
+	{
+		if (!currentState.MemoryEventIds.Contains(eventId))
+		{
+			return MakeRejected(ELRSaveOperationType::CriticalSave, FLRSaveSlotId(), ELRSaveResultCode::InvalidData,
+				TEXT("Durable narrative delta contains an uncommitted Memory event."), requestedOperationId,
+				gameFlowTransactionId);
+		}
+	}
+	FLRSaveDataV2 mergedSnapshot = snapshot;
+	LRStorySaveAdapter::ApplyDeltaToSaveChunk(narrativeDelta, mergedSnapshot.Story);
+	FLRSaveSlotId autoSlot;
+	autoSlot.Type = ELRSaveSlotType::Auto;
+	autoSlot.Guid = LRSaveV2Ids::AutoSlotGuid;
+	return EnqueueOperation(ELRSaveOperationType::CriticalSave, autoSlot, reasonId, &mergedSnapshot,
+		memoryPurpose, ELRSaveSlotHealth::Healthy, false, requestedOperationId, gameFlowTransactionId);
+}
 void ULRSaveSubsystem::SetResumeAnchor(const FLRResumeAnchor& anchor)
 {
 	if (!anchor.IsValid())
@@ -197,7 +287,7 @@ bool ULRSaveSubsystem::IsManualSaveAllowed() const
 {
 	const UWorld* world = GetCurrentWorld();
 	return IsCatalogReady() && !bPersistenceBlocked
-		&& LRSaveRules::IsManualSaveAllowed(MemoryPhase, world && world->IsPaused());
+		&& LRSaveRules::IsManualSaveAllowed(GetCurrentMapId() == LRSaveIds::MemoryMapId, world && world->IsPaused());
 }
 
 void ULRSaveSubsystem::HandleNarrativeEventCommitted(const FLRStoryEventCommit& eventCommit)
@@ -215,11 +305,11 @@ void ULRSaveSubsystem::HandleNarrativeEventCommitted(const FLRStoryEventCommit& 
 	}
 	FLRSaveDataV2 captured;
 	FString error;
-	FLRSaveSlotId autoSlot;
-	autoSlot.Type = ELRSaveSlotType::Auto;
-	autoSlot.Guid = LRSaveV2Ids::AutoSlotGuid;
-	if (CaptureCurrentData(captured, error))
+	if (CaptureProviderState(captured, error))
 	{
+		FLRSaveSlotId autoSlot;
+		autoSlot.Type = ELRSaveSlotType::Auto;
+		autoSlot.Guid = LRSaveV2Ids::AutoSlotGuid;
 		EnqueueOperation(ELRSaveOperationType::CriticalSave, autoSlot, eventId, &captured);
 	}
 	else
@@ -255,7 +345,7 @@ FLRSaveOperationResult ULRSaveSubsystem::RequestAutoSave(const FName reasonId)
 				[this]() { CapturePendingAutoSave(); });
 			world->GetTimerManager().SetTimer(AutoSaveDebounceTimer, callback,
 				GetEffectiveTuning().AutoSaveDebounceSeconds, false);
-			return MakeOperationResult(operationId, ELRSaveOperationType::AutoSave, autoSlot,
+			return MakeOperationResult(FGuid(), operationId, ELRSaveOperationType::AutoSave, autoSlot,
 				ELRSaveResultCode::Queued, TEXT("Automatic save is waiting for debounce."));
 		}
 	}
@@ -264,7 +354,7 @@ FLRSaveOperationResult ULRSaveSubsystem::RequestAutoSave(const FName reasonId)
 	FString error;
 	if (!CaptureCurrentData(captured, error))
 	{
-		return MakeOperationResult(operationId, ELRSaveOperationType::AutoSave, autoSlot,
+		return MakeOperationResult(FGuid(), operationId, ELRSaveOperationType::AutoSave, autoSlot,
 			ELRSaveResultCode::ProviderUnavailable, error);
 	}
 	return EnqueueOperation(ELRSaveOperationType::AutoSave, autoSlot, effectiveReason, &captured,
@@ -288,7 +378,7 @@ void ULRSaveSubsystem::CapturePendingAutoSave()
 	autoSlot.Guid = LRSaveV2Ids::AutoSlotGuid;
 	if (!CaptureCurrentData(captured, error))
 	{
-		OnSaveOperationCompleted.Broadcast(MakeOperationResult(operationId, ELRSaveOperationType::AutoSave,
+		OnSaveOperationCompleted.Broadcast(MakeOperationResult(FGuid(), operationId, ELRSaveOperationType::AutoSave,
 			autoSlot, ELRSaveResultCode::ProviderUnavailable, error));
 		return;
 	}
@@ -317,62 +407,4 @@ FName ULRSaveSubsystem::GetCurrentMapId() const
 		? GetGameInstance()->GetSubsystem<ULRGameInstanceSubsystem>() : nullptr;
 	const ULRGameContentSet* content = data ? data->GetContentSet() : nullptr;
 	return content ? content->FindMapIdForWorld(GetCurrentWorld()) : NAME_None;
-}
-
-bool ULRSaveSubsystem::TravelToMap(const FName mapId)
-{
-	const ULRGameInstanceSubsystem* data = GetGameInstance()
-		? GetGameInstance()->GetSubsystem<ULRGameInstanceSubsystem>() : nullptr;
-	const ULRGameContentSet* content = data ? data->GetContentSet() : nullptr;
-	const TSoftObjectPtr<UWorld> map = content ? content->FindMap(mapId) : TSoftObjectPtr<UWorld>();
-	if (map.IsNull())
-	{
-		UE_LOG(LogLostRunicSave, Warning, TEXT("Save travel rejected map=%s is not registered."), *mapId.ToString());
-		return false;
-	}
-	UGameplayStatics::OpenLevelBySoftObjectPtr(this, map);
-	return true;
-}
-
-void ULRSaveSubsystem::SetMemoryPhase(const ELRMemoryTransactionPhase newPhase)
-{
-	if (MemoryPhase == newPhase)
-	{
-		return;
-	}
-	MemoryPhase = newPhase;
-	OnMemoryTransactionChanged.Broadcast(MemoryPhase);
-	UE_LOG(LogLostRunicSave, Log, TEXT("Memory phase=%d"), static_cast<int32>(MemoryPhase));
-}
-
-void ULRSaveSubsystem::SetTransitionInput(const bool bVisible) const
-{
-	ALRPlayerController* controller = Cast<ALRPlayerController>(
-		UGameplayStatics::GetPlayerController(GetCurrentWorld(), 0));
-	if (!controller)
-	{
-		return;
-	}
-	if (ALRHUD* hud = controller->GetHUD<ALRHUD>())
-	{
-		hud->ShowTransition(bVisible);
-	}
-	if (ULRPlayerUIComponent* playerUi = controller->GetPlayerUI())
-	{
-		playerUi->SetTransitionLayer(bVisible);
-	}
-}
-
-void ULRSaveSubsystem::ApplyMemoryState(ALRCharacter* character) const
-{
-	ULRStateComponent* state = character ? character->GetStateComponent() : nullptr;
-	if (!state || state->GetCurrentMode() == ELRPerceptionMode::Memory)
-	{
-		return;
-	}
-	FLRStateChangeRequest request;
-	request.TargetMode = ELRPerceptionMode::Memory;
-	request.RequestType = ELRStateRequestType::Death;
-	request.Source = LRGameplayTags::StateSourceDeath;
-	state->RequestStateChange(request);
 }

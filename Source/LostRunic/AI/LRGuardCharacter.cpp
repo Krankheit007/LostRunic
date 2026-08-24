@@ -14,8 +14,8 @@
 #include "Core/LRGameplayTags.h"
 #include "Engine/GameInstance.h"
 #include "Framework/LRCharacter.h"
+#include "Framework/LRGameFlowSubsystem.h"
 #include "Items/LRCourageResponseComponent.h"
-#include "Save/LRSaveSubsystem.h"
 #include "State/LRStateComponent.h"
 #include "UI/LRWorldAlertBarWidgetBase.h"
 
@@ -74,9 +74,9 @@ bool ALRGuardCharacter::CaptureTarget(AActor* target)
 		{
 			if (UGameInstance* gameInstance = character->GetGameInstance())
 			{
-				if (ULRSaveSubsystem* saveSubsystem = gameInstance->GetSubsystem<ULRSaveSubsystem>())
+				if (ULRGameFlowSubsystem* gameFlow = gameInstance->GetSubsystem<ULRGameFlowSubsystem>())
 				{
-					saveSubsystem->BeginDeathMemoryTransaction(character);
+					gameFlow->RequestEnterMemory(character);
 				}
 			}
 		}

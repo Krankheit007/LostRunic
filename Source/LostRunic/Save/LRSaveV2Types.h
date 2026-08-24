@@ -108,6 +108,24 @@ struct LOSTRUNIC_API FLRSaveCatalogSnapshot
 	TArray<FLRSaveSlotMetadata> Slots;
 };
 
+USTRUCT(BlueprintType, meta = (DisplayName = "Lost Runic Save Flow Request"))
+struct LOSTRUNIC_API FLRSaveFlowRequest
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category = "Save|Flow")
+	FGuid GameFlowTransactionId;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Save|Flow")
+	FGuid OperationId;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Save|Flow")
+	FName MapId = NAME_None;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Save|Flow")
+	ELRSaveOperationType Operation = ELRSaveOperationType::None;
+};
+
 USTRUCT()
 struct LOSTRUNIC_API FLRCatalogPendingOperation
 {
@@ -184,6 +202,7 @@ USTRUCT(BlueprintType)
 struct LOSTRUNIC_API FLRSaveOperationResult
 {
 	GENERATED_BODY()
+	UPROPERTY(BlueprintReadOnly, Category = "Save") FGuid GameFlowTransactionId;
 	UPROPERTY(BlueprintReadOnly, Category = "Save") FGuid OperationId;
 	UPROPERTY(BlueprintReadOnly, Category = "Save") ELRSaveOperationType Operation = ELRSaveOperationType::None;
 	UPROPERTY(BlueprintReadOnly, Category = "Save") ELRSaveResultCode Code = ELRSaveResultCode::RejectedBusy;
@@ -197,6 +216,7 @@ USTRUCT()
 struct LOSTRUNIC_API FLRQueuedSaveOperation
 {
 	GENERATED_BODY()
+	UPROPERTY(Transient) FGuid GameFlowTransactionId;
 	UPROPERTY(Transient) FGuid OperationId;
 	UPROPERTY(Transient) ELRSaveOperationType Type = ELRSaveOperationType::None;
 	UPROPERTY(Transient) FLRSaveSlotId SlotId;

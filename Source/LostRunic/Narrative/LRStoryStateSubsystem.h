@@ -39,7 +39,7 @@ public:
 	bool ReplacePersistentState(const FLRNarrativePersistentState& inState);
 	bool ApplyPersistentDelta(const FLRNarrativePersistentDelta& inDelta);
 	bool CommitEvent(const FLRStoryEventCommit& eventCommit);
-	bool CommitMemoryEvent(FName eventId);
+	bool CommitMemoryEvent(FName eventId, FLRNarrativePersistentDelta* outDelta = nullptr);
 
 	const TSet<FName>& GetCompletedEventIds() const { return PersistentState.CompletedEventIds; }
 	const TSet<FName>& GetMemoryEventIds() const { return PersistentState.MemoryEventIds; }

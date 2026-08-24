@@ -32,16 +32,6 @@ enum class ELRSaveSlotType : uint8
 	Manual UMETA(DisplayName = "Manual")
 };
 
-UENUM(BlueprintType, meta = (DisplayName = "Lost Runic Memory Transaction Phase"))
-enum class ELRMemoryTransactionPhase : uint8
-{
-	None UMETA(DisplayName = "None"),
-	AwaitingMemoryWorld UMETA(DisplayName = "Awaiting Memory World"),
-	SavingEntry UMETA(DisplayName = "Saving Entry"),
-	InMemory UMETA(DisplayName = "In Memory"),
-	AwaitingResumeWorld UMETA(DisplayName = "Awaiting Resume World"),
-	SavingReturn UMETA(DisplayName = "Saving Return")
-};
 
 namespace LRSaveIds
 {

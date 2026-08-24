@@ -79,11 +79,11 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLRSaveManualPauseRuleTest,
 bool FLRSaveManualPauseRuleTest::RunTest(const FString& parameters)
 {
 	TestFalse(TEXT("Unpaused gameplay rejects manual save"),
-		LRSaveRules::IsManualSaveAllowed(ELRMemoryTransactionPhase::None, false));
+		LRSaveRules::IsManualSaveAllowed(false, false));
 	TestTrue(TEXT("Paused gameplay permits manual save"),
-		LRSaveRules::IsManualSaveAllowed(ELRMemoryTransactionPhase::None, true));
+		LRSaveRules::IsManualSaveAllowed(false, true));
 	TestFalse(TEXT("Memory transaction rejects manual save even while paused"),
-		LRSaveRules::IsManualSaveAllowed(ELRMemoryTransactionPhase::InMemory, true));
+		LRSaveRules::IsManualSaveAllowed(true, true));
 	return true;
 }
 

@@ -2,7 +2,7 @@
 
 #include "Core/LRLog.h"
 #include "Data/LRGameContentSet.h"
-#include "Save/LRSaveSubsystem.h"
+#include "Framework/LRGameFlowSubsystem.h"
 
 namespace
 {
@@ -263,7 +263,7 @@ void ULRSaveWidgetController::SubmitOperation(const ELRSaveOperationType operati
 	else if (operation == ELRSaveOperationType::OverwriteManual)
 		result = SaveSubsystem->RequestOverwriteSave(slotId, TEXT("ManualUI"));
 	else if (operation == ELRSaveOperationType::Load)
-		result = SaveSubsystem->RequestLoadSave(slotId);
+		result = SaveSubsystem->GetGameInstance()->GetSubsystem<ULRGameFlowSubsystem>()->RequestLoadSave(slotId);
 	else
 		result = SaveSubsystem->RequestDeleteSave(slotId);
 

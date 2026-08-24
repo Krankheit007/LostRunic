@@ -11,6 +11,7 @@
 #include "Core/LRGameplayTags.h"
 #include "Data/LRGameContentSet.h"
 #include "Framework/LRCharacter.h"
+#include "Framework/LRGameFlowSubsystem.h"
 #include "Framework/LRGameInstanceSubsystem.h"
 #include "Framework/LRPlayerController.h"
 #include "Interaction/LRInteractionComponent.h"
@@ -37,6 +38,7 @@ ULRPlayerUIComponent::ULRPlayerUIComponent()
  */
 void ULRPlayerUIComponent::EndPlay(const EEndPlayReason::Type endPlayReason)
 {
+	UnbindGameFlow();
 	UnbindNarrative();
 	ItemSelectorTarget.Reset();
 	bTransitionActive = false;
@@ -59,6 +61,11 @@ void ULRPlayerUIComponent::InitializeUI(ALRPlayerController* playerController)
 	}
 	UnbindNarrative();
 	OwnerController = playerController;
+	GameFlowSubsystem = playerController->GetGameInstance()->GetSubsystem<ULRGameFlowSubsystem>();
+	if (ULRGameFlowSubsystem* gameFlow = GameFlowSubsystem.Get())
+	{
+		gameFlow->OnFlowPhaseChanged.AddDynamic(this, &ULRPlayerUIComponent::HandleGameFlowPhaseChanged);
+	}
 	DialogueSubsystem = playerController->GetGameInstance()->GetSubsystem<ULRDialogueSubsystem>();
 	if (ULRDialogueSubsystem* dialogueSubsystem = DialogueSubsystem.Get())
 	{
@@ -486,6 +493,12 @@ FText ULRPlayerUIComponent::DescribeItemUseFailure(const FGameplayTag failureRea
  * @brief 处理 Handle Narrative Page Changed 事件，将引擎回调转换为对应领域状态更新。
  * @param page 本次领域操作的结构化数据 `page`；字段语义由对应 USTRUCT 定义。
  */
+void ULRPlayerUIComponent::HandleGameFlowPhaseChanged(const FGuid gameFlowTransactionId,
+	const FGuid saveOperationId, const ELRGameFlowPhase phase, const FName mapId)
+{
+	SetTransitionLayer(phase != ELRGameFlowPhase::Idle);
+}
+
 void ULRPlayerUIComponent::HandleNarrativePageChanged(const FLRNarrativePage page)
 {
 	if (ALRHUD* hud = GetLRHUD())
@@ -545,6 +558,15 @@ ULRScreenWidget* ULRPlayerUIComponent::GetFocusableScreen() const
 /**
  * @brief 解除 UI 对叙事子系统的委托绑定，避免销毁或换图后重复回调。
  */
+void ULRPlayerUIComponent::UnbindGameFlow()
+{
+	if (ULRGameFlowSubsystem* gameFlow = GameFlowSubsystem.Get())
+	{
+		gameFlow->OnFlowPhaseChanged.RemoveDynamic(this, &ULRPlayerUIComponent::HandleGameFlowPhaseChanged);
+	}
+	GameFlowSubsystem.Reset();
+}
+
 void ULRPlayerUIComponent::UnbindNarrative()
 {
 	if (ULRDialogueSubsystem* dialogueSubsystem = DialogueSubsystem.Get())

@@ -63,43 +63,9 @@ bool LRSaveRules::CanContinue(const TArray<FLRSaveSlotMetadata>& slots)
  * @param phase 本次操作使用的 `phase` 枚举或模式值。
  * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
  */
-bool LRSaveRules::IsManualSaveAllowed(const ELRMemoryTransactionPhase phase, const bool bWorldPaused)
+bool LRSaveRules::IsManualSaveAllowed(const bool bInMemoryMap, const bool bWorldPaused)
 {
-	return phase == ELRMemoryTransactionPhase::None && bWorldPaused;
-}
-
-/**
- * @brief 判断 Can Begin Memory Transaction 对应条件；不产生玩法副作用。
- * @param phase 本次操作使用的 `phase` 枚举或模式值。
- * @param anchor 调用方提供的 `anchor`，只在本次操作范围内使用。
- * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
- */
-bool LRSaveRules::CanBeginMemoryTransaction(const ELRMemoryTransactionPhase phase, const FLRResumeAnchor& anchor)
-{
-	return phase == ELRMemoryTransactionPhase::None && anchor.IsValid();
-}
-
-/**
- * @brief 判断 Is Memory Entry World 对应条件；不产生玩法副作用。
- * @param phase 本次操作使用的 `phase` 枚举或模式值。
- * @param currentMapId 稳定标识 `currentMapId`；用于内容查询和存档，不依赖显示名或数组序号。
- * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
- */
-bool LRSaveRules::IsMemoryEntryWorld(const ELRMemoryTransactionPhase phase, const FName currentMapId)
-{
-	return phase == ELRMemoryTransactionPhase::AwaitingMemoryWorld && currentMapId == LRSaveIds::MemoryMapId;
-}
-
-/**
- * @brief 判断 Is Resume World 对应条件；不产生玩法副作用。
- * @param phase 本次操作使用的 `phase` 枚举或模式值。
- * @param currentMapId 稳定标识 `currentMapId`；用于内容查询和存档，不依赖显示名或数组序号。
- * @param anchor 调用方提供的 `anchor`，只在本次操作范围内使用。
- * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
- */
-bool LRSaveRules::IsResumeWorld(const ELRMemoryTransactionPhase phase, const FName currentMapId, const FLRResumeAnchor& anchor)
-{
-	return phase == ELRMemoryTransactionPhase::AwaitingResumeWorld && anchor.IsValid() && currentMapId == anchor.MapId;
+	return !bInMemoryMap && bWorldPaused;
 }
 
 /**
