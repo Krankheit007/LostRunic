@@ -142,6 +142,12 @@ bool ULRStoryStateSubsystem::CommitEvent(const FLRStoryEventCommit& eventCommit)
 		UE_LOG(LogLostRunicNarrative, Warning, TEXT("Rejected Story event with invalid stable ID."));
 		return false;
 	}
+	if (eventCommit.StoryFlag.IsValid() && !IsValidStoryFlag(eventCommit.StoryFlag))
+	{
+		UE_LOG(LogLostRunicNarrative, Warning, TEXT("Rejected Story event=%s with invalid Story flag=%s."),
+			*eventCommit.EventId.ToString(), *eventCommit.StoryFlag.ToString());
+		return false;
+	}
 	if (PersistentState.CompletedEventIds.Contains(eventCommit.EventId))
 	{
 		return false;
