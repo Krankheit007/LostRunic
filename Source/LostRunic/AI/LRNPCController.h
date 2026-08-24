@@ -3,7 +3,7 @@
  * @brief 通用 NPC 控制器：Hearing 感知驱动噪声反应（Conversation 高优先级不被打断）、StateTree 生命周期（OnPossess 解析定义后启动）、巡逻与低频玩家朝向检测；不实现第二套计时器状态机。
  *
  * 关联文件：LRNPCController.cpp；所属领域：AI。
- * 设计依据：Docs/Design/01_GameDesignSummary.md 与 Docs/Technical/04_TechnicalDesign.md。
+ * 设计依据：Docs/Technical/08_ArchitectureBoundaries.md。
  * 除带 EditDefaultsOnly、EditAnywhere 或 EditInstanceOnly 的字段外，其余成员均为运行时状态，不应由蓝图直接改写。
  */
 #pragma once

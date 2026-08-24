@@ -3,7 +3,7 @@
  * @brief 可重复阅读的笔记交互：配置稳定 ReadingId，阅读会话成功打开时立即记录笔记 ID；重复打开不产生重复记录。
  *
  * 关联文件：LRNoteInteractableActor.cpp；所属领域：Interaction。
- * 设计依据：Docs/Design/01_GameDesignSummary.md 与 Docs/Technical/04_TechnicalDesign.md。
+ * 设计依据：Docs/Technical/08_ArchitectureBoundaries.md。
  * 除带 EditDefaultsOnly、EditAnywhere 或 EditInstanceOnly 的字段外，其余成员均为运行时状态，不应由蓝图直接改写。
  */
 #pragma once

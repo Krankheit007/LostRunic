@@ -3,7 +3,7 @@
  * @brief 实现 4 格快捷栏、背包、笔记、收藏品和统一物品使用事务；快捷栏与交互后选物共用解析入口，失败时回滚消耗并返回结构化原因。
  *
  * 关联文件：LRItemUseTargetActor.h；所属领域：Items。
- * 设计依据：Docs/Design/01_GameDesignSummary.md 与 Docs/Technical/04_TechnicalDesign.md。
+ * 设计依据：Docs/Technical/08_ArchitectureBoundaries.md。
  * 除带 EditDefaultsOnly、EditAnywhere 或 EditInstanceOnly 的字段外，其余成员均为运行时状态，不应由蓝图直接改写。
  */
 #include "Items/LRItemUseTargetActor.h"

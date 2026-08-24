@@ -3,7 +3,7 @@
  * @brief 按稳定物品 ID 保存堆叠条目（数量 + 单调获得顺序）、武器选择、笔记与收藏品 ID；只维护物品状态和武器选择，不理解攻击条件或使用入口。
  *
  * 关联文件：LRInventoryComponent.h；所属领域：Items。
- * 设计依据：Docs/Design/01_GameDesignSummary.md 与 Docs/Technical/04_TechnicalDesign.md。
+ * 设计依据：Docs/Technical/08_ArchitectureBoundaries.md。
  * 除带 EditDefaultsOnly、EditAnywhere 或 EditInstanceOnly 的字段外，其余成员均为运行时状态，不应由蓝图直接改写。
  */
 #include "Items/LRInventoryComponent.h"

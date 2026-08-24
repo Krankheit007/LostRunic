@@ -3,7 +3,7 @@
  * @brief 通用 NPC 的 StateTree 节点：行为任务/条件（执行控制器解析结果）、Idle 玩家朝向任务与限时噪声反应任务；计时器由控制器持有，无 Tick。
  *
  * 关联文件：LRNPCStateTreeNodes.cpp；所属领域：AI。
- * 设计依据：Docs/Design/01_GameDesignSummary.md 与 Docs/Technical/04_TechnicalDesign.md。
+ * 设计依据：Docs/Technical/08_ArchitectureBoundaries.md。
  * 除带 EditDefaultsOnly、EditAnywhere 或 EditInstanceOnly 的字段外，其余成员均为运行时状态，不应由蓝图直接改写。
  */
 #pragma once

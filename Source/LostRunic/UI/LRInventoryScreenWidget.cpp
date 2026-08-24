@@ -3,7 +3,7 @@
  * @brief 统一菜单（背包 4×2 / 笔记 1×12 / 收藏品 4×3）的具体 Screen：解释通用命令、维护 Tab、选中项、装备武器与各 Tab 焦点索引恢复；只消费 FLRInventorySnapshot 表现数据，动作一律回到 ULRMenuWidgetController / ULRInventoryComponent。
  *
  * 关联文件：LRInventoryScreenWidget.h；所属领域：UI。
- * 设计依据：Docs/Design/01_GameDesignSummary.md 与 Docs/Technical/04_TechnicalDesign.md。
+ * 设计依据：Docs/Technical/08_ArchitectureBoundaries.md。
  * 除带 EditDefaultsOnly、EditAnywhere 或 EditInstanceOnly 的字段外，其余成员均为运行时状态，不应由蓝图直接改写。
  */
 #include "UI/LRInventoryScreenWidget.h"

@@ -3,7 +3,7 @@
  * @brief 世界空间警戒条 Widget 基类：由守卫初始化并绑定/解绑 ULRAlertComponent 的只读警戒快照，绑定后立即推送一次快照；蓝图只负责表现（0 隐藏 / 1-5 白 / 6-10 红 / 11 满值特效）。
  *
  * 关联文件：LRWorldAlertBarWidgetBase.cpp；所属领域：UI。
- * 设计依据：Docs/Design/01_GameDesignSummary.md 与 Docs/Technical/04_TechnicalDesign.md。
+ * 设计依据：Docs/Technical/08_ArchitectureBoundaries.md。
  * 除带 EditDefaultsOnly、EditAnywhere 或 EditInstanceOnly 的字段外，其余成员均为运行时状态，不应由蓝图直接改写。
  */
 #pragma once

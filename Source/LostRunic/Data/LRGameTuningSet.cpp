@@ -3,7 +3,7 @@
  * @brief 聚合 State、Movement、Interaction、Guard、Save、UI、Presentation 七类调优资产，并统一校验与输出实际来源。
  *
  * 关联文件：LRGameTuningSet.h；所属领域：Data。
- * 设计依据：Docs/Design/01_GameDesignSummary.md 与 Docs/Technical/04_TechnicalDesign.md。
+ * 设计依据：Docs/Technical/08_ArchitectureBoundaries.md。
  * 除带 EditDefaultsOnly、EditAnywhere 或 EditInstanceOnly 的字段外，其余成员均为运行时状态，不应由蓝图直接改写。
  */
 #include "Data/LRGameTuningSet.h"

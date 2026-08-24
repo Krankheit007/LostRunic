@@ -3,7 +3,7 @@
  * @brief 实现角色移动模式、按移动距离产生脚步和室内外噪声区域等基础玩法能力；区域维护进入/退出集合，重叠按固定优先级解析，无区域时默认 Outdoor。
  *
  * 关联文件：LRNoiseArea.h；所属领域：Gameplay。
- * 设计依据：Docs/Design/01_GameDesignSummary.md 与 Docs/Technical/04_TechnicalDesign.md。
+ * 设计依据：Docs/Technical/08_ArchitectureBoundaries.md。
  * 除带 EditDefaultsOnly、EditAnywhere 或 EditInstanceOnly 的字段外，其余成员均为运行时状态，不应由蓝图直接改写。
  */
 #include "Gameplay/LRNoiseArea.h"

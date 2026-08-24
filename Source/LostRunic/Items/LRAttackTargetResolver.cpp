@@ -3,7 +3,7 @@
  * @brief 独立攻击目标筛选：只保留实现 ILRAttackTarget、满足攻击距离、朝向、遮挡和目标状态（免疫）的候选，不复用交互系统的当前焦点、目标接口或 HUD 提示语义。
  *
  * 关联文件：LRAttackTargetResolver.h；所属领域：Items。
- * 设计依据：Docs/Design/01_GameDesignSummary.md 与 Docs/Technical/04_TechnicalDesign.md。
+ * 设计依据：Docs/Technical/08_ArchitectureBoundaries.md。
  * 除带 EditDefaultsOnly、EditAnywhere 或 EditInstanceOnly 的字段外，其余成员均为运行时状态，不应由蓝图直接改写。
  */
 #include "Items/LRAttackTargetResolver.h"

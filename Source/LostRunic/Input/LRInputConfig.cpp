@@ -3,7 +3,7 @@
  * @brief 定义 Enhanced Input 的语义资产集合和 Gameplay、Dialogue、Menu、Transition 上下文，具体键鼠与手柄按键由输入资产配置，C++ 只绑定动作语义。
  *
  * 关联文件：LRInputConfig.h；所属领域：Input。
- * 设计依据：Docs/Design/01_GameDesignSummary.md 与 Docs/Technical/04_TechnicalDesign.md。
+ * 设计依据：Docs/Technical/08_ArchitectureBoundaries.md。
  * 除带 EditDefaultsOnly、EditAnywhere 或 EditInstanceOnly 的字段外，其余成员均为运行时状态，不应由蓝图直接改写。
  */
 #include "Input/LRInputConfig.h"

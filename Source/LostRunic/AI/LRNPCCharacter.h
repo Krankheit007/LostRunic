@@ -3,7 +3,7 @@
  * @brief 通用非战斗 NPC：由 StateTree（Idle/Patrol/ReactToNoise/Conversation）驱动；实现 SUDS 对话交互与噪声表现钩子（OnNoiseHeard / OnNPCAttentionChanged 预留未来告警/逃离）。
  *
  * 关联文件：LRNPCCharacter.cpp；所属领域：AI。
- * 设计依据：Docs/Design/01_GameDesignSummary.md 与 Docs/Technical/04_TechnicalDesign.md。
+ * 设计依据：Docs/Technical/08_ArchitectureBoundaries.md。
  * 除带 EditDefaultsOnly、EditAnywhere 或 EditInstanceOnly 的字段外，其余成员均为运行时状态，不应由蓝图直接改写。
  */
 #pragma once

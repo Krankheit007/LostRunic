@@ -3,7 +3,7 @@
  * @brief 提供移动纯规则自动化测试：状态×步态矩阵、默认步态、步态×环境脚步噪声、噪声环境优先级与室内奔跑房间警戒目标值。仅在 WITH_DEV_AUTOMATION_TESTS 下编译。
  *
  * 关联文件：Tests 目录内调用该公共契约的实现文件；所属领域：Tests。
- * 设计依据：Docs/Design/01_GameDesignSummary.md 与 Docs/Technical/04_TechnicalDesign.md。
+ * 设计依据：Docs/Technical/08_ArchitectureBoundaries.md。
  * 除带 EditDefaultsOnly、EditAnywhere 或 EditInstanceOnly 的字段外，其余成员均为运行时状态，不应由蓝图直接改写。
  */
 #if WITH_DEV_AUTOMATION_TESTS

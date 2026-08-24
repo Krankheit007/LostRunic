@@ -3,7 +3,7 @@
  * @brief 实现 DataTable 驱动的对话、阅读、条件分支和一次性剧情事件；稳定 FName ID 进入存档，显示全文与推进下一句的二段确认由控制层维护。
  *
  * 关联文件：LRNarrativeRules.cpp；所属领域：Narrative。
- * 设计依据：Docs/Design/01_GameDesignSummary.md 与 Docs/Technical/04_TechnicalDesign.md。
+ * 设计依据：Docs/Technical/08_ArchitectureBoundaries.md。
  * 除带 EditDefaultsOnly、EditAnywhere 或 EditInstanceOnly 的字段外，其余成员均为运行时状态，不应由蓝图直接改写。
  */
 #pragma once

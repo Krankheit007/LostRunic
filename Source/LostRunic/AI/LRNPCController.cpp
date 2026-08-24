@@ -3,7 +3,7 @@
  * @brief 通用 NPC 控制器实现：Hearing 感知、StateTree 生命周期、巡逻、低频玩家朝向与限时噪声反应。
  *
  * 关联文件：LRNPCController.h；所属领域：AI。
- * 设计依据：Docs/Design/01_GameDesignSummary.md 与 Docs/Technical/04_TechnicalDesign.md。
+ * 设计依据：Docs/Technical/08_ArchitectureBoundaries.md。
  * 除带 EditDefaultsOnly、EditAnywhere 或 EditInstanceOnly 的字段外，其余成员均为运行时状态，不应由蓝图直接改写。
  */
 #include "AI/LRNPCController.h"

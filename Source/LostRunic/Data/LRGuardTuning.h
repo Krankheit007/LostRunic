@@ -3,7 +3,7 @@
  * @brief 集中配置守卫总视野角、视野/听觉距离、调查/追逐速度、警戒衰减、搜索和捕获参数，是 AI 行为数值的权威来源。
  *
  * 关联文件：LRGuardTuning.cpp；所属领域：Data。
- * 设计依据：Docs/Design/01_GameDesignSummary.md 与 Docs/Technical/04_TechnicalDesign.md。
+ * 设计依据：Docs/Technical/08_ArchitectureBoundaries.md。
  * 除带 EditDefaultsOnly、EditAnywhere 或 EditInstanceOnly 的字段外，其余成员均为运行时状态，不应由蓝图直接改写。
  */
 #pragma once

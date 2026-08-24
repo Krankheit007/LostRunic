@@ -3,7 +3,7 @@
  * @brief 攻击目标响应：实现 ILRAttackTarget，按调优参数执行非致死击退；免疫、状态、冷却和消费由统一物品事务管理。
  *
  * 关联文件：LRCourageResponseComponent.cpp；所属领域：Items。
- * 设计依据：Docs/Design/01_GameDesignSummary.md 与 Docs/Technical/04_TechnicalDesign.md。
+ * 设计依据：Docs/Technical/08_ArchitectureBoundaries.md。
  * 除带 EditDefaultsOnly、EditAnywhere 或 EditInstanceOnly 的字段外，其余成员均为运行时状态，不应由蓝图直接改写。
  */
 #pragma once

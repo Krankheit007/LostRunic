@@ -3,7 +3,7 @@
  * @brief 保存单个守卫 0-11 警戒值、最后异常位置、目标和观察计时；所有升降都携带 Gameplay Tag 原因并广播事件。
  *
  * 关联文件：LRAlertComponent.cpp；所属领域：AI。
- * 设计依据：Docs/Design/01_GameDesignSummary.md 与 Docs/Technical/04_TechnicalDesign.md。
+ * 设计依据：Docs/Technical/08_ArchitectureBoundaries.md。
  * 除带 EditDefaultsOnly、EditAnywhere 或 EditInstanceOnly 的字段外，其余成员均为运行时状态，不应由蓝图直接改写。
  */
 #pragma once

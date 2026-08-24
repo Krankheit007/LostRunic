@@ -3,7 +3,7 @@
  * @brief 世界空间警戒条 Widget 基类实现：守卫初始化时绑定警戒快照，Widget 销毁时解绑；初始快照在绑定后立即推送。
  *
  * 关联文件：LRWorldAlertBarWidgetBase.h；所属领域：UI。
- * 设计依据：Docs/Design/01_GameDesignSummary.md 与 Docs/Technical/04_TechnicalDesign.md。
+ * 设计依据：Docs/Technical/08_ArchitectureBoundaries.md。
  * 除带 EditDefaultsOnly、EditAnywhere 或 EditInstanceOnly 的字段外，其余成员均为运行时状态，不应由蓝图直接改写。
  */
 #include "UI/LRWorldAlertBarWidgetBase.h"

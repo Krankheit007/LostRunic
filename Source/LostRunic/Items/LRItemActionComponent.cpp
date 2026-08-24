@@ -3,7 +3,7 @@
  * @brief 角色上的物品玩法动作唯一入口：RequestUseItem 走交互目标，RequestAttack 经独立攻击目标解析器取目标并组装武器/空手请求；规则、执行与消费由 ULRItemUseResolver 统一管理。
  *
  * 关联文件：LRItemActionComponent.h；所属领域：Items。
- * 设计依据：Docs/Design/01_GameDesignSummary.md 与 Docs/Technical/04_TechnicalDesign.md。
+ * 设计依据：Docs/Technical/08_ArchitectureBoundaries.md。
  * 除带 EditDefaultsOnly、EditAnywhere 或 EditInstanceOnly 的字段外，其余成员均为运行时状态，不应由蓝图直接改写。
  */
 #include "Items/LRItemActionComponent.h"

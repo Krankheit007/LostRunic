@@ -3,7 +3,7 @@
  * @brief 声明四种心理状态、状态请求类型以及 Changing/Changed/Rejected 公共请求结果，作为输入、剧情、死亡与表现系统之间的稳定契约。
  *
  * 关联文件：State 目录内调用该公共契约的实现文件；所属领域：State。
- * 设计依据：Docs/Design/01_GameDesignSummary.md 与 Docs/Technical/04_TechnicalDesign.md。
+ * 设计依据：Docs/Technical/08_ArchitectureBoundaries.md。
  * 除带 EditDefaultsOnly、EditAnywhere 或 EditInstanceOnly 的字段外，其余成员均为运行时状态，不应由蓝图直接改写。
  */
 #pragma once

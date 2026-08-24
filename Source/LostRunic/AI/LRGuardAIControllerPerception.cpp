@@ -3,7 +3,7 @@
  * @brief 守卫控制器感知实现：Sight/Hearing 刺激转换为警戒语义入口、感知配置、遮挡与隐藏判定、捕获计时（眩晕期间跳过）。
  *
  * 关联文件：LRGuardAIController.h；所属领域：AI。
- * 设计依据：Docs/Design/01_GameDesignSummary.md 与 Docs/Technical/04_TechnicalDesign.md。
+ * 设计依据：Docs/Technical/08_ArchitectureBoundaries.md。
  * 除带 EditDefaultsOnly、EditAnywhere 或 EditInstanceOnly 的字段外，其余成员均为运行时状态，不应由蓝图直接改写。
  */
 #include "AI/LRGuardAIController.h"

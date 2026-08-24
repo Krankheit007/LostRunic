@@ -3,7 +3,7 @@
  * @brief 把 AI Perception 的 Sight/Hearing 事件转换为警戒原因标签，并驱动 Idle、Suspicious、Investigate、Search、Chase 行为、导航速度和捕获检测。
  *
  * 关联文件：LRGuardAIController.cpp；所属领域：AI。
- * 设计依据：Docs/Design/01_GameDesignSummary.md 与 Docs/Technical/04_TechnicalDesign.md。
+ * 设计依据：Docs/Technical/08_ArchitectureBoundaries.md。
  * 除带 EditDefaultsOnly、EditAnywhere 或 EditInstanceOnly 的字段外，其余成员均为运行时状态，不应由蓝图直接改写。
  */
 #pragma once

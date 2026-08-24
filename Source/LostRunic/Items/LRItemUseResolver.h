@@ -3,7 +3,7 @@
  * @brief 统一物品事务：入口与请求格式校验、定义与持有检查、Action 能力声明、状态规则、对应入口目标检查、执行、成功后消费、失败保持原库存、广播结构化结果。
  *
  * 关联文件：LRItemUseResolver.cpp；所属领域：Items。
- * 设计依据：Docs/Design/01_GameDesignSummary.md 与 Docs/Technical/04_TechnicalDesign.md。
+ * 设计依据：Docs/Technical/08_ArchitectureBoundaries.md。
  * 除带 EditDefaultsOnly、EditAnywhere 或 EditInstanceOnly 的字段外，其余成员均为运行时状态，不应由蓝图直接改写。
  */
 #pragma once

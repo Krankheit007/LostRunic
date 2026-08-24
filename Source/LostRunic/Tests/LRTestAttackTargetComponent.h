@@ -3,7 +3,7 @@
  * @brief 攻击目标测试替身：实现 ILRAttackTarget，记录调用次数并按 bShouldSucceed 返回结果；仅 WITH_DEV_AUTOMATION_TESTS 下编译。
  *
  * 关联文件：LRTestAttackTargetComponent.cpp；所属领域：Tests。
- * 设计依据：Docs/Design/01_GameDesignSummary.md 与 Docs/Technical/04_TechnicalDesign.md。
+ * 设计依据：Docs/Technical/08_ArchitectureBoundaries.md。
  */
 #pragma once
 

@@ -3,7 +3,7 @@
  * @brief 提供 UI 自动化测试使用的具体 Screen 子类与委托观察者：验证通用命令路由不依赖 Inventory 类型、快照广播与领域事件计数。
  *
  * 关联文件：LRUITests.cpp；所属领域：Tests。
- * 设计依据：Docs/Design/01_GameDesignSummary.md 与 Docs/Technical/04_TechnicalDesign.md。
+ * 设计依据：Docs/Technical/08_ArchitectureBoundaries.md。
  */
 #pragma once
 

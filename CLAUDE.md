@@ -7,6 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 LostRunic（工作名《不要忘记阿黛尔》）是 **Unreal Engine 5.8** 的 Windows 单机俯视角叙事潜行解谜游戏（`LostRunic.uproject` 的 `EngineAssociation` 为 `5.8`）。核心规则全部由 C++ 实现，蓝图只负责装配、表现与配置；关卡布局与场景布置由项目负责人在编辑器中完成，不代做。
 
 详细的代码规范、调优政策、错误处理与验收标准见 **`AGENTS.md`**（仓库权威指南，Codex/Claude 共用）；设计上下文与四状态系统等玩法规则见 **`.agents/ue-project-context.md`**（已合并设计摘要与技术设计，含状态标记：`已确定`/`基线`/`待决策`）。本文档只补充 Claude 工作所需的工程要点，不重复 AGENTS.md 内容。
+人类维护的架构边界 Source of Truth：Docs/Technical/08_ArchitectureBoundaries.md。
 
 ## 构建、运行与测试
 
@@ -46,13 +47,13 @@ LostRunic（工作名《不要忘记阿黛尔》）是 **Unreal Engine 5.8** 的
 | `Narrative/` | `ULRDialogueSubsystem`（DataTable 遍历、条件、分支、一次性剧情事件） |
 | `Save/` | SaveGame 分块结构、保存队列、`FLRResumeAnchor` 恢复锚点 |
 | `UI/` | HUD、Widget Controller（对话/菜单/过渡）、`ULRPlayerUIComponent` |
-| `Variant_Strategy/` `Variant_TwinStick/` | 两个玩法变体（策略 / twin-stick），各含 `AI/`、`Gameplay/`、`UI/` 子目录 |
+| Variant_Strategy / Variant_TwinStick | Runtime C++ 已清理；进一步资产迁移须先通过 Asset Registry 和 PIE 验证 |
 | `Tests/` | 自动化测试（框架、守卫、交互、物品、叙事、存档、状态、调优） |
 
 要点：
 
 - **职责划分**：Actor 负责生命周期与组件组合，Component 负责独立能力，Subsystem 负责跨 Actor 长期状态。`ALRPlayerController` 是 Enhanced Input 上下文、输入模式、光标状态的唯一所有者；`ULRGameInstanceSubsystem` 持有已验证的内容与调优根；Widget 只接收不可变表现数据，不得反向决定规则。
-- **模板遗留**：模块根部的 `LostRunicCharacter`、`LostRunicGameMode`、`LostRunicPlayerController`（及 `Content/TopDown/`）是 UE 模板残留。新功能优先复用 `LR*` 类，避免形成第二套框架。
+- 模板遗留：Content/TopDown/ 仍含被当前 BP_LRPlayerController 引用的输入/光标资产和外部对象，不能整体删除；旧类 Redirect 保留并指向 LR* 类。
 - **调优与数据**：影响手感/平衡的值必须落在 `Content/LostRunic/Data/Tuning/` 的领域 DataAsset（`ULRStateTuning`、`ULRInteractionTuning`、`ULRMovementTuning`、`ULRGuardTuning`、`ULRSaveTuning`、`ULRUITuning`、`ULRNPCTuning` 等），由 `ULRGameTuningSet` 聚合，`DefaultGame.ini` 指定默认集。C++ 默认值只是安全回退；稳定 ID 用 `FName`/GUID；非关键资源用软引用异步加载；禁止散落硬编码 `/Game/...` 路径。**字段重命名必须同步 `Config/DefaultEngine.ini` 的 `+PropertyRedirects`（先例：`HearingAlertAmount`→`AttractAlertAmount` 等）**。
 - **输入**：Enhanced Input 语义动作，代码绑定动作不绑按键；长按阈值/死区/曲线放入输入与调优资产；上下文切换时 `bIgnoreAllPressedKeysUntilRelease`（`IMC_LRGameplay` / `IMC_LRDialogue` / `IMC_LRMenu` / `IMC_LRTransition`）。
 - **AI**：StateTree + 统一声源/视线事件，警戒 0–11 必须记录原因 Gameplay Tag（如 `Noise.Footstep`、`Sight.Player`）；禁止随机 Tick 分支替代状态图。守卫行为由 `ResolveTargetBehavior`（`LRAlertRules` 纯规则，眩晕优先）唯一权威解析，StateTree 只执行结果：树**仅由 `AI.Event.BehaviorChanged` 驱动**（`AI.Event.AlertChanged` 只表示数据变化）；`ST_Guard`/`ST_NPC` 资产需在编辑器人工创建（MCP 只能检查）并挂在 `DA_LRGuardDefinition`/`DA_LRNPCDefinition.Behavior`（**硬引用**）。
@@ -61,7 +62,7 @@ LostRunic（工作名《不要忘记阿黛尔》）是 **Unreal Engine 5.8** 的
 - **AI**：StateTree + 统一声源/视线事件，警戒 0–11 必须记录原因 Gameplay Tag（如 `Noise.Footstep`、`Sight.Player`）；禁止随机 Tick 分支替代状态图。
 - **默认禁止 Tick**：优先委托、计时器、StateTree、Gameplay Tags、事件队列。
 - **有意不做**：GAS、网络/复制、CommonUI、Excel 直接读取（用 UTF-8 CSV/DataTable）。新增模块依赖前先确认模块所有权（可引入 OnlineSubsystem/Steam 的注释已在 Build.cs 中预留）。
-- **地图**：主切片 `Content/LostRunic/Levels/Home/L_Home.umap`；变体地图 `Content/Variant_Strategy/LVL_Strategy.umap`、`Content/Variant_TwinStick/LVL_TwinStick.umap`；`Content/TopDown/Lvl_TopDown.umap` 为模板残留。
+- 地图：主切片 Content/LostRunic/Levels/Home/L_Home.umap；Content/TopDown/Lvl_TopDown.umap 与相关输入资产仍需独立迁移验证。
 
 ## Claude 工作流约定
 

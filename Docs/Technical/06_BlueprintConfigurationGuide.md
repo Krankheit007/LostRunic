@@ -702,3 +702,36 @@ StringTable 的 `Source String` 只填写源语言（本项目约定为 `zh-Hans
 - 定向自动化测试 7/7 通过、0 Warning/Error：主菜单无 Pawn、PIE 内容契约、Designer Widget 契约、刷新后焦点恢复、焦点目标规则、Primary/Delete 动作规则和存档快照规则。
 - `L_MainMenu` 已确认菜单显示、专用 GameMode/HUD 生效、无 Pawn，且 `LogGameMode`、`LogLostRunicUI`、`LogBlueprint` 无项目级 Warning/Error；`DA_LRNPCTuning` 已由调优日志确认加载。
 - `L_Home` 已确认运行时生成 `BP_Ruth_C` 且角色模型可见。Pause → Save、确认弹窗及返回链路的最终手动 PIE 由项目负责人继续验收。
+
+## 架构边界与 GameFlow/StoryState 配置登记
+
+### 交互提示
+
+- 交互领域只生成 FLRInteractionFocusSnapshot：Target、Prompt、ActionTag、PromptAnchor、PromptWorldOffset。
+- 不要在 ULRInteractionComponent 或交互 Actor 中配置 InputAction、InputConfig、InputKeyText 或 Glyph。
+- 打开 HUD 的 Widget Controller，确认其拥有当前 ALRPlayerController，并通过 PlayerController 的 InputConfig 解析语义 ActionTag 对应的 InputAction、当前设备和 Enhanced Input Mapping 显示文本。
+- 现有 HUD Prompt Widget 的控件名和 BindWidget 绑定保持不变；Widget 只消费 FLRInteractionPromptView。
+- 交互查询使用项目命名通道 Interaction（底层仍为 ECC_GameTraceChannel1），不要在蓝图中新增匿名 GameTraceChannel。
+
+### StoryState 与对话事件
+
+- StoryFlags、CompletedEventIds、MemoryEventIds 只能由 ULRStoryStateSubsystem 持有；Dialogue Widget 不保存这些集合。
+- Event Definition 资产位于 /Game/LostRunic/Data/，在 Event 分类填写稳定 EventId、条件标签、SavePolicy；需要事件完成时追加 CompletionStoryFlag。StoryState.CommitEvent 会在广播前同时写入完成事件和 StoryFlag。
+- 正常 Load/New Game 使用 ReplacePersistentState；Memory 返回使用 ReplacePersistentState(HomeSnapshot.Story) 后再 ApplyPersistentDelta(DurableNarrativeDelta)。不要用增量 API 替代完整 Load。
+- Save V2 的 FLRSaveStoryChunk 不在 Narrative 类型或 StoryState 蓝图接口中出现；转换由 Save 层 LRStorySaveAdapter 完成。
+
+### GameFlow、Save 与 Transition UI
+
+- 主菜单 New Game/Continue/Load 的按钮 Controller 调用 ULRGameFlowSubsystem，不直接控制地图旅行或 Transition Widget。
+- GameFlow 为 Load/New Game/Memory 创建 GameFlowTransactionId；Save 为实际队列操作创建 SaveOperationId。蓝图事件必须同时传递并匹配两个 ID，不得用“下一个完成事件”关联流程。
+- ULRGameFlowSubsystem 只广播 OnFlowPhaseChanged(TransactionId, OperationId, Phase, MapId)。ULRPlayerUIComponent 订阅它并控制 Transition Layer；GameFlow 不查找 HUD、PlayerController 或 Widget。
+- Save 的 Started、PhaseChanged、LoadRequested、NewGameRequested、Completed 事件只作为状态/请求通知。不要在 Widget 中消费 WritingPayload、LoadingPayload 等 Save 内部状态。
+- Memory Critical Save 的数据来源固定为 HomeSnapshot + DurableNarrativeDelta。不要从 Memory 当前世界重新 Capture。HomeSnapshot 只有对应 Return SaveOperationId 成功后才能清空。
+
+### Variant/旧模板清理
+
+- Variant Runtime C++ 已从 Source/LostRunic/Variant_Strategy 和 Source/LostRunic/Variant_TwinStick 移除；不要在新蓝图中选择这些类。
+- Content/TopDown 当前仍被 BP_LRPlayerController 的输入/光标资产引用，不能整体删除。任何进一步迁移必须先运行 Asset Registry Referencers、Blueprint ParentClass、Soft/Class Path 和 L_PIE_Test 包加载检查。
+- 旧 TopDown class redirect 保留，目标为 LRCharacter、LRGameMode、LRPlayerController；本次不删除 Redirect。
+
+正式边界文档：Docs/Technical/08_ArchitectureBoundaries.md。

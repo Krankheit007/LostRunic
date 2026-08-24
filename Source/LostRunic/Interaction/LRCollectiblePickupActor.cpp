@@ -3,7 +3,7 @@
  * @brief 收藏品拾取：AddCollectibleId 返回 Success 才隐藏世界 Actor；AlreadyOwned 保持 Actor 并记录明确诊断。
  *
  * 关联文件：LRCollectiblePickupActor.h；所属领域：Interaction。
- * 设计依据：Docs/Design/01_GameDesignSummary.md 与 Docs/Technical/04_TechnicalDesign.md。
+ * 设计依据：Docs/Technical/08_ArchitectureBoundaries.md。
  * 除带 EditDefaultsOnly、EditAnywhere 或 EditInstanceOnly 的字段外，其余成员均为运行时状态，不应由蓝图直接改写。
  */
 #include "Interaction/LRCollectiblePickupActor.h"

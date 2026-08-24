@@ -3,7 +3,7 @@
  * @brief 统一菜单控制器：维护背包/笔记/收集品/暂停/存档槽 Tab 状态，绑定 Inventory 与内容定义，构建只读 FLRInventorySnapshot；菜单关闭期间只标记 dirty，打开或可见期间收到领域事件才重建并广播统一 OnSnapshotChanged。
  *
  * 关联文件：LRMenuWidgetController.cpp；所属领域：UI。
- * 设计依据：Docs/Design/01_GameDesignSummary.md 与 Docs/Technical/04_TechnicalDesign.md。
+ * 设计依据：Docs/Technical/08_ArchitectureBoundaries.md。
  * 除带 EditDefaultsOnly、EditAnywhere 或 EditInstanceOnly 的字段外，其余成员均为运行时状态，不应由蓝图直接改写。
  */
 #pragma once
