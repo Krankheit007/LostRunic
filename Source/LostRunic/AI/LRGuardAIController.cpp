@@ -58,7 +58,7 @@ void ALRGuardAIController::BeginPlay()
 	ConfigurePerception();
 	AIPerception->OnTargetPerceptionUpdated.AddDynamic(this, &ALRGuardAIController::HandlePerception);
 	LastDetectionSampleTime = 0.0;
-	CachedAwareness = GetAwarenessSnapshot();
+	CachedAwareness = BuildCurrentAwarenessSnapshot();
 }
 void ALRGuardAIController::EndPlay(const EEndPlayReason::Type endPlayReason)
 {
@@ -89,7 +89,7 @@ void ALRGuardAIController::OnPossess(APawn* inPawn)
 	{
 		courage->OnKnockbackApplied.AddDynamic(this, &ALRGuardAIController::HandleKnockback);
 	}
-	CachedAwareness = GetAwarenessSnapshot();
+	CachedAwareness = BuildCurrentAwarenessSnapshot();
 	InvestigationMoveRequestCount = 0;
 	ClearInvestigationRetrySuppression();
 	LastDetectionSampleTime = 0.0;
@@ -127,8 +127,8 @@ void ALRGuardAIController::OnUnPossess()
 	}
 	PerceivedSightContact.Reset();
 	LastDetectionSampleTime = 0.0;
-	StopMovement();
 	ClearInvestigationMoveRequest();
+	StopMovement();
 	ClearInvestigationRetrySuppression();
 	bAwarenessCommitDeferred = false;
 	DeferredAwarenessReason = FGameplayTag();
@@ -148,7 +148,7 @@ void ALRGuardAIController::OnUnPossess()
 	CachedAwareness = FLRGuardAwarenessSnapshot();
 	Super::OnUnPossess();
 }
-FLRGuardAwarenessSnapshot ALRGuardAIController::GetAwarenessSnapshot() const
+FLRGuardAwarenessSnapshot ALRGuardAIController::BuildCurrentAwarenessSnapshot() const
 {
 	FLRGuardAwarenessSnapshot snapshot;
 	if (Alert.IsValid())
@@ -166,9 +166,14 @@ FLRGuardAwarenessSnapshot ALRGuardAIController::GetAwarenessSnapshot() const
 	return snapshot;
 }
 
+FLRGuardAwarenessSnapshot ALRGuardAIController::GetAwarenessSnapshot() const
+{
+	return CachedAwareness;
+}
+
 ELRGuardBehaviorState ALRGuardAIController::GetResolvedBehavior() const
 {
-	return GetAwarenessSnapshot().ResolvedBehavior;
+	return BuildCurrentAwarenessSnapshot().ResolvedBehavior;
 }
 
 void ALRGuardAIController::ReceiveNoiseStimulus(const FLRGuardNoiseStimulus& stimulus)
@@ -177,7 +182,7 @@ void ALRGuardAIController::ReceiveNoiseStimulus(const FLRGuardNoiseStimulus& sti
 	{
 		return;
 	}
-	const FLRGuardAwarenessSnapshot previous = GetAwarenessSnapshot();
+	const FLRGuardAwarenessSnapshot previous = BuildCurrentAwarenessSnapshot();
 	const int32 previousLevel = Alert->GetAlertLevel();
 	FLRNoiseResponse response = LRGuardPerceptionRules::ResolveNoiseAlertDelta(
 		stimulus.Reason, previousLevel, GetEffectiveTuning());
@@ -254,7 +259,7 @@ void ALRGuardAIController::HandleAlertDecayRequested()
 	{
 		return;
 	}
-	const FLRGuardAwarenessSnapshot previous = GetAwarenessSnapshot();
+	const FLRGuardAwarenessSnapshot previous = BuildCurrentAwarenessSnapshot();
 	if (!LRAlertRules::ShouldDecay(previous.Alert, previous.Knowledge, Alert->IsObserving(),
 		previous.ResolvedBehavior))
 	{

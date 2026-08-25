@@ -9,15 +9,16 @@
 #pragma once
 
 #include "AI/LRGuardTypes.h"
+#include "Core/LRGuardConstants.h"
 
 class ULRGuardTuning;
 
 namespace LRAlertRules
 {
 	/** 警戒上限；供 UI 快照与运行时组件共享。 */
-	inline constexpr int32 MaxAlertLevel = 11;
+	inline constexpr int32 MaxAlertLevel = LRGuardConstants::MaxAlertLevel;
 	/** 警戒下限。 */
-	inline constexpr int32 MinAlertLevel = 0;
+	inline constexpr int32 MinAlertLevel = LRGuardConstants::MinAlertLevel;
 
 	/**
 	 * @brief 按 0-11 边界应用警戒变化，并返回旧值、新值和原因。

@@ -64,6 +64,9 @@ public:
 
 private:
 	friend class ALRGuardAIController;
+#if WITH_DEV_AUTOMATION_TESTS
+	friend class FLRGuardSightContactLifecycleRuntimeTest;
+#endif
 
 	void SetVisualCandidate(AActor* candidate);
 	void ClearVisualCandidate();

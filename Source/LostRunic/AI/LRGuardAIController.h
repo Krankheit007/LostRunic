@@ -77,6 +77,9 @@ protected:
 	virtual void OnMoveCompleted(FAIRequestID requestId, const FPathFollowingResult& result) override;
 
 private:
+#if WITH_DEV_AUTOMATION_TESTS
+	friend class FLRGuardSightContactLifecycleRuntimeTest;
+#endif
 	UFUNCTION()
 	void HandlePerception(AActor* actor, FAIStimulus stimulus);
 
@@ -89,6 +92,7 @@ private:
 	void HandleAlertDecayRequested();
 	void HandleStunEnd();
 	void StartPatrolMove();
+	FLRGuardAwarenessSnapshot BuildCurrentAwarenessSnapshot() const;
 	void ProcessAwarenessTransaction(FGameplayTag reason, bool bForcePublish = false);
 	void RefreshBehaviorContext(const FLRGuardAwarenessSnapshot& current);
 	void CommitAwareness(FGameplayTag reason, bool bForcePublish = false);

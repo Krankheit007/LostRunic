@@ -32,7 +32,7 @@ ELRGuardBehaviorEntryResult ALRGuardAIController::EnterBehavior(const ELRGuardBe
 		return behavior == ELRGuardBehaviorState::Investigate
 			? ELRGuardBehaviorEntryResult::Failed : ELRGuardBehaviorEntryResult::Running;
 	}
-	const FLRGuardAwarenessSnapshot awareness = GetAwarenessSnapshot();
+	const FLRGuardAwarenessSnapshot awareness = BuildCurrentAwarenessSnapshot();
 	UCharacterMovementComponent* movement = guard->GetCharacterMovement();
 	if (behavior == ELRGuardBehaviorState::Chase)
 	{
@@ -258,7 +258,7 @@ void ALRGuardAIController::LogAndDrawDiagnostics() const
 	{
 		return;
 	}
-	const FLRGuardAwarenessSnapshot awareness = GetAwarenessSnapshot();
+	const FLRGuardAwarenessSnapshot awareness = BuildCurrentAwarenessSnapshot();
 	const ULRGuardTuning& tuning = GetEffectiveTuning();
 	UE_LOG(LogLostRunicAI, Display,
 		TEXT("Guard=%s Alert=%d Behavior=%d Stage=%d Visible=%d Threat=%s Reason=%s Location=%s"),

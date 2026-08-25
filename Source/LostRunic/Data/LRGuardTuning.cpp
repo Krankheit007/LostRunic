@@ -8,8 +8,9 @@
  */
 #include "Data/LRGuardTuning.h"
 
+#include "Core/LRGuardConstants.h"
+
 #include "Core/LRValidation.h"
-#include "AI/LRAlertRules.h"
 
 /**
  * @brief 校验当前资产的必填引用、数值边界及跨字段关系，并输出可诊断错误。
@@ -71,7 +72,7 @@ bool ULRGuardTuning::Validate(FString& outError) const
 
 	if (!(DetectionSuspiciousAlertFloor < DetectionInvestigateAlertFloor
 		&& DetectionInvestigateAlertFloor < DetectionConfirmedAlertFloor
-		&& DetectionConfirmedAlertFloor <= LRAlertRules::MaxAlertLevel))
+		&& DetectionConfirmedAlertFloor <= LRGuardConstants::MaxAlertLevel))
 	{
 		outError = TEXT("Detection alert floors must be strictly increasing and end at or below 11.");
 		return false;

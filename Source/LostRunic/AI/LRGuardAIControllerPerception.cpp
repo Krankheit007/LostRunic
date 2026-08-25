@@ -96,7 +96,7 @@ void ALRGuardAIController::HandleDetectionSample()
 		? FMath::Max(static_cast<float>(now - LastDetectionSampleTime), 0.0f)
 		: GetEffectiveTuning().DetectionSampleIntervalSeconds;
 	LastDetectionSampleTime = now;
-	const FLRGuardAwarenessSnapshot previous = GetAwarenessSnapshot();
+	const FLRGuardAwarenessSnapshot previous = BuildCurrentAwarenessSnapshot();
 	AActor* candidate = PerceivedSightContact.Get();
 	if (!IsRelevantSightTarget(candidate))
 	{
@@ -124,14 +124,10 @@ void ALRGuardAIController::HandleDetectionSample()
 	const ELRGuardDetectionStage currentStage = Knowledge->GetDetectionStage();
 	if (!visibility.IsActive())
 	{
-		Knowledge->RecordSightLoss(candidate->GetActorLocation());
-		PerceivedSightContact.Reset();
-		ProcessAwarenessTransaction(LRGameplayTags::SightPlayerLost);
+		// A zero project visibility sample is not a UE Sight Lost event. Keep the raw
+		// perception contact so a later sample can reacquire without another UE event.
+		ProcessAwarenessTransaction(LRGameplayTags::SightPlayer);
 		HandleCaptureCheck();
-		if (Knowledge->GetEffectiveExposureSeconds() <= KINDA_SMALL_NUMBER)
-		{
-			StopDetectionSampling();
-		}
 		return;
 	}
 
@@ -269,7 +265,7 @@ void ALRGuardAIController::ConfigurePerception()
 
 void ALRGuardAIController::HandleCaptureCheck()
 {
-	const FLRGuardAwarenessSnapshot awareness = GetAwarenessSnapshot();
+	const FLRGuardAwarenessSnapshot awareness = BuildCurrentAwarenessSnapshot();
 	AActor* target = awareness.Knowledge.ConfirmedThreat.Get();
 	if (bStunned || awareness.ResolvedBehavior != ELRGuardBehaviorState::Chase
 		|| !awareness.Knowledge.CurrentVisibility.IsActive() || !IsValid(target))

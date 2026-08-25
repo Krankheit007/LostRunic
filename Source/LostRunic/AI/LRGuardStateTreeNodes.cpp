@@ -36,8 +36,12 @@ EStateTreeRunStatus FLRGuardBehaviorTask::EnterState(FStateTreeExecutionContext&
 	}
 	const ELRGuardBehaviorEntryResult result = data.AIController->EnterBehavior(Behavior);
 	data.AIController->FinalizeStateTreeBehaviorEntry(Behavior, result);
-	return result == ELRGuardBehaviorEntryResult::Running
-		? EStateTreeRunStatus::Running : EStateTreeRunStatus::Failed;
+	if (result == ELRGuardBehaviorEntryResult::Running)
+	{
+		return EStateTreeRunStatus::Running;
+	}
+	return result == ELRGuardBehaviorEntryResult::AlreadyAtGoal
+		? EStateTreeRunStatus::Succeeded : EStateTreeRunStatus::Failed;
 }
 void FLRGuardBehaviorTask::ExitState(FStateTreeExecutionContext& context,
 	const FStateTreeTransitionResult& transition) const

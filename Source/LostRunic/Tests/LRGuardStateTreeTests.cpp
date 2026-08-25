@@ -245,13 +245,17 @@ bool FLRGuardStateTreePersistentRunningTest::RunTest(const FString& parameters)
 		bTestPassed &= TestEqual(TEXT("StateTree owns the first Investigate Move"), controller->GetInvestigationMoveRequestCount(), 1);
 
 		const FVector secondInvestigationLocation(250.0f, 50.0f, 0.0f);
+		const FVector committedLocationBeforeSecondNoise = controller->GetAwarenessSnapshot().InvestigationLocation;
 		SendRoomNoise(secondInvestigationLocation, ELRGuardNoisePropagationMode::AdjacentRoom);
-		bTestPassed &= TestEqual(TEXT("Investigate updates its disturbance location"),
-			controller->GetAwarenessSnapshot().InvestigationLocation, secondInvestigationLocation);
+		bTestPassed &= TestTrue(TEXT("Deferred behavior change does not expose an uncommitted Awareness snapshot"),
+			!committedLocationBeforeSecondNoise.Equals(secondInvestigationLocation));
 	#if WITH_GAMEPLAY_DEBUGGER
 		bTestPassed &= TestTrue(TEXT("Second failed Investigate entry resolves Search"),
 			stateTreeAI->GetActiveStateNames().Contains(FName(TEXT("Search"))));
 	#endif
+		ReselectFromRoot();
+		bTestPassed &= TestEqual(TEXT("Investigate updates its committed disturbance location"),
+			controller->GetAwarenessSnapshot().InvestigationLocation, secondInvestigationLocation);
 
 		controller->MarkInvestigationReached();
 		ReselectFromRoot();

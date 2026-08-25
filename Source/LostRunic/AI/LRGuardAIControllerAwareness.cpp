@@ -18,7 +18,7 @@ void ALRGuardAIController::CommitAwareness(const FGameplayTag reason, const bool
 		return;
 	}
 	const FLRGuardAwarenessSnapshot previous = CachedAwareness;
-	const FLRGuardAwarenessSnapshot current = GetAwarenessSnapshot();
+	const FLRGuardAwarenessSnapshot current = BuildCurrentAwarenessSnapshot();
 	const bool bThreatChanged = previous.Knowledge.ConfirmedThreat != current.Knowledge.ConfirmedThreat
 		|| previous.Knowledge.bHasConfirmedThreat != current.Knowledge.bHasConfirmedThreat;
 	const bool bVisualContactChanged = previous.Knowledge.VisualCandidate != current.Knowledge.VisualCandidate
@@ -54,7 +54,7 @@ void ALRGuardAIController::ProcessAwarenessTransaction(const FGameplayTag reason
 		return;
 	}
 
-	const FLRGuardAwarenessSnapshot current = GetAwarenessSnapshot();
+	const FLRGuardAwarenessSnapshot current = BuildCurrentAwarenessSnapshot();
 	if (current.ResolvedBehavior != CachedAwareness.ResolvedBehavior)
 	{
 		if (StateTreeAI && StateTreeAI->IsRunning())
@@ -81,7 +81,7 @@ void ALRGuardAIController::ProcessAwarenessTransaction(const FGameplayTag reason
 			finalReason = LRGameplayTags::SearchUnreachable;
 			bFinalForcePublish = true;
 		}
-		const FLRGuardAwarenessSnapshot afterEntry = GetAwarenessSnapshot();
+		const FLRGuardAwarenessSnapshot afterEntry = BuildCurrentAwarenessSnapshot();
 		if (afterEntry.ResolvedBehavior != current.ResolvedBehavior)
 		{
 			ExitBehavior(current.ResolvedBehavior);
@@ -92,7 +92,7 @@ void ALRGuardAIController::ProcessAwarenessTransaction(const FGameplayTag reason
 	}
 
 	RefreshBehaviorContext(current);
-	const FLRGuardAwarenessSnapshot afterRefresh = GetAwarenessSnapshot();
+	const FLRGuardAwarenessSnapshot afterRefresh = BuildCurrentAwarenessSnapshot();
 	if (afterRefresh.ResolvedBehavior != CachedAwareness.ResolvedBehavior)
 	{
 		if (StateTreeAI && StateTreeAI->IsRunning())
@@ -153,7 +153,7 @@ void ALRGuardAIController::ApplyInvestigationReached()
 
 void ALRGuardAIController::ApplyInvestigationUnreachable()
 {
-	const FLRGuardAwarenessSnapshot awareness = GetAwarenessSnapshot();
+	const FLRGuardAwarenessSnapshot awareness = BuildCurrentAwarenessSnapshot();
 	const bool bHadMoveTarget = bHasInvestigationMoveTarget;
 	const FVector unreachableLocation = bHadMoveTarget
 		? CurrentInvestigationMoveTarget : awareness.InvestigationLocation;
