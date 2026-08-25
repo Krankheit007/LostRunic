@@ -9,6 +9,7 @@
 #include "AI/LRAlertRules.h"
 #include "AI/LRGuardPerceptionRules.h"
 #include "Data/LRGuardTuning.h"
+#include "GameFramework/Actor.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLRGuardContinuousSightRulesTest, "LostRunic.AI.ContinuousSightRules",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
@@ -60,6 +61,18 @@ bool FLRGuardContinuousSightRulesTest::RunTest(const FString& parameters)
 		LRGuardPerceptionRules::IntegrateDetectionExposure(0.0f, weighted, 0.2f, *tuning), 0.06f, 0.001f);
 	TestEqual(TEXT("Inactive visibility decays exposure"),
 		LRGuardPerceptionRules::IntegrateDetectionExposure(0.5f, blocked, 0.2f, *tuning), 0.3f, 0.001f);
+	const FLRGuardVisibilityResult fullyVisible = LRGuardPerceptionRules::EvaluateVisibility(
+		0.0f, 1.0f, true, true, true, 1.0f, 1.0f, 1.0f, 1.0f, *tuning);
+	TestEqual(TEXT("Integration clamps a long sample to MaxDetectionIntegrationDeltaSeconds"),
+		LRGuardPerceptionRules::IntegrateDetectionExposure(0.0f, fullyVisible, 1.0f, *tuning),
+		0.2f, 0.001f);
+	TestEqual(TEXT("Inactive integration clamps exposure at zero"),
+		LRGuardPerceptionRules::IntegrateDetectionExposure(0.1f, blocked, 1.0f, *tuning),
+		0.0f, 0.001f);
+	TestEqual(TEXT("Stage resolves down to Suspicious after exposure falls"),
+		LRGuardPerceptionRules::ResolveDetectionStage(0.4f, *tuning), ELRGuardDetectionStage::Suspicious);
+	TestEqual(TEXT("Stage resolves to None at zero exposure"),
+		LRGuardPerceptionRules::ResolveDetectionStage(0.0f, *tuning), ELRGuardDetectionStage::None);
 	return true;
 }
 
@@ -77,6 +90,11 @@ bool FLRGuardAwarenessSnapshotRulesTest::RunTest(const FString& parameters)
 	FLRAlertSnapshot alert;
 	FLRGuardKnowledgeSnapshot knowledge;
 	knowledge.bHasConfirmedThreat = true;
+	AActor* confirmedThreat = NewObject<AActor>(GetTransientPackage());
+	AActor* otherActor = NewObject<AActor>(GetTransientPackage());
+	knowledge.ConfirmedThreat = confirmedThreat;
+	knowledge.VisualCandidate = confirmedThreat;
+	knowledge.bHasVisualCandidate = true;
 	knowledge.CurrentVisibility = LRGuardPerceptionRules::EvaluateVisibility(
 		0.0f, 1.0f, true, true, true, 1.0f, 1.0f, 1.0f, 1.0f, *tuning);
 	alert.Level = 11;
@@ -87,6 +105,10 @@ bool FLRGuardAwarenessSnapshotRulesTest::RunTest(const FString& parameters)
 		LRAlertRules::ResolveTargetBehavior(false, alert, knowledge, false, *tuning),
 		ELRGuardBehaviorState::Chase);
 
+	knowledge.VisualCandidate = otherActor;
+	TestEqual(TEXT("Historical threat memory does not chase a different visible candidate"),
+		LRAlertRules::ResolveTargetBehavior(false, alert, knowledge, false, *tuning),
+		ELRGuardBehaviorState::Search);
 	knowledge.CurrentVisibility = FLRGuardVisibilityResult();
 	TestEqual(TEXT("Alert 11 alone never chases"),
 		LRAlertRules::ResolveTargetBehavior(false, alert, knowledge, false, *tuning),
@@ -106,15 +128,15 @@ bool FLRGuardAwarenessSnapshotRulesTest::RunTest(const FString& parameters)
 	TestEqual(TEXT("Search flag in red band searches"),
 		LRAlertRules::ResolveTargetBehavior(false, alert, knowledge, true, *tuning),
 		ELRGuardBehaviorState::Search);
-	tuning->SightInvestigateLevel = 7;
-	TestEqual(TEXT("Search flag keeps fixed red-band lower bound at six"),
+	tuning->DetectionInvestigateAlertFloor = 7;
+	TestEqual(TEXT("Search flag uses the configured red-band lower bound"),
 		LRAlertRules::ResolveTargetBehavior(false, alert, knowledge, true, *tuning),
-		ELRGuardBehaviorState::Search);
+		ELRGuardBehaviorState::Suspicious);
 	alert.Level = 5;
 	TestEqual(TEXT("Search flag does not include white band"),
 		LRAlertRules::ResolveTargetBehavior(false, alert, knowledge, true, *tuning),
 		ELRGuardBehaviorState::Suspicious);
-	tuning->SightInvestigateLevel = 6;
+	tuning->DetectionInvestigateAlertFloor = 6;
 	TestEqual(TEXT("One to five resolves suspicious"),
 		LRAlertRules::ResolveTargetBehavior(false, alert, knowledge, false, *tuning),
 		ELRGuardBehaviorState::Suspicious);
@@ -149,14 +171,12 @@ bool FLRGuardAwarenessSnapshotRulesTest::RunTest(const FString& parameters)
 		FVector(10.0f, 0.0f, 0.0f));
 
 	FLRGuardKnowledgeSnapshot previousPending;
-	previousPending.bPendingThreatInvestigation = true;
-	previousPending.bHasLastKnownThreatLocation = true;
-	previousPending.LastKnownThreatLocation = FVector(1.0f, 0.0f, 0.0f);
+	previousPending.InvestigationContextRevision = 4;
 	FLRGuardKnowledgeSnapshot changedPending = previousPending;
-	changedPending.LastKnownThreatLocation = FVector(2.0f, 0.0f, 0.0f);
-	TestTrue(TEXT("Changed pending sight-loss location advances investigation context"),
+	changedPending.InvestigationContextRevision = 5;
+	TestTrue(TEXT("Accepted navigation revision advances investigation context"),
 		LRGuardPerceptionRules::HasNewInvestigationContext(previousPending, changedPending));
-	TestFalse(TEXT("Repeated unchanged pending context does not advance revision"),
+	TestFalse(TEXT("Same navigation revision does not advance context"),
 		LRGuardPerceptionRules::HasNewInvestigationContext(previousPending, previousPending));
 	return true;
 }

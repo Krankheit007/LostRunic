@@ -334,7 +334,7 @@ Editor Contract Test 名称：
 ### 输入与调优变更
 
 - `SneakAction` 已废弃（`DeprecatedProperty`，移出 Validate 必填）；潜行切换继续使用 `ToggleCrouchAction`（C / B 切换）。
-- 调优重命名（PropertyRedirects 已配置）：`HearingAlertAmount`→`AttractAlertAmount`（**资产值需改为 1**）、`SightAlertLevel`→`SightChaseLevel`(11)、移动噪声半径两项；`SearchDurationSeconds` 废弃。
+- 调优迁移（PropertyRedirects 已配置）：`CaptureCheckIntervalSeconds`→`DetectionSampleIntervalSeconds`、`SightInvestigateLevel`→`DetectionInvestigateAlertFloor`、`SightChaseLevel`/`SightAlertLevel`→`DetectionConfirmedAlertFloor`。旧 runtime property 已删除，运行时只有一个 Detection/Capture sample interval；`SearchDurationSeconds` 废弃。
 - 新建资产清单（StateTree 需编辑器人工创建，其余可 MCP）：`ST_Guard`、`ST_NPC`、`DA_LRGuardDefinition`、`DA_LRNPCDefinition`、`DA_LRNPCTuning`、`BP_Guard`、`WBP_GuardAlertBar`、`BP_NPC`；`DA_LRGameTuningSet` 登记 `DA_LRNPCTuning`。
 - **PIE 验收（`/Game/LostRunic/Levels/PIE_Test/L_PIE_Test`，键鼠+手柄，Output Log 无项目级 Warning/Error）**：状态步态（Perception 强制潜行、Courage 拒潜行、Memory 仅走路）；掩体进入强制潜行/固定掩体不可移动/掩体内不可见/**掩体中发生状态变化（死亡或调试强制切换）仍保持潜行，退出后为当前状态默认步态**；噪声区域进入退出与重叠优先级、7 行步态×环境噪声、房间传播（本房→5、邻房+1、多房间取最大、无房间兜底、**缩放体积（Scale≠1）包含判定正确**）；完整警戒流程（0→吸引→1 观察 3s、CD 内忽略、看见→6 前往、抵达 Search 观察→衰减→0 巡逻、6-10 看见→11 追逐、丢失→10、追上死亡→Memory）；`ST_Guard` 六行为覆盖、持续 `Running`、Investigate 同状态重定位、Search/Chase 真实变化重选、Stunned 恢复；世界警戒条四档表现与首帧同步；击退眩晕 0.6s 恢复（`LR.Debug.Alert` 显示 Stunned）；NPC 巡逻/站立/对话开合/噪声限时反应/Idle 朝向玩家/对话结束回默认；`LR.Debug.Tuning` 确认重命名后来源。
 
@@ -758,9 +758,19 @@ StringTable 的 `Source String` 只填写源语言（本项目约定为 `zh-Hans
 
 1. 打开 `DA_LRGuard1`，确认 **Behavior = ST_Guard**、**Tuning = DA_LRGuardTuning**。
 2. 打开 `ST_Guard`。保留 `Root` 下六个平级状态：`IdlePatrol / Suspicious / Investigate / Search / Chase / Stunned`；宏观行为仍由 `ResolveTargetBehavior` 唯一决定。
-3. 行为枚举变化才发送 `AI.Event.BehaviorChanged` 并从 Root 重选；调查位置变化但仍为 Investigate 时由 Controller 的 `RefreshBehaviorContext` 重定位，不伪造 BehaviorChanged，也不会每 0.1 秒刷新导航。
+3. 行为枚举变化才发送 `AI.Event.BehaviorChanged` 并从 Root 重选；调查位置变化但仍为 Investigate 时由 Controller 的 `RefreshBehaviorContext` 直接调用统一导航 Helper。行为改变后的首次 `EnterBehavior` 只由 StateTree 的 `FLRGuardBehaviorTask::EnterState` 执行，Controller 不在提交前重复发起首次 Move。
 4. `PendingThreatInvestigation` 优先于满警戒 Search：有尚未抵达的可靠位置时 Investigate；抵达后且仍处红档才 Search。`Alert.Level == 11` 本身绝不代表已确认威胁，也不能单独进入 Chase。
 
+
+### 执行权与 Detection 生命周期（2026-08-25）
+
+- **事务顺序**：修改 Knowledge/Alert → `ResolveTargetBehavior` → 行为变化时发送 `BehaviorChanged` 由 StateTree 首次进入；同状态 Investigate 只由 Controller 刷新导航 → 处理同步 Move 结果 → 重新解析最终行为 → `CommitAwareness()`。
+- **提交器契约**：`CommitAwareness()` 只构建最终 `FLRGuardAwarenessSnapshot`、更新缓存、调用 `PublishIfChanged` 和按字段变化广播；不得在其中调用 `MoveTo`、`EnterBehavior`、修改 Knowledge/Alert 或递归提交。
+- **导航结果**：首次 `RequestSuccessful` 保持 Investigate；`AlreadyAtGoal` 或同步失败立即清 Pending、设置 `Search.Unreachable`/SearchReached 语义并提交最终 Search。已运行的 Investigate 在稍后收到 `Blocked`/`OffPath`/当前请求 Abort 时，`OnMoveCompleted` 作为新事务转 Search；旧请求的 `NewRequest` Abort 直接忽略。
+- **Investigate 执行上下文**：Controller 保存当前已下发的 `CurrentInvestigationMoveTarget` 与 `FAIRequestID`。相同有效目标 NoOp；证据相对当前导航目标达到 `InvestigationRetargetDistance` 才 Retarget。`InvestigationContextRevision` 只在导航请求被接受后递增；Suspicious 的焦点刷新不递增它。
+- **失视**：Sight Lost 只清 Candidate/CurrentVisibility，保留 Exposure、Stage、LastDetectionSampleTime；唯一 `DetectionSampleTimer` 继续执行 inactive decay，Exposure 精确归零后 Stage 回到 None 且 Timer 停止。失视不直接降低 Alert。
+- **解除占有**：UnPossess 清 Candidate/CurrentVisibility、Exposure 和 Stage，并立即停止 Detection timer/导航；保留 ConfirmedThreat、LastKnownThreatLocation、LastDisturbanceLocation、Pending、Revision 与 Alert，重新 Possess 同一 Pawn 时不会冻结旧的瞬时视觉进度。
+- **广播契约**：Exposure 单独变化不触发 `OnGuardAwarenessChanged`；Alert、Stage、Visual contact、Threat、Pending、Revision 或 ResolvedBehavior 变化才发布 Awareness。Knowledge 的内部快照仍会更新，Widget 只消费最终快照/委托。
 ### DA_LRGuardTuning 配置
 
 打开 `DA_LRGuardTuning`，在 Details 中填写或确认：
@@ -769,6 +779,9 @@ StringTable 的 `Source String` 只填写源语言（本项目约定为 `zh-Hans
 | --- | --- | ---: | --- |
 | Guard\|Detection | Detection Sample Interval Seconds | 0.1 s | Controller 的连续视觉采样周期 |
 | Guard\|Detection | Max Detection Integration Delta Seconds | 0.2 s | 卡顿/断点时单次积分上限 |
+| Guard\|Detection | Detection Suspicious Alert Floor | 1 | Suspicious 阶段进入时的最低 Alert，必须大于 0 |
+| Guard\|Detection | Detection Investigate Alert Floor | 6 | Investigate 阶段与 Search 红档下限 |
+| Guard\|Detection | Detection Confirmed Alert Floor | 11 | Confirmed 阶段与 Chase 下限 |
 | Guard\|Detection | Suspicious Exposure Threshold Seconds | 0.2 s | 跨入 Suspicious 的有效暴露秒 |
 | Guard\|Detection | Investigate Exposure Threshold Seconds | 0.6 s | 跨入 Investigate 的有效暴露秒 |
 | Guard\|Detection | Confirmed Exposure Threshold Seconds | 1.5 s | 确认威胁的有效暴露秒 |
@@ -778,16 +791,19 @@ StringTable 的 `Source String` 只填写源语言（本项目约定为 `zh-Hans
 | Guard\|Movement | Investigation Retarget Distance | 75 cm | 调查点变化达到该距离才刷新导航 |
 | Guard\|Sight | Sight Radius / Lose Sight Radius | 500 / 600 cm | 连续积分只允许 Distance <= SightRadius；LoseSightRadius 仅保留 UE 接触迟滞 |
 
-首版公式：`EffectiveExposure += VisibilityScore * ActualDeltaSeconds`；失视时按 Decay Rate 递减。距离在 `SightRadius` 内使用 `Lerp(1.0, EdgeMultiplier, Distance / SightRadius)`，超过 `SightRadius` 直接为 0。Range、Cone、LOS、UE Contact 和目标硬可见性均为 0/1 gate；掩体硬隐藏返回 0，Lighting/Exposure/Posture 首版为 1。阶段只在边沿变化时把 Alert 下限提升到 1/6/11，不重复广播。
+首版公式：`EffectiveExposure += VisibilityScore * ActualDeltaSeconds`；`ActualDeltaSeconds` 按 `MaxDetectionIntegrationDeltaSeconds` clamp，且该上限必须不小于 `DetectionSampleIntervalSeconds`。失视时按 `DetectionExposureDecayRate` 递减并重新解析 Stage，严格允许 `Confirmed → Investigate → Suspicious → None` 回落。Alert Floors 与 Exposure thresholds 均严格递增。
 
 ### 噪声、Knowledge 与只读蓝图边界
 
 - AI Hearing、房间传播和未来证据统一进入 `ALRGuardAIController::ReceiveNoiseStimulus`。噪声先解析接受/冷却；被拒绝的 Faint 或冷却刺激不会提交 `LastDisturbanceLocation`。
-- 已确认玩家发出的脚步声更新 `LastKnownThreatLocation`；瓶子等其他声源只更新 `LastDisturbanceLocation`，不能替换 `ConfirmedThreatActor`。
+- 已确认玩家发出的脚步声或 ConfirmedThreat 自身噪声更新 `LastKnownThreatLocation` 并置 `PendingThreatInvestigation=true`；瓶子、门、环境声和其他 Actor 只更新 `LastDisturbanceLocation`，不把 false 强行改成 true，已有 Threat Pending 会保持。
 - `ULRAlertComponent` 与 `ULRGuardKnowledgeComponent` 的核心 mutation API 均为 C++ 内部入口；Blueprint 只读 Snapshot/Delegate。UI 和 StateTree 以 Controller 一次性提交后的 Awareness 为完整状态，不监听中间半状态。
 - 持续有效视觉会阻止 Alert 自然衰减；Alert 归零、Search Reset 与 UnPossess 的 Knowledge 清理由 Controller 协调。
 
 ### 验收记录
+
+- 本次执行权回归覆盖：StateTree 首次进入负责行为变化后的首次 Move；Controller 负责同状态 Investigate retarget；同步 Move 失败收敛最终 Search；异步 Blocked/OffPath 独立提交；stale NewRequest Abort 忽略；Sight Lost decay、UnPossess 瞬时状态清理、Exposure-only 不重复广播。
+- Automation：`LostRunic.AI` 14/14 通过，`LostRunic.Tuning` 3/3 通过；编辑器目标 `LostRunicEditor Win64 Development` 构建通过。
 
 - 构建：`LostRunicEditor Win64 Development` 成功。
 - UE MCP 自动化：`LostRunic.AI` 14/14 通过；Movement/Noise/Framework 定向契约 7/7 通过。

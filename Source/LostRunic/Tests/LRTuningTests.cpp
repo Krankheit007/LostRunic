@@ -35,6 +35,9 @@ bool FLRTuningDefaultsTest::RunTest(const FString& parameters)
 	TestEqual(TEXT("Suspicious exposure threshold default"), guard->SuspiciousExposureThresholdSeconds, 0.2f, 0.001f);
 	TestEqual(TEXT("Investigate exposure threshold default"), guard->InvestigateExposureThresholdSeconds, 0.6f, 0.001f);
 	TestEqual(TEXT("Confirmed exposure threshold default"), guard->ConfirmedExposureThresholdSeconds, 1.5f, 0.001f);
+	TestEqual(TEXT("Suspicious alert floor default"), guard->DetectionSuspiciousAlertFloor, 1);
+	TestEqual(TEXT("Investigate alert floor default"), guard->DetectionInvestigateAlertFloor, 6);
+	TestEqual(TEXT("Confirmed alert floor default"), guard->DetectionConfirmedAlertFloor, 11);
 	TestEqual(TEXT("Exposure decay rate default"), guard->DetectionExposureDecayRate, 1.0f, 0.001f);
 	TestEqual(TEXT("Sight edge multiplier default"), guard->SightEdgeDetectionMultiplier, 0.5f, 0.001f);
 	TestEqual(TEXT("Sneak visibility multiplier default"), guard->SneakVisibilityMultiplier, 0.5f, 0.001f);
@@ -53,6 +56,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLRTuningBoundariesTest, "LostRunic.Tuning.Boun
 
 bool FLRTuningBoundariesTest::RunTest(const FString& parameters)
 {
+
 	ULRStateTuning* state = NewObject<ULRStateTuning>();
 	state->EnterHoldSeconds = 0.05f;
 	state->ExitHoldSeconds = 5.0f;
@@ -87,9 +91,19 @@ bool FLRTuningInvalidTest::RunTest(const FString& parameters)
 	TestFalse(TEXT("Inverted interaction tiers"), interaction->Validate(error));
 
 	ULRGuardTuning* guard = NewObject<ULRGuardTuning>();
+	guard->DetectionSuspiciousAlertFloor = 6;
+	TestFalse(TEXT("Suspicious and investigate floors must be ordered"), guard->Validate(error));
+	guard->DetectionSuspiciousAlertFloor = 1;
+	guard->DetectionInvestigateAlertFloor = 11;
+	TestFalse(TEXT("Investigate and confirmed floors must be ordered"), guard->Validate(error));
+	guard->DetectionInvestigateAlertFloor = 6;
+	guard->DetectionConfirmedAlertFloor = 11;
 	guard->SightConeDegrees = 181.0f;
 	TestFalse(TEXT("Sight cone above declared maximum"), guard->Validate(error));
 	guard->SightConeDegrees = 45.0f;
+	guard->SuspiciousExposureThresholdSeconds = 0.0f;
+	TestFalse(TEXT("Zero suspicious exposure is rejected"), guard->Validate(error));
+	guard->SuspiciousExposureThresholdSeconds = 0.2f;
 	guard->InvestigateExposureThresholdSeconds = 0.1f;
 	TestFalse(TEXT("Exposure thresholds must be ordered"), guard->Validate(error));
 	guard->InvestigateExposureThresholdSeconds = 0.6f;

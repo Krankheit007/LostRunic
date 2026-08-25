@@ -41,6 +41,12 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Lost Runic|AI|Knowledge")
 	bool HasConfirmedThreat() const { return Snapshot.bHasConfirmedThreat; }
 
+	/** Returns true only when the remembered confirmed threat is this actor. */
+	bool HasConfirmedThreatActor(const AActor* actor) const
+	{
+		return actor && Snapshot.bHasConfirmedThreat && Snapshot.ConfirmedThreat.Get() == actor;
+	}
+
 	UFUNCTION(BlueprintPure, Category = "Lost Runic|AI|Knowledge")
 	bool HasPendingThreatInvestigation() const { return Snapshot.bPendingThreatInvestigation; }
 
@@ -63,13 +69,14 @@ private:
 	void ClearVisualCandidate();
 	void ApplyVisibilitySample(const FLRGuardVisibilityResult& sample, float deltaSeconds,
 		const ULRGuardTuning& tuning);
-	void RecordVisualEvidence(AActor* actor, const FVector& location, bool bPendingInvestigation,
-		float retargetDistance);
+	void RecordVisualEvidence(AActor* actor, const FVector& location, bool bPendingInvestigation);
 	void SetConfirmedThreat(AActor* threat, const FVector& lastKnownLocation, bool bLatch = true);
 	void RecordSightLoss(const FVector& lastKnownLocation);
-	void CommitAcceptedNoise(const FLRGuardNoiseStimulus& stimulus, bool bConfirmedThreatSource,
-		float retargetDistance);
+	void CommitAcceptedNoise(const FLRGuardNoiseStimulus& stimulus, bool bConfirmedThreatSource);
 	void MarkInvestigationReached();
+	void MarkInvestigationUnreachable();
+	void AdvanceInvestigationContextRevision();
+	void SuspendVisualContact();
 	void ResetAwareness();
 	void PublishIfChanged(const FLRGuardKnowledgeSnapshot& previousSnapshot);
 	static bool AreSnapshotsEqual(const FLRGuardKnowledgeSnapshot& left,

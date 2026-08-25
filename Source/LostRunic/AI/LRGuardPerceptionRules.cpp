@@ -93,24 +93,8 @@ ELRGuardDetectionStage LRGuardPerceptionRules::ResolveDetectionStage(const float
 bool LRGuardPerceptionRules::HasNewInvestigationContext(const FLRGuardKnowledgeSnapshot& previousSnapshot,
 	const FLRGuardKnowledgeSnapshot& currentSnapshot)
 {
-	if (!currentSnapshot.bPendingThreatInvestigation)
-	{
-		return false;
-	}
-	if (!previousSnapshot.bPendingThreatInvestigation)
-	{
-		return true;
-	}
-	return previousSnapshot.bHasLastKnownThreatLocation != currentSnapshot.bHasLastKnownThreatLocation
-		|| !previousSnapshot.LastKnownThreatLocation.Equals(currentSnapshot.LastKnownThreatLocation)
-		|| previousSnapshot.bHasLastDisturbanceLocation != currentSnapshot.bHasLastDisturbanceLocation
-		|| !previousSnapshot.LastDisturbanceLocation.Equals(currentSnapshot.LastDisturbanceLocation)
-		|| previousSnapshot.ConfirmedThreat != currentSnapshot.ConfirmedThreat
-		|| previousSnapshot.VisualCandidate != currentSnapshot.VisualCandidate
-		|| previousSnapshot.LastAcceptedStimulusSource != currentSnapshot.LastAcceptedStimulusSource
-		|| previousSnapshot.LastAcceptedStimulusReason != currentSnapshot.LastAcceptedStimulusReason;
+	return currentSnapshot.InvestigationContextRevision != previousSnapshot.InvestigationContextRevision;
 }
-
 float LRGuardPerceptionRules::DecayDetectionExposure(const float currentExposureSeconds, const float deltaSeconds,
 	const ULRGuardTuning& tuning)
 {
@@ -186,7 +170,7 @@ FLRNoiseResponse LRGuardPerceptionRules::ResolveNoiseAlertDelta(const FGameplayT
 	{
 		// 室外非潜行关走路：只有警戒 >=6 的守卫才会被吸引。
 		response.bIsAttract = true;
-		response.bRespond = currentAlert >= tuning.SightInvestigateLevel;
+		response.bRespond = currentAlert >= tuning.DetectionInvestigateAlertFloor;
 		response.Delta = response.bRespond ? tuning.AttractAlertAmount : 0;
 		return response;
 	}

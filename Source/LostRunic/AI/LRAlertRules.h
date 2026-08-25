@@ -27,7 +27,7 @@ namespace LRAlertRules
 	 */
 	LOSTRUNIC_API int32 ApplyDelta(int32 currentLevel, int32 delta);
 	/**
-	 * @brief 按 4.2.1 档位解析行为：0 巡逻；11+视线 追逐；11 无视线 搜索兜底；搜索且 >=6 搜索；<=5 可疑；否则调查。
+	 * @brief 按默认 Guard Tuning 的 Detection floors 解析行为；保留此重载作为无快照兼容入口。
 	 * @param alertLevel 本次操作使用的计数、增量或索引 `alertLevel`；由函数校验合法范围。
 	 * @param bHasSight 布尔开关 `bHasSight`；true 表示启用或条件成立，false 表示禁用或条件不成立。
 	 * @param bSearching 布尔开关 `bSearching`；true 表示启用或条件成立，false 表示禁用或条件不成立。

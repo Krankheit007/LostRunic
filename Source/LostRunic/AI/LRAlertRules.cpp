@@ -35,11 +35,12 @@ int32 LRAlertRules::ApplyDelta(const int32 currentLevel, const int32 delta)
  */
 ELRGuardBehaviorState LRAlertRules::ResolveState(const int32 alertLevel, const bool bHasSight, const bool bSearching)
 {
+	const ULRGuardTuning& tuning = *GetDefault<ULRGuardTuning>();
 	if (alertLevel <= MinAlertLevel)
 	{
 		return ELRGuardBehaviorState::IdlePatrol;
 	}
-	if (bHasSight && alertLevel >= MaxAlertLevel)
+	if (bHasSight && alertLevel >= tuning.DetectionConfirmedAlertFloor)
 	{
 		return ELRGuardBehaviorState::Chase;
 	}
@@ -47,11 +48,11 @@ ELRGuardBehaviorState LRAlertRules::ResolveState(const int32 alertLevel, const b
 	{
 		return ELRGuardBehaviorState::Search;
 	}
-	if (bSearching && alertLevel >= SuspiciousMaxLevel + 1)
+	if (bSearching && alertLevel >= tuning.DetectionInvestigateAlertFloor)
 	{
 		return ELRGuardBehaviorState::Search;
 	}
-	return alertLevel <= SuspiciousMaxLevel
+	return alertLevel < tuning.DetectionInvestigateAlertFloor
 		? ELRGuardBehaviorState::Suspicious : ELRGuardBehaviorState::Investigate;
 }
 
@@ -79,7 +80,10 @@ ELRGuardBehaviorState LRAlertRules::ResolveTargetBehavior(const bool bStunned, c
 
 	const int32 alertLevel = FMath::Clamp(alert.Level, MinAlertLevel, MaxAlertLevel);
 	const bool bConfirmedThreat = knowledge.bHasConfirmedThreat || knowledge.ConfirmedThreat.IsValid();
-	if (bConfirmedThreat && knowledge.CurrentVisibility.IsActive() && alertLevel >= tuning.SightChaseLevel)
+	const bool bConfirmedThreatVisible = bConfirmedThreat
+		&& knowledge.bHasVisualCandidate && knowledge.VisualCandidate == knowledge.ConfirmedThreat
+		&& knowledge.CurrentVisibility.IsActive();
+	if (bConfirmedThreatVisible && alertLevel >= tuning.DetectionConfirmedAlertFloor)
 	{
 		return ELRGuardBehaviorState::Chase;
 	}
@@ -87,11 +91,11 @@ ELRGuardBehaviorState LRAlertRules::ResolveTargetBehavior(const bool bStunned, c
 	{
 		return ELRGuardBehaviorState::IdlePatrol;
 	}
-	if (knowledge.bPendingThreatInvestigation && alertLevel >= tuning.SightInvestigateLevel)
+	if (knowledge.bPendingThreatInvestigation && alertLevel >= tuning.DetectionInvestigateAlertFloor)
 	{
 		return ELRGuardBehaviorState::Investigate;
 	}
-	if (bSearchFlag && alertLevel > SuspiciousMaxLevel && alertLevel < MaxAlertLevel)
+	if (bSearchFlag && alertLevel >= tuning.DetectionInvestigateAlertFloor && alertLevel < MaxAlertLevel)
 	{
 		return ELRGuardBehaviorState::Search;
 	}
@@ -99,10 +103,9 @@ ELRGuardBehaviorState LRAlertRules::ResolveTargetBehavior(const bool bStunned, c
 	{
 		return ELRGuardBehaviorState::Search;
 	}
-	return alertLevel <= SuspiciousMaxLevel
+	return alertLevel < tuning.DetectionInvestigateAlertFloor
 		? ELRGuardBehaviorState::Suspicious : ELRGuardBehaviorState::Investigate;
 }
-
 ELRGuardBehaviorState LRAlertRules::ResolveTargetBehavior(const FLRAlertSnapshot& alert,
 	const FLRGuardKnowledgeSnapshot& knowledge, const bool bStunned, const bool bSearchFlag,
 	const ULRGuardTuning& tuning)
@@ -196,7 +199,7 @@ FVector LRAlertRules::ResolveInvestigationLocation(const FLRGuardAwarenessSnapsh
 float LRAlertRules::ResolveAttractIncreaseCooldown(const int32 currentAlert, const bool bFirstIncreaseInBand,
 	const ULRGuardTuning& tuning)
 {
-	if (currentAlert < tuning.SightInvestigateLevel || bFirstIncreaseInBand)
+	if (currentAlert < tuning.DetectionInvestigateAlertFloor || bFirstIncreaseInBand)
 	{
 		return tuning.AlertIncreaseCooldownSeconds;
 	}

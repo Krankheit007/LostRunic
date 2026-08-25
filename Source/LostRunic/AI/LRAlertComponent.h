@@ -60,6 +60,7 @@ private:
 	bool LowerToMaximum(int32 maximumLevel);
 	bool TryApplyAttract(double nowSeconds);
 	void MarkInvestigationReached();
+	void MarkInvestigationUnreachable();
 	void ResetAfterSearch();
 	void PublishCommittedChange(int32 previousLevel, ELRGuardBehaviorState resolvedBehavior,
 		FGameplayTag reason, const FVector& location);

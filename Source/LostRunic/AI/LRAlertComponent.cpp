@@ -78,14 +78,14 @@ bool ULRAlertComponent::TryApplyAttract(const double nowSeconds)
 		return false;
 	}
 
-	const bool bCrossingIntoBand = AlertLevel < tuning.SightInvestigateLevel;
+	const bool bCrossingIntoBand = AlertLevel < tuning.DetectionInvestigateAlertFloor;
 	ApplyDelta(tuning.AttractAlertAmount);
 	LastIncreaseTimeSeconds = nowSeconds;
 	if (bFirstIncreaseInBand)
 	{
 		bFirstIncreaseInBand = false;
 	}
-	if (bCrossingIntoBand && AlertLevel >= tuning.SightInvestigateLevel)
+	if (bCrossingIntoBand && AlertLevel >= tuning.DetectionInvestigateAlertFloor)
 	{
 		bFirstIncreaseInBand = true;
 	}
@@ -94,6 +94,12 @@ bool ULRAlertComponent::TryApplyAttract(const double nowSeconds)
 }
 
 void ULRAlertComponent::MarkInvestigationReached()
+{
+	bSearching = AlertLevel > 0;
+	StartObservation();
+}
+
+void ULRAlertComponent::MarkInvestigationUnreachable()
 {
 	bSearching = AlertLevel > 0;
 	StartObservation();

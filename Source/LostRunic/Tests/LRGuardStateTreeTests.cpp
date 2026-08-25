@@ -239,17 +239,18 @@ bool FLRGuardStateTreePersistentRunningTest::RunTest(const FString& parameters)
 			controller->GetResolvedBehavior(), ELRGuardBehaviorState::Investigate);
 		ReselectFromRoot();
 	#if WITH_GAMEPLAY_DEBUGGER
-		bTestPassed &= TestTrue(TEXT("BehaviorChanged selects Investigate"),
-			stateTreeAI->GetActiveStateNames().Contains(FName(TEXT("Investigate"))));
+		bTestPassed &= TestTrue(TEXT("Sync Move failure collapses to Search"),
+			stateTreeAI->GetActiveStateNames().Contains(FName(TEXT("Search"))));
 	#endif
+		bTestPassed &= TestEqual(TEXT("StateTree owns the first Investigate Move"), controller->GetInvestigationMoveRequestCount(), 1);
 
 		const FVector secondInvestigationLocation(250.0f, 50.0f, 0.0f);
 		SendRoomNoise(secondInvestigationLocation, ELRGuardNoisePropagationMode::AdjacentRoom);
 		bTestPassed &= TestEqual(TEXT("Investigate updates its disturbance location"),
 			controller->GetAwarenessSnapshot().InvestigationLocation, secondInvestigationLocation);
 	#if WITH_GAMEPLAY_DEBUGGER
-		bTestPassed &= TestTrue(TEXT("Same-state Investigate update remains Active"),
-			stateTreeAI->GetActiveStateNames().Contains(FName(TEXT("Investigate"))));
+		bTestPassed &= TestTrue(TEXT("Second failed Investigate entry resolves Search"),
+			stateTreeAI->GetActiveStateNames().Contains(FName(TEXT("Search"))));
 	#endif
 
 		controller->MarkInvestigationReached();

@@ -9,6 +9,7 @@
 #include "Data/LRGuardTuning.h"
 
 #include "Core/LRValidation.h"
+#include "AI/LRAlertRules.h"
 
 /**
  * @brief 校验当前资产的必填引用、数值边界及跨字段关系，并输出可诊断错误。
@@ -35,8 +36,9 @@ bool ULRGuardTuning::Validate(FString& outError) const
 		|| !LRValidation::RequireRange(TEXT("HearingRangeMultiplier"), HearingRangeMultiplier, 0.0f, 10.0f, outError)
 		|| !LRValidation::RequireRange(TEXT("MaxHearingRange"), MaxHearingRange, 50.0f, 10000.0f, outError)
 		|| !LRValidation::RequireRange(TEXT("AttractAlertAmount"), AttractAlertAmount, 1, 11, outError)
-		|| !LRValidation::RequireRange(TEXT("SightInvestigateLevel"), SightInvestigateLevel, 1, 11, outError)
-		|| !LRValidation::RequireRange(TEXT("SightChaseLevel"), SightChaseLevel, 1, 11, outError)
+		|| !LRValidation::RequireRange(TEXT("DetectionSuspiciousAlertFloor"), DetectionSuspiciousAlertFloor, 1, 11, outError)
+		|| !LRValidation::RequireRange(TEXT("DetectionInvestigateAlertFloor"), DetectionInvestigateAlertFloor, 1, 11, outError)
+		|| !LRValidation::RequireRange(TEXT("DetectionConfirmedAlertFloor"), DetectionConfirmedAlertFloor, 1, 11, outError)
 		|| !LRValidation::RequireRange(TEXT("AlertIncreaseCooldownSeconds"), AlertIncreaseCooldownSeconds, 0.0f, 10.0f, outError)
 		|| !LRValidation::RequireRange(TEXT("InvestigateIncreaseCooldownSeconds"), InvestigateIncreaseCooldownSeconds, 0.0f, 10.0f, outError)
 		|| !LRValidation::RequireRange(TEXT("RoomRunAlertLevel"), RoomRunAlertLevel, 0, 11, outError)
@@ -45,7 +47,6 @@ bool ULRGuardTuning::Validate(FString& outError) const
 		|| !LRValidation::RequireRange(TEXT("InitialObserveSeconds"), InitialObserveSeconds, 0.1f, 30.0f, outError)
 		|| !LRValidation::RequireRange(TEXT("AlertDecayIntervalSeconds"), AlertDecayIntervalSeconds, 0.05f, 10.0f, outError)
 		|| !LRValidation::RequireRange(TEXT("CaptureRadius"), CaptureRadius, 10.0f, 500.0f, outError)
-		|| !LRValidation::RequireRange(TEXT("CaptureCheckIntervalSeconds"), CaptureCheckIntervalSeconds, 0.02f, 1.0f, outError)
 		|| !LRValidation::RequireRange(TEXT("MoveAcceptanceRadius"), MoveAcceptanceRadius, 1.0f, 500.0f, outError)
 		|| !LRValidation::RequireRange(TEXT("InvestigationRetargetDistance"), InvestigationRetargetDistance, 1.0f, 1000.0f, outError)
 		|| !LRValidation::RequireRange(TEXT("DetectionSampleIntervalSeconds"), DetectionSampleIntervalSeconds, 0.01f, 1.0f, outError)
@@ -68,10 +69,19 @@ bool ULRGuardTuning::Validate(FString& outError) const
 		return false;
 	}
 
-	if (SuspiciousExposureThresholdSeconds >= InvestigateExposureThresholdSeconds
+	if (!(DetectionSuspiciousAlertFloor < DetectionInvestigateAlertFloor
+		&& DetectionInvestigateAlertFloor < DetectionConfirmedAlertFloor
+		&& DetectionConfirmedAlertFloor <= LRAlertRules::MaxAlertLevel))
+	{
+		outError = TEXT("Detection alert floors must be strictly increasing and end at or below 11.");
+		return false;
+	}
+
+	if (SuspiciousExposureThresholdSeconds <= 0.0f
+		|| SuspiciousExposureThresholdSeconds >= InvestigateExposureThresholdSeconds
 		|| InvestigateExposureThresholdSeconds >= ConfirmedExposureThresholdSeconds)
 	{
-		outError = TEXT("Detection exposure thresholds must be strictly increasing.");
+		outError = TEXT("Detection exposure thresholds must be strictly positive and increasing.");
 		return false;
 	}
 

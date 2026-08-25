@@ -36,11 +36,11 @@ void ALRGuardAIController::HandlePerception(AActor* actor, const FAIStimulus sti
 		}
 		if (stimulus.WasSuccessfullySensed())
 		{
-			const FLRGuardAwarenessSnapshot previous = GetAwarenessSnapshot();
 			PerceivedSightContact = actor;
 			Knowledge->SetVisualCandidate(actor);
 			LastDetectionSampleTime = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0;
-			CommitAwareness(previous, Alert->GetAlertLevel(), LRGameplayTags::SightPlayer, true);
+			StartDetectionSampling();
+			ProcessAwarenessTransaction(LRGameplayTags::SightPlayer);
 		}
 		else if (PerceivedSightContact.Get() == actor)
 		{
@@ -66,7 +66,6 @@ void ALRGuardAIController::HandlePerception(AActor* actor, const FAIStimulus sti
 		ReceiveNoiseStimulus(noise);
 	}
 }
-
 bool ALRGuardAIController::IsRelevantSightTarget(const AActor* actor) const
 {
 	if (!IsValid(actor)
@@ -92,93 +91,108 @@ void ALRGuardAIController::HandleDetectionSample()
 	{
 		return;
 	}
+	const double now = GetWorld()->GetTimeSeconds();
+	const float actualDelta = LastDetectionSampleTime > 0.0
+		? FMath::Max(static_cast<float>(now - LastDetectionSampleTime), 0.0f)
+		: GetEffectiveTuning().DetectionSampleIntervalSeconds;
+	LastDetectionSampleTime = now;
+	const FLRGuardAwarenessSnapshot previous = GetAwarenessSnapshot();
 	AActor* candidate = PerceivedSightContact.Get();
 	if (!IsRelevantSightTarget(candidate))
 	{
-		if (Knowledge->HasVisualCandidate())
+		if (Knowledge->HasVisualCandidate() || candidate)
 		{
-			HandleSightLost(candidate, Knowledge->GetLastKnownThreatLocation());
+			const FVector location = IsValid(candidate) ? candidate->GetActorLocation()
+				: Knowledge->GetLastKnownThreatLocation();
+			Knowledge->RecordSightLoss(location);
+			PerceivedSightContact.Reset();
+		}
+		Knowledge->ApplyVisibilitySample(FLRGuardVisibilityResult(), actualDelta, GetEffectiveTuning());
+		ProcessAwarenessTransaction(LRGameplayTags::SightPlayerLost);
+		HandleCaptureCheck();
+		if (!Knowledge->HasVisualCandidate()
+			&& Knowledge->GetEffectiveExposureSeconds() <= KINDA_SMALL_NUMBER)
+		{
+			StopDetectionSampling();
 		}
 		return;
 	}
 
-	const double now = GetWorld()->GetTimeSeconds();
-	const float deltaSeconds = LastDetectionSampleTime > 0.0
-		? static_cast<float>(now - LastDetectionSampleTime) : GetEffectiveTuning().DetectionSampleIntervalSeconds;
-	LastDetectionSampleTime = now;
-	const FLRGuardAwarenessSnapshot previous = GetAwarenessSnapshot();
-	const int32 previousLevel = Alert->GetAlertLevel();
 	const ELRGuardDetectionStage previousStage = previous.Knowledge.Stage;
 	const FLRGuardVisibilityResult visibility = EvaluateVisibility(candidate);
-	Knowledge->ApplyVisibilitySample(visibility, deltaSeconds, GetEffectiveTuning());
+	Knowledge->ApplyVisibilitySample(visibility, actualDelta, GetEffectiveTuning());
 	const ELRGuardDetectionStage currentStage = Knowledge->GetDetectionStage();
-
-	if (!visibility.IsActive() && previous.Knowledge.CurrentVisibility.IsActive())
+	if (!visibility.IsActive())
 	{
 		Knowledge->RecordSightLoss(candidate->GetActorLocation());
-		if (previousLevel >= GetEffectiveTuning().SightChaseLevel)
+		PerceivedSightContact.Reset();
+		ProcessAwarenessTransaction(LRGameplayTags::SightPlayerLost);
+		HandleCaptureCheck();
+		if (Knowledge->GetEffectiveExposureSeconds() <= KINDA_SMALL_NUMBER)
 		{
-			Alert->LowerToMaximum(GetEffectiveTuning().SightChaseLevel - 1);
+			StopDetectionSampling();
 		}
-		CommitAwareness(previous, previousLevel, LRGameplayTags::SightPlayerLost, true);
 		return;
 	}
-	if (visibility.IsActive())
+
+	const bool bWasConfirmedThreat = Knowledge->HasConfirmedThreatActor(candidate);
+	if (currentStage == ELRGuardDetectionStage::Confirmed)
 	{
-		if (currentStage == ELRGuardDetectionStage::Confirmed)
-		{
-			Knowledge->SetConfirmedThreat(candidate, candidate->GetActorLocation());
-			Alert->RaiseToMinimum(GetEffectiveTuning().SightChaseLevel);
-		}
-		else if (static_cast<uint8>(currentStage) >= static_cast<uint8>(ELRGuardDetectionStage::Investigate))
-		{
-			Knowledge->RecordVisualEvidence(candidate, candidate->GetActorLocation(), true,
-				GetEffectiveTuning().InvestigationRetargetDistance);
-		}
-		else if (currentStage == ELRGuardDetectionStage::Suspicious)
-		{
-			Knowledge->RecordVisualEvidence(candidate, candidate->GetActorLocation(), false,
-				GetEffectiveTuning().InvestigationRetargetDistance);
-		}
+		Knowledge->SetConfirmedThreat(candidate, candidate->GetActorLocation());
+	}
+	else if (static_cast<uint8>(currentStage) >= static_cast<uint8>(ELRGuardDetectionStage::Investigate))
+	{
+		Knowledge->RecordVisualEvidence(candidate, candidate->GetActorLocation(),
+			ShouldRetryInvestigationAt(candidate->GetActorLocation()));
+	}
+	else if (currentStage == ELRGuardDetectionStage::Suspicious)
+	{
+		Knowledge->RecordVisualEvidence(candidate, candidate->GetActorLocation(), false);
+	}
+	if (bWasConfirmedThreat)
+	{
+		Alert->RaiseToMinimum(GetEffectiveTuning().DetectionConfirmedAlertFloor);
 	}
 	if (static_cast<uint8>(currentStage) > static_cast<uint8>(previousStage))
 	{
 		int32 floor = 0;
-		if (currentStage == ELRGuardDetectionStage::Suspicious)
+		switch (currentStage)
 		{
-			floor = 1;
-		}
-		else if (currentStage == ELRGuardDetectionStage::Investigate)
-		{
-			floor = GetEffectiveTuning().SightInvestigateLevel;
-		}
-		else if (currentStage == ELRGuardDetectionStage::Confirmed)
-		{
-			floor = GetEffectiveTuning().SightChaseLevel;
+		case ELRGuardDetectionStage::Suspicious:
+			floor = GetEffectiveTuning().DetectionSuspiciousAlertFloor;
+			break;
+		case ELRGuardDetectionStage::Investigate:
+			floor = GetEffectiveTuning().DetectionInvestigateAlertFloor;
+			break;
+		case ELRGuardDetectionStage::Confirmed:
+			floor = GetEffectiveTuning().DetectionConfirmedAlertFloor;
+			break;
+		default:
+			break;
 		}
 		Alert->RaiseToMinimum(floor);
 	}
-	CommitAwareness(previous, previousLevel, LRGameplayTags::SightPlayer);
+	ProcessAwarenessTransaction(LRGameplayTags::SightPlayer);
+	HandleCaptureCheck();
 }
-
 void ALRGuardAIController::HandleSightLost(AActor* actor, const FVector& lastKnownLocation)
 {
 	if (!Alert.IsValid() || !Knowledge.IsValid())
 	{
 		return;
 	}
-	const FLRGuardAwarenessSnapshot previous = GetAwarenessSnapshot();
-	const int32 previousLevel = Alert->GetAlertLevel();
 	Knowledge->RecordSightLoss(lastKnownLocation);
-	if (previousLevel >= GetEffectiveTuning().SightChaseLevel)
+	if (!actor || PerceivedSightContact.Get() == actor)
 	{
-		Alert->LowerToMaximum(GetEffectiveTuning().SightChaseLevel - 1);
+		PerceivedSightContact.Reset();
 	}
-	PerceivedSightContact.Reset();
-	LastDetectionSampleTime = 0.0;
-	CommitAwareness(previous, previousLevel, LRGameplayTags::SightPlayerLost, true);
+	ProcessAwarenessTransaction(LRGameplayTags::SightPlayerLost);
+	if (Knowledge->GetEffectiveExposureSeconds() <= KINDA_SMALL_NUMBER
+		&& !Knowledge->HasVisualCandidate())
+	{
+		StopDetectionSampling();
+	}
 }
-
 FLRGuardVisibilityResult ALRGuardAIController::EvaluateVisibility(AActor* actor) const
 {
 	const APawn* guardPawn = GetPawn();
@@ -214,6 +228,27 @@ float ALRGuardAIController::ResolveMovementVisibilityFactor(const AActor* actor)
 	}
 }
 
+void ALRGuardAIController::StartDetectionSampling()
+{
+	if (!GetWorld() || !Tuning)
+	{
+		return;
+	}
+	FTimerManager& timers = GetWorld()->GetTimerManager();
+	if (!timers.IsTimerActive(DetectionSampleTimer))
+	{
+		timers.SetTimer(DetectionSampleTimer, this, &ALRGuardAIController::HandleDetectionSample,
+			Tuning->DetectionSampleIntervalSeconds, true);
+	}
+}
+
+void ALRGuardAIController::StopDetectionSampling()
+{
+	if (GetWorld())
+	{
+		GetWorld()->GetTimerManager().ClearTimer(DetectionSampleTimer);
+	}
+}
 void ALRGuardAIController::ConfigurePerception()
 {
 	const ULRGuardTuning& tuning = GetEffectiveTuning();
@@ -232,7 +267,7 @@ void ALRGuardAIController::ConfigurePerception()
 	AIPerception->SetDominantSense(SightConfig->GetSenseImplementation());
 }
 
-void ALRGuardAIController::HandleCaptureTimer()
+void ALRGuardAIController::HandleCaptureCheck()
 {
 	const FLRGuardAwarenessSnapshot awareness = GetAwarenessSnapshot();
 	AActor* target = awareness.Knowledge.ConfirmedThreat.Get();

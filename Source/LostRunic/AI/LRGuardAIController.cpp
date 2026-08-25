@@ -23,6 +23,7 @@
 #include "Perception/AIPerceptionComponent.h"
 #include "Perception/AISenseConfig_Hearing.h"
 #include "Perception/AISenseConfig_Sight.h"
+#include "Navigation/PathFollowingComponent.h"
 #include "TimerManager.h"
 
 ALRGuardAIController::ALRGuardAIController()
@@ -56,15 +57,9 @@ void ALRGuardAIController::BeginPlay()
 	}
 	ConfigurePerception();
 	AIPerception->OnTargetPerceptionUpdated.AddDynamic(this, &ALRGuardAIController::HandlePerception);
-	FTimerManager& timers = GetWorld()->GetTimerManager();
-	timers.SetTimer(CaptureTimer, this, &ALRGuardAIController::HandleCaptureTimer,
-		Tuning->CaptureCheckIntervalSeconds, true);
-	timers.SetTimer(DetectionSampleTimer, this, &ALRGuardAIController::HandleDetectionSample,
-		Tuning->DetectionSampleIntervalSeconds, true);
-	LastDetectionSampleTime = GetWorld()->GetTimeSeconds();
+	LastDetectionSampleTime = 0.0;
 	CachedAwareness = GetAwarenessSnapshot();
 }
-
 void ALRGuardAIController::EndPlay(const EEndPlayReason::Type endPlayReason)
 {
 	if (AIPerception)
@@ -73,13 +68,11 @@ void ALRGuardAIController::EndPlay(const EEndPlayReason::Type endPlayReason)
 	}
 	if (GetWorld())
 	{
-		GetWorld()->GetTimerManager().ClearTimer(CaptureTimer);
 		GetWorld()->GetTimerManager().ClearTimer(DetectionSampleTimer);
 		GetWorld()->GetTimerManager().ClearTimer(StunTimer);
 	}
 	Super::EndPlay(endPlayReason);
 }
-
 void ALRGuardAIController::OnPossess(APawn* inPawn)
 {
 	Super::OnPossess(inPawn);
@@ -96,6 +89,10 @@ void ALRGuardAIController::OnPossess(APawn* inPawn)
 	{
 		courage->OnKnockbackApplied.AddDynamic(this, &ALRGuardAIController::HandleKnockback);
 	}
+	CachedAwareness = GetAwarenessSnapshot();
+	InvestigationMoveRequestCount = 0;
+	ClearInvestigationRetrySuppression();
+	LastDetectionSampleTime = 0.0;
 	ULRGuardDefinition* definition = guard->GetDefinition();
 	if (definition && definition->Behavior)
 	{
@@ -110,9 +107,7 @@ void ALRGuardAIController::OnPossess(APawn* inPawn)
 		UE_LOG(LogLostRunicAI, Warning, TEXT("Guard=%s definition or Behavior StateTree is missing; using fallback."),
 			*GetNameSafe(guard));
 	}
-	CachedAwareness = GetAwarenessSnapshot();
 }
-
 void ALRGuardAIController::OnUnPossess()
 {
 	if (Alert.IsValid())
@@ -125,11 +120,23 @@ void ALRGuardAIController::OnUnPossess()
 		{
 			courage->OnKnockbackApplied.RemoveDynamic(this, &ALRGuardAIController::HandleKnockback);
 		}
+		if (Knowledge.IsValid())
+		{
+			Knowledge->SuspendVisualContact();
+		}
 	}
 	PerceivedSightContact.Reset();
 	LastDetectionSampleTime = 0.0;
+	StopMovement();
+	ClearInvestigationMoveRequest();
+	ClearInvestigationRetrySuppression();
+	bAwarenessCommitDeferred = false;
+	DeferredAwarenessReason = FGameplayTag();
+	bDeferredForcePublish = false;
+	bHasSuspiciousFocusLocation = false;
 	if (GetWorld())
 	{
+		GetWorld()->GetTimerManager().ClearTimer(DetectionSampleTimer);
 		GetWorld()->GetTimerManager().ClearTimer(StunTimer);
 	}
 	if (StateTreeAI->IsRunning())
@@ -141,7 +148,6 @@ void ALRGuardAIController::OnUnPossess()
 	CachedAwareness = FLRGuardAwarenessSnapshot();
 	Super::OnUnPossess();
 }
-
 FLRGuardAwarenessSnapshot ALRGuardAIController::GetAwarenessSnapshot() const
 {
 	FLRGuardAwarenessSnapshot snapshot;
@@ -205,38 +211,43 @@ void ALRGuardAIController::ReceiveNoiseStimulus(const FLRGuardNoiseStimulus& sti
 		Alert->ApplyDelta(response.Delta);
 	}
 	const AActor* confirmed = previous.Knowledge.ConfirmedThreat.Get();
-	Knowledge->CommitAcceptedNoise(stimulus, confirmed && confirmed == stimulus.Source.Get(),
-		GetEffectiveTuning().InvestigationRetargetDistance);
-	CommitAwareness(previous, previousLevel, stimulus.Reason);
+	Knowledge->CommitAcceptedNoise(stimulus, confirmed && confirmed == stimulus.Source.Get());
+	ProcessAwarenessTransaction(stimulus.Reason);
 }
-
 void ALRGuardAIController::MarkInvestigationReached()
 {
 	if (!Alert.IsValid() || !Knowledge.IsValid())
 	{
 		return;
 	}
-	const FLRGuardAwarenessSnapshot previous = GetAwarenessSnapshot();
-	const int32 previousLevel = Alert->GetAlertLevel();
-	Knowledge->MarkInvestigationReached();
-	Alert->MarkInvestigationReached();
-	CommitAwareness(previous, previousLevel, LRGameplayTags::SearchReached, true);
+	ApplyInvestigationReached();
+	ProcessAwarenessTransaction(LRGameplayTags::SearchReached, true);
 }
 
+void ALRGuardAIController::MarkInvestigationUnreachable()
+{
+	if (!Alert.IsValid() || !Knowledge.IsValid())
+	{
+		return;
+	}
+	ApplyInvestigationUnreachable();
+	ProcessAwarenessTransaction(LRGameplayTags::SearchUnreachable, true);
+}
 void ALRGuardAIController::ResetSearch()
 {
 	if (!Alert.IsValid() || !Knowledge.IsValid())
 	{
 		return;
 	}
-	const FLRGuardAwarenessSnapshot previous = GetAwarenessSnapshot();
-	const int32 previousLevel = Alert->GetAlertLevel();
 	Alert->ResetAfterSearch();
 	Knowledge->ResetAwareness();
 	PerceivedSightContact.Reset();
-	CommitAwareness(previous, previousLevel, LRGameplayTags::SearchTimeout, true);
+	StopDetectionSampling();
+	LastDetectionSampleTime = 0.0;
+	ClearInvestigationMoveRequest();
+	ClearInvestigationRetrySuppression();
+	ProcessAwarenessTransaction(LRGameplayTags::SearchTimeout, true);
 }
-
 void ALRGuardAIController::HandleAlertDecayRequested()
 {
 	if (!Alert.IsValid() || !Knowledge.IsValid())
@@ -249,54 +260,18 @@ void ALRGuardAIController::HandleAlertDecayRequested()
 	{
 		return;
 	}
-	const int32 previousLevel = Alert->GetAlertLevel();
 	Alert->ApplyDelta(-GetEffectiveTuning().AlertDecayAmount);
 	if (Alert->GetAlertLevel() == 0)
 	{
 		Knowledge->ResetAwareness();
 		PerceivedSightContact.Reset();
+		StopDetectionSampling();
+		LastDetectionSampleTime = 0.0;
+		ClearInvestigationMoveRequest();
+		ClearInvestigationRetrySuppression();
 	}
-	CommitAwareness(previous, previousLevel, LRGameplayTags::SearchAlertDecay);
+	ProcessAwarenessTransaction(LRGameplayTags::SearchAlertDecay);
 }
-
-void ALRGuardAIController::CommitAwareness(const FLRGuardAwarenessSnapshot& previous,
-	const int32 previousAlertLevel, const FGameplayTag reason, const bool bForcePublish)
-{
-	const FLRGuardAwarenessSnapshot current = GetAwarenessSnapshot();
-	const bool bBehaviorChanged = previous.ResolvedBehavior != current.ResolvedBehavior;
-	const bool bSignificant = bForcePublish || previous.Alert.Level != current.Alert.Level
-		|| bBehaviorChanged || previous.Knowledge.Stage != current.Knowledge.Stage
-		|| previous.Knowledge.bPendingThreatInvestigation != current.Knowledge.bPendingThreatInvestigation
-		|| previous.Knowledge.InvestigationContextRevision != current.Knowledge.InvestigationContextRevision
-		|| previous.Knowledge.ConfirmedThreat != current.Knowledge.ConfirmedThreat
-		|| previous.Knowledge.VisualCandidate != current.Knowledge.VisualCandidate
-		|| previous.Knowledge.CurrentVisibility.IsActive() != current.Knowledge.CurrentVisibility.IsActive();
-
-	if (bBehaviorChanged)
-	{
-		if (StateTreeAI->IsRunning())
-		{
-			StateTreeAI->SendStateTreeEvent(LRGameplayTags::AIEventBehaviorChanged, FConstStructView(), FName());
-		}
-		else
-		{
-			EnterBehavior(current.ResolvedBehavior);
-		}
-	}
-	else
-	{
-		RefreshBehaviorContext(previous, current);
-	}
-	CachedAwareness = current;
-	Knowledge->PublishIfChanged(previous.Knowledge);
-	if (bSignificant)
-	{
-		Alert->PublishCommittedChange(previousAlertLevel, current.ResolvedBehavior, reason,
-			current.InvestigationLocation);
-		OnGuardAwarenessChanged.Broadcast(current);
-	}
-}
-
 const ULRGuardTuning& ALRGuardAIController::GetEffectiveTuning() const
 {
 	return Tuning ? *Tuning : *GetDefault<ULRGuardTuning>();

@@ -34,15 +34,11 @@ EStateTreeRunStatus FLRGuardBehaviorTask::EnterState(FStateTreeExecutionContext&
 	{
 		return EStateTreeRunStatus::Failed;
 	}
-	data.AIController->EnterBehavior(Behavior);
-	return EStateTreeRunStatus::Running;
+	const ELRGuardBehaviorEntryResult result = data.AIController->EnterBehavior(Behavior);
+	data.AIController->FinalizeStateTreeBehaviorEntry(Behavior, result);
+	return result == ELRGuardBehaviorEntryResult::Running
+		? EStateTreeRunStatus::Running : EStateTreeRunStatus::Failed;
 }
-
-/**
- * @brief StateTree 任务退出时通知守卫 Controller 清理该行为拥有的导航和计时器。
- * @param context 用于本次条件匹配的 `context` 标签或上下文。
- * @param transition 本次领域操作的结构化数据 `transition`；字段语义由对应 USTRUCT 定义。
- */
 void FLRGuardBehaviorTask::ExitState(FStateTreeExecutionContext& context,
 	const FStateTreeTransitionResult& transition) const
 {

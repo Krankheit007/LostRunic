@@ -171,3 +171,11 @@ Guard runtime state follows this one-way ownership flow:
 - Invariant: AlertLevel == 11 does not imply ConfirmedThreat. Chase requires Knowledge to contain a confirmed, currently visible threat. PendingThreatInvestigation takes precedence over Search until its location is reached.
 - BehaviorChanged is emitted only when the enum changes. Investigation location/revision changes use RefreshBehaviorContext and a retarget-distance gate, preserving StateTree state while updating navigation context.
 - FLRAlertSnapshot.Behavior is presentation compatibility only and is filled by the controller when composing legacy UI data. FLRGuardAwarenessSnapshot.ResolvedBehavior is authoritative.
+
+### Guard Awareness execution transactions (2026-08-25)
+
+- **StateTree/Controller 执行权**：行为枚举变化时 Controller 只发送 `AI.Event.BehaviorChanged`，由 `FLRGuardBehaviorTask::EnterState` 首次调用 `EnterBehavior`；行为不变且 Investigate 上下文达到 retarget 阈值时，Controller 直接调用导航 Helper。两条路径共享幂等请求，不会对同一目标双发 Move。
+- **事务提交**：`CommitAwareness` 是最终提交器，不执行 Move、Enter、Knowledge/Alert mutation 或递归提交。同步 `AlreadyAtGoal`/失败在当前事务中先收敛到 Search 再广播；已成功运行后的异步 Move completion/failure 是新的独立事务。
+- **导航失败分类**：当前 RequestId 才能改变领域状态；`Blocked`/`OffPath`/当前请求的非 `NewRequest` Abort 调用 `MarkInvestigationUnreachable`，清 Pending、设置 Search flag 并清理目标，禁止 Detection sample 自动重试。不同 RequestId 的 stale callback 忽略；Retarget 产生的 `NewRequest` Abort 忽略；行为退出前清 ID，因此 Controller 主动 Abort 不污染 Knowledge。
+- **瞬时视觉与历史记忆**：Sight Lost 清 Candidate/CurrentVisibility 但保留 Exposure、Stage 和 sample 时间，由单一 DetectionSampleTimer 做 inactive decay；Exposure 归零后 Stage=None 并停 Timer。UnPossess 额外立即清 Exposure/Stage，保留 ConfirmedThreat、位置记忆、Pending、Revision 和 Alert。
+- **版本与广播**：`InvestigationContextRevision` 只描述已被导航接受的 Investigate 执行上下文；Suspicious SetFocalPoint 不递增。Knowledge 每个 sample 可更新，但 Awareness delegate 忽略单独 Exposure float 变化，只在 Alert/Stage/contact/threat/pending/revision/behavior 变化时广播。

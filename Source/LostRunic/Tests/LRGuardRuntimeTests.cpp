@@ -7,6 +7,8 @@
 #include "Misc/AutomationTest.h"
 
 #include "AI/LRGuardAIController.h"
+#include "AI/LRAlertComponent.h"
+#include "AI/LRGuardKnowledgeComponent.h"
 #include "AI/LRGuardCharacter.h"
 #include "Core/LRGameplayTags.h"
 #include "Engine/Engine.h"
@@ -81,8 +83,8 @@ bool FLRGuardAwarenessRuntimeContractTest::RunTest(const FString& parameters)
 		const FVector secondLocation(250.0f, 0.0f, 0.0f);
 		SendNoise(secondLocation, LRGameplayTags::NoiseFootstepRunIndoor,
 			ELRGuardNoisePropagationMode::AdjacentRoom);
-		bPassed &= TestEqual(TEXT("Accepted evidence resolves Investigate"),
-			controller->GetResolvedBehavior(), ELRGuardBehaviorState::Investigate);
+		bPassed &= TestEqual(TEXT("Immediate navigation failure resolves Search"),
+			controller->GetResolvedBehavior(), ELRGuardBehaviorState::Search);
 		bPassed &= TestEqual(TEXT("Accepted evidence owns investigation location"),
 			controller->GetAwarenessSnapshot().InvestigationLocation, secondLocation);
 
@@ -98,7 +100,18 @@ bool FLRGuardAwarenessRuntimeContractTest::RunTest(const FString& parameters)
 		controller->MarkInvestigationReached();
 		bPassed &= TestEqual(TEXT("Reached evidence at Alert 11 resolves Search"),
 			controller->GetResolvedBehavior(), ELRGuardBehaviorState::Search);
+		ULRGuardKnowledgeComponent* pawnKnowledge = guard->GetKnowledgeComponent();
+		ULRAlertComponent* pawnAlert = guard->GetAlertComponent();
+		const FLRGuardKnowledgeSnapshot knowledgeBeforeUnPossess = pawnKnowledge->GetSnapshot();
+		const FLRAlertSnapshot alertBeforeUnPossess = pawnAlert->GetAlertSnapshot();
 		controller->UnPossess();
+		const FLRGuardKnowledgeSnapshot knowledgeAfterUnPossess = pawnKnowledge->GetSnapshot();
+		bPassed &= TestEqual(TEXT("UnPossess clears transient exposure"), knowledgeAfterUnPossess.EffectiveExposureSeconds, 0.0f, 0.001f);
+		bPassed &= TestEqual(TEXT("UnPossess clears transient detection stage"), knowledgeAfterUnPossess.Stage, ELRGuardDetectionStage::None);
+		bPassed &= TestEqual(TEXT("UnPossess preserves disturbance memory"), knowledgeAfterUnPossess.LastDisturbanceLocation, knowledgeBeforeUnPossess.LastDisturbanceLocation);
+		bPassed &= TestEqual(TEXT("UnPossess preserves pending memory"), knowledgeAfterUnPossess.bPendingThreatInvestigation, knowledgeBeforeUnPossess.bPendingThreatInvestigation);
+		bPassed &= TestEqual(TEXT("UnPossess preserves investigation revision"), knowledgeAfterUnPossess.InvestigationContextRevision, knowledgeBeforeUnPossess.InvestigationContextRevision);
+		bPassed &= TestEqual(TEXT("UnPossess preserves Alert"), pawnAlert->GetAlertLevel(), alertBeforeUnPossess.Level);
 		bPassed &= TestNull(TEXT("UnPossess clears controller Knowledge reference"),
 			controller->GetKnowledgeComponent());
 	}

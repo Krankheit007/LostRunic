@@ -53,6 +53,18 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|Detection", meta = (ClampMin = "0.0", ClampMax = "10.0"))
 	float DetectionExposureDecayRate = 1.0f;
 
+	/** Alert floor for the first active detection stage. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|Detection", meta = (ClampMin = "1", ClampMax = "11"))
+	int32 DetectionSuspiciousAlertFloor = 1;
+
+	/** Alert floor for the investigation detection stage. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|Detection", meta = (ClampMin = "1", ClampMax = "11"))
+	int32 DetectionInvestigateAlertFloor = 6;
+
+	/** Alert floor for the confirmed detection stage and chase. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|Detection", meta = (ClampMin = "1", ClampMax = "11"))
+	int32 DetectionConfirmedAlertFloor = 11;
+
 	/** Score at the edge of the configured sight radius; distance uses a linear interpolation from 1.0 to this value. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|Visibility", meta = (ClampMin = "0.0", ClampMax = "1.0"))
 	float SightEdgeDetectionMultiplier = 0.5f;
@@ -78,13 +90,6 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|Alert", meta = (ClampMin = "1", ClampMax = "11"))
 	int32 AttractAlertAmount = 1;
 
-	/** 警戒低于 SightInvestigateLevel 时看见玩家设置的目标等级；默认 6，前往调查。 C++ 安全默认值为 `6`。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。编辑器约束：最小值 `1`，最大值 `11`。 */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|Alert", meta = (ClampMin = "1", ClampMax = "11"))
-	int32 SightInvestigateLevel = 6;
-
-	/** 警戒处于 6-10 档时看见玩家设置的目标等级；默认 11，进入追逐。 C++ 安全默认值为 `11`。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。编辑器约束：最小值 `1`，最大值 `11`。 */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|Alert", meta = (ClampMin = "1", ClampMax = "11"))
-	int32 SightChaseLevel = 11;
 
 	/** 1-5 档吸引注意增加的冷却时间；默认 0.5 秒；从 0 首次进入 6-10 档的首个增量也使用该值。 C++ 安全默认值为 `0.5f`。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。编辑器约束：单位 `s`，最小值 `0.0`，最大值 `10.0`。 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|Alert", meta = (ClampMin = "0.0", ClampMax = "10.0", Units = "s"))
@@ -130,9 +135,6 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|Capture", meta = (ClampMin = "10.0", ClampMax = "500.0", Units = "cm"))
 	float CaptureRadius = 75.0f;
 
-	/** 捕获距离检查周期；默认 0.1 秒，以计时器代替 Tick。 C++ 安全默认值为 `0.1f`。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。编辑器约束：单位 `s`，最小值 `0.02`，最大值 `1.0`。 */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|Capture", meta = (ClampMin = "0.02", ClampMax = "1.0", Units = "s"))
-	float CaptureCheckIntervalSeconds = 0.1f;
 
 	/** 守卫导航到调查点时允许的到达误差；默认 50 cm。 C++ 安全默认值为 `50.0f`。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。编辑器约束：单位 `cm`，最小值 `1.0`，最大值 `500.0`。 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|Movement", meta = (ClampMin = "1.0", ClampMax = "500.0", Units = "cm"))

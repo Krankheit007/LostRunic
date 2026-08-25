@@ -23,6 +23,13 @@ class UStateTreeAIComponent;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FLRGuardAwarenessChanged,
 	const FLRGuardAwarenessSnapshot&, snapshot);
 
+enum class ELRGuardBehaviorEntryResult : uint8
+{
+	Running,
+	AlreadyAtGoal,
+	Failed
+};
+
 /** Controller-owned perception adapter and coordinator for sibling Alert/Knowledge components. */
 UCLASS(BlueprintType, meta = (DisplayName = "Lost Runic Guard AI Controller"))
 class LOSTRUNIC_API ALRGuardAIController : public AAIController
@@ -48,13 +55,18 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Lost Runic|AI")
 	ELRGuardBehaviorState GetResolvedBehavior() const;
 
+	/** Number of actual investigation MoveTo requests issued since the current possession. */
+	int32 GetInvestigationMoveRequestCount() const { return InvestigationMoveRequestCount; }
+
 	/** Unified accepted/rejected noise domain entry for hearing and room propagation. */
 	void ReceiveNoiseStimulus(const FLRGuardNoiseStimulus& stimulus);
 	void MarkInvestigationReached();
+	void MarkInvestigationUnreachable();
 	void ResetSearch();
 	bool IsRelevantSightTarget(const AActor* actor) const;
 
-	void EnterBehavior(ELRGuardBehaviorState behavior);
+	ELRGuardBehaviorEntryResult EnterBehavior(ELRGuardBehaviorState behavior);
+	void FinalizeStateTreeBehaviorEntry(ELRGuardBehaviorState behavior, ELRGuardBehaviorEntryResult result);
 	void ExitBehavior(ELRGuardBehaviorState behavior);
 	void LogAndDrawDiagnostics() const;
 
@@ -72,15 +84,23 @@ private:
 	void HandleKnockback(FVector direction);
 
 	void ConfigurePerception();
-	void HandleCaptureTimer();
+	void HandleCaptureCheck();
 	void HandleDetectionSample();
 	void HandleAlertDecayRequested();
 	void HandleStunEnd();
 	void StartPatrolMove();
-	void RefreshBehaviorContext(const FLRGuardAwarenessSnapshot& previous,
-		const FLRGuardAwarenessSnapshot& current);
-	void CommitAwareness(const FLRGuardAwarenessSnapshot& previous, int32 previousAlertLevel,
-		FGameplayTag reason, bool bForcePublish = false);
+	void ProcessAwarenessTransaction(FGameplayTag reason, bool bForcePublish = false);
+	void RefreshBehaviorContext(const FLRGuardAwarenessSnapshot& current);
+	void CommitAwareness(FGameplayTag reason, bool bForcePublish = false);
+	void DeferAwarenessCommit(FGameplayTag reason, bool bForcePublish);
+	void ClearInvestigationMoveRequest();
+	void ClearInvestigationRetrySuppression();
+	bool ShouldRetryInvestigationAt(const FVector& location) const;
+	void ApplyInvestigationReached();
+	void ApplyInvestigationUnreachable();
+	void StartDetectionSampling();
+	void StopDetectionSampling();
+	FPathFollowingRequestResult RequestInvestigationMove(const FVector& location);
 	void HandleSightLost(AActor* actor, const FVector& lastKnownLocation);
 	FLRGuardVisibilityResult EvaluateVisibility(AActor* actor) const;
 	float ResolveMovementVisibilityFactor(const AActor* actor) const;
@@ -117,7 +137,19 @@ private:
 	ELRGuardBehaviorState ActiveBehavior = ELRGuardBehaviorState::IdlePatrol;
 	int32 PatrolIndex = 0;
 	bool bStunned = false;
-	FTimerHandle CaptureTimer;
 	FTimerHandle DetectionSampleTimer;
+
+	bool bHasInvestigationMoveTarget = false;
+	FVector CurrentInvestigationMoveTarget = FVector::ZeroVector;
+	bool bInvestigationRetrySuppressed = false;
+	bool bHasUnreachableInvestigationLocation = false;
+	FVector LastUnreachableInvestigationLocation = FVector::ZeroVector;
+	FAIRequestID InvestigationMoveRequestId = FAIRequestID::InvalidRequest;
+	int32 InvestigationMoveRequestCount = 0;
+	bool bHasSuspiciousFocusLocation = false;
+	FVector CurrentSuspiciousFocusLocation = FVector::ZeroVector;
+	bool bAwarenessCommitDeferred = false;
+	FGameplayTag DeferredAwarenessReason;
+	bool bDeferredForcePublish = false;
 	FTimerHandle StunTimer;
 };

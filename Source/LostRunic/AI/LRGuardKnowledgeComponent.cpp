@@ -43,40 +43,29 @@ void ULRGuardKnowledgeComponent::ClearVisualCandidate()
 	Snapshot.CurrentVisibility = FLRGuardVisibilityResult();
 }
 
-void ULRGuardKnowledgeComponent::ApplyVisibilitySample(const FLRGuardVisibilityResult& sample,
-	const float deltaSeconds, const ULRGuardTuning& tuning)
+void ULRGuardKnowledgeComponent::ApplyVisibilitySample(const FLRGuardVisibilityResult& sample, const float deltaSeconds, const ULRGuardTuning& tuning)
 {
 	Snapshot.CurrentVisibility = sample;
 	Snapshot.EffectiveExposureSeconds = LRGuardPerceptionRules::IntegrateDetectionExposure(
 		Snapshot.EffectiveExposureSeconds, sample, deltaSeconds, tuning);
-	const ELRGuardDetectionStage sampledStage = LRGuardPerceptionRules::ResolveDetectionStage(
-		Snapshot.EffectiveExposureSeconds, tuning);
-	if (static_cast<uint8>(sampledStage) > static_cast<uint8>(Snapshot.Stage))
+	if (Snapshot.EffectiveExposureSeconds <= KINDA_SMALL_NUMBER)
 	{
-		Snapshot.Stage = sampledStage;
+		Snapshot.EffectiveExposureSeconds = 0.0f;
 	}
+	Snapshot.Stage = LRGuardPerceptionRules::ResolveDetectionStage(
+		Snapshot.EffectiveExposureSeconds, tuning);
 }
 
-void ULRGuardKnowledgeComponent::RecordVisualEvidence(AActor* actor, const FVector& location,
-	const bool bPendingInvestigation, const float retargetDistance)
+void ULRGuardKnowledgeComponent::RecordVisualEvidence(AActor* actor, const FVector& location, const bool bPendingInvestigation)
 {
-	const bool bLocationChanged = !Snapshot.bHasLastKnownThreatLocation
-		|| FVector::DistSquared(Snapshot.LastKnownThreatLocation, location)
-			>= FMath::Square(retargetDistance);
-	const bool bPendingChanged = Snapshot.bPendingThreatInvestigation != bPendingInvestigation;
 	Snapshot.VisualCandidate = actor;
 	Snapshot.bHasVisualCandidate = IsValid(actor);
 	Snapshot.LastKnownThreatLocation = location;
 	Snapshot.bHasLastKnownThreatLocation = Snapshot.bHasVisualCandidate;
 	Snapshot.bPendingThreatInvestigation = bPendingInvestigation;
-	if (bPendingInvestigation && (bLocationChanged || bPendingChanged))
-	{
-		++Snapshot.InvestigationContextRevision;
-	}
 }
 
-void ULRGuardKnowledgeComponent::SetConfirmedThreat(AActor* threat, const FVector& lastKnownLocation,
-	const bool bLatch)
+void ULRGuardKnowledgeComponent::SetConfirmedThreat(AActor* threat, const FVector& lastKnownLocation, const bool bLatch)
 {
 	Snapshot.ConfirmedThreat = threat;
 	Snapshot.bHasConfirmedThreat = IsValid(threat);
@@ -85,7 +74,6 @@ void ULRGuardKnowledgeComponent::SetConfirmedThreat(AActor* threat, const FVecto
 		Snapshot.LastKnownThreatLocation = lastKnownLocation;
 		Snapshot.bHasLastKnownThreatLocation = true;
 		Snapshot.bPendingThreatInvestigation = false;
-		Snapshot.Stage = ELRGuardDetectionStage::Confirmed;
 	}
 	bThreatLatched = bLatch && Snapshot.bHasConfirmedThreat;
 }
@@ -94,40 +82,25 @@ void ULRGuardKnowledgeComponent::RecordSightLoss(const FVector& lastKnownLocatio
 {
 	const bool bHadEvidence = Snapshot.bHasConfirmedThreat || Snapshot.bHasVisualCandidate
 		|| Snapshot.bHasLastKnownThreatLocation;
-	const bool bLocationChanged = !Snapshot.bHasLastKnownThreatLocation
-		|| !Snapshot.LastKnownThreatLocation.Equals(lastKnownLocation);
 	Snapshot.LastKnownThreatLocation = lastKnownLocation;
 	Snapshot.bHasLastKnownThreatLocation = bHadEvidence;
 	ClearVisualCandidate();
-	if (!bThreatLatched)
+	if (!bThreatLatched || !Snapshot.ConfirmedThreat.IsValid())
 	{
 		Snapshot.ConfirmedThreat.Reset();
 		Snapshot.bHasConfirmedThreat = false;
+		bThreatLatched = false;
 	}
-	const bool bWasPending = Snapshot.bPendingThreatInvestigation;
 	Snapshot.bPendingThreatInvestigation = bHadEvidence;
-	if (Snapshot.bPendingThreatInvestigation && (!bWasPending || bLocationChanged))
-	{
-		++Snapshot.InvestigationContextRevision;
-	}
 }
 
-void ULRGuardKnowledgeComponent::CommitAcceptedNoise(const FLRGuardNoiseStimulus& stimulus,
-	const bool bConfirmedThreatSource, const float retargetDistance)
+void ULRGuardKnowledgeComponent::CommitAcceptedNoise(const FLRGuardNoiseStimulus& stimulus, const bool bConfirmedThreatSource)
 {
-	const FVector previousLocation = bConfirmedThreatSource
-		? Snapshot.LastKnownThreatLocation : Snapshot.LastDisturbanceLocation;
-	const bool bHadLocation = bConfirmedThreatSource
-		? Snapshot.bHasLastKnownThreatLocation : Snapshot.bHasLastDisturbanceLocation;
-	const bool bContextChanged = !bHadLocation
-		|| FVector::DistSquared(previousLocation, stimulus.Location) >= FMath::Square(retargetDistance)
-		|| Snapshot.LastAcceptedStimulusSource != stimulus.Source
-		|| Snapshot.LastAcceptedStimulusReason != stimulus.Reason;
-
 	if (bConfirmedThreatSource)
 	{
 		Snapshot.LastKnownThreatLocation = stimulus.Location;
 		Snapshot.bHasLastKnownThreatLocation = true;
+		Snapshot.bPendingThreatInvestigation = true;
 	}
 	else
 	{
@@ -137,16 +110,28 @@ void ULRGuardKnowledgeComponent::CommitAcceptedNoise(const FLRGuardNoiseStimulus
 	Snapshot.LastAcceptedStimulusSource = stimulus.Source;
 	Snapshot.LastAcceptedStimulusReason = stimulus.Reason;
 	Snapshot.LastAcceptedStimulusTimeSeconds = stimulus.TimeSeconds;
-	Snapshot.bPendingThreatInvestigation = true;
-	if (bContextChanged)
-	{
-		++Snapshot.InvestigationContextRevision;
-	}
 }
 
 void ULRGuardKnowledgeComponent::MarkInvestigationReached()
 {
 	Snapshot.bPendingThreatInvestigation = false;
+}
+
+void ULRGuardKnowledgeComponent::MarkInvestigationUnreachable()
+{
+	Snapshot.bPendingThreatInvestigation = false;
+}
+
+void ULRGuardKnowledgeComponent::AdvanceInvestigationContextRevision()
+{
+	++Snapshot.InvestigationContextRevision;
+}
+
+void ULRGuardKnowledgeComponent::SuspendVisualContact()
+{
+	ClearVisualCandidate();
+	Snapshot.EffectiveExposureSeconds = 0.0f;
+	Snapshot.Stage = ELRGuardDetectionStage::None;
 }
 
 void ULRGuardKnowledgeComponent::ResetAwareness()
