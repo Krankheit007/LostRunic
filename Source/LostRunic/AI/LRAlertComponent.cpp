@@ -6,11 +6,7 @@
 
 #include "AI/LRAlertRules.h"
 #include "Core/LRLog.h"
-#include "Data/LRGameTuningSet.h"
-#include "Data/LRGuardTuning.h"
-#include "Engine/GameInstance.h"
 #include "Engine/World.h"
-#include "Framework/LRGameInstanceSubsystem.h"
 #include "TimerManager.h"
 
 ULRAlertComponent::ULRAlertComponent()
@@ -21,27 +17,51 @@ ULRAlertComponent::ULRAlertComponent()
 void ULRAlertComponent::BeginPlay()
 {
 	Super::BeginPlay();
-	const UGameInstance* gameInstance = GetWorld() ? GetWorld()->GetGameInstance() : nullptr;
-	const ULRGameInstanceSubsystem* subsystem = gameInstance
-		? gameInstance->GetSubsystem<ULRGameInstanceSubsystem>() : nullptr;
-	Tuning = subsystem && subsystem->GetTuningSet() ? subsystem->GetTuningSet()->Guard : nullptr;
-	if (!ensureMsgf(Tuning, TEXT("%s requires Guard tuning."), *GetNameSafe(this)))
-	{
-		return;
-	}
-	GetWorld()->GetTimerManager().SetTimer(DecayTimer, this, &ULRAlertComponent::HandleDecayTimer,
-		Tuning->AlertDecayIntervalSeconds, true);
 }
 
 void ULRAlertComponent::EndPlay(const EEndPlayReason::Type endPlayReason)
+{
+	ShutdownRuntime();
+	OnDecayRequested.Clear();
+	Super::EndPlay(endPlayReason);
+}
+
+void ULRAlertComponent::InitializeRuntime(const FLRGuardTuningSettings& tuning)
+{
+	RuntimeTuning = tuning;
+	bRuntimeInitialized = true;
+	if (!GetWorld())
+	{
+		return;
+	}
+
+	FTimerManager& timers = GetWorld()->GetTimerManager();
+	timers.SetTimer(DecayTimer, this, &ULRAlertComponent::HandleDecayTimer,
+		RuntimeTuning.AlertDecayIntervalSeconds, true);
+	if (bObserving)
+	{
+		const float remainingSeconds = static_cast<float>(ObservationEndTimeSeconds - GetWorld()->GetTimeSeconds());
+		if (remainingSeconds > 0.0f)
+		{
+			timers.SetTimer(ObservationTimer, this, &ULRAlertComponent::HandleObservationEnd,
+				remainingSeconds, false);
+		}
+		else
+		{
+			HandleObservationEnd();
+		}
+	}
+}
+
+void ULRAlertComponent::ShutdownRuntime()
 {
 	if (GetWorld())
 	{
 		GetWorld()->GetTimerManager().ClearTimer(DecayTimer);
 		GetWorld()->GetTimerManager().ClearTimer(ObservationTimer);
 	}
-	OnDecayRequested.Clear();
-	Super::EndPlay(endPlayReason);
+	RuntimeTuning = FLRGuardTuningSettings();
+	bRuntimeInitialized = false;
 }
 
 bool ULRAlertComponent::ApplyDelta(const int32 delta)
@@ -71,7 +91,7 @@ bool ULRAlertComponent::LowerToMaximum(const int32 maximumLevel)
 
 bool ULRAlertComponent::TryApplyAttract(const double nowSeconds)
 {
-	const ULRGuardTuning& tuning = GetEffectiveTuning();
+	const FLRGuardTuningSettings& tuning = GetEffectiveTuning();
 	if (AlertLevel > 0 && !LRAlertRules::IsIncreaseAllowed(nowSeconds, LastIncreaseTimeSeconds,
 		LRAlertRules::ResolveAttractIncreaseCooldown(AlertLevel, bFirstIncreaseInBand, tuning)))
 	{
@@ -122,15 +142,17 @@ void ULRAlertComponent::HandleDecayTimer()
 void ULRAlertComponent::HandleObservationEnd()
 {
 	bObserving = false;
+	ObservationEndTimeSeconds = 0.0;
 }
 
 void ULRAlertComponent::StartObservation()
 {
-	if (AlertLevel <= 0 || !GetWorld())
+	if (AlertLevel <= 0 || !GetWorld() || !bRuntimeInitialized)
 	{
 		return;
 	}
 	bObserving = true;
+	ObservationEndTimeSeconds = GetWorld()->GetTimeSeconds() + GetEffectiveTuning().InitialObserveSeconds;
 	GetWorld()->GetTimerManager().ClearTimer(ObservationTimer);
 	GetWorld()->GetTimerManager().SetTimer(ObservationTimer, this, &ULRAlertComponent::HandleObservationEnd,
 		GetEffectiveTuning().InitialObserveSeconds, false);
@@ -140,6 +162,7 @@ void ULRAlertComponent::ClearWhenAlertZero()
 {
 	bSearching = false;
 	bObserving = false;
+	ObservationEndTimeSeconds = 0.0;
 	bFirstIncreaseInBand = false;
 	if (GetWorld())
 	{
@@ -170,7 +193,7 @@ void ULRAlertComponent::PublishCommittedChange(const int32 previousLevel,
 	OnAlertSnapshotChanged.Broadcast(snapshot);
 }
 
-const ULRGuardTuning& ULRAlertComponent::GetEffectiveTuning() const
+const FLRGuardTuningSettings& ULRAlertComponent::GetEffectiveTuning() const
 {
-	return Tuning ? *Tuning : *GetDefault<ULRGuardTuning>();
+	return RuntimeTuning;
 }

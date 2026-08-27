@@ -13,7 +13,6 @@
 
 #include "LRNoiseEmitterComponent.generated.h"
 
-class ULRGuardTuning;
 class ULRInteractionComponent;
 class ULRLocomotionComponent;
 class ULRMovementTuning;
@@ -91,7 +90,4 @@ private:
 	UPROPERTY(Transient)
 	TObjectPtr<ULRMovementTuning> Tuning;
 
-	/** Guard 调优缓存；室内奔跑房间警戒目标值来源。 该字段仅为运行时缓存，不进入存档。 */
-	UPROPERTY(Transient)
-	TObjectPtr<ULRGuardTuning> GuardTuning;
 };

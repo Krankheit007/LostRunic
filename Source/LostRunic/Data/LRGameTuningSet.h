@@ -13,10 +13,8 @@
 
 #include "LRGameTuningSet.generated.h"
 
-class ULRGuardTuning;
 class ULRInteractionTuning;
 class ULRMovementTuning;
-class ULRNPCTuning;
 class ULRPresentationTuning;
 class ULRSaveTuning;
 class ULRStateTuning;
@@ -41,10 +39,6 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Tuning")
 	TObjectPtr<ULRInteractionTuning> Interaction;
 
-	/** Guard 的领域数据，由所属类型负责维护和校验。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。 */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Tuning")
-	TObjectPtr<ULRGuardTuning> Guard;
-
 	/** Save 的领域数据，由所属类型负责维护和校验。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Tuning")
 	TObjectPtr<ULRSaveTuning> Save;
@@ -56,10 +50,6 @@ public:
 	/** Presentation 的领域数据，由所属类型负责维护和校验。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Tuning")
 	TObjectPtr<ULRPresentationTuning> Presentation;
-
-	/** NPC 的领域数据，由所属类型负责维护和校验。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。 */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Tuning")
-	TObjectPtr<ULRNPCTuning> NPC;
 
 	/**
 	 * @brief 校验当前资产的必填引用、数值边界及跨字段关系，并输出可诊断错误。

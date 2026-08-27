@@ -35,7 +35,7 @@ int32 LRAlertRules::ApplyDelta(const int32 currentLevel, const int32 delta)
  */
 ELRGuardBehaviorState LRAlertRules::ResolveState(const int32 alertLevel, const bool bHasSight, const bool bSearching)
 {
-	const ULRGuardTuning& tuning = *GetDefault<ULRGuardTuning>();
+	const FLRGuardTuningSettings tuning;
 	if (alertLevel <= MinAlertLevel)
 	{
 		return ELRGuardBehaviorState::IdlePatrol;
@@ -71,7 +71,7 @@ ELRGuardBehaviorState LRAlertRules::ResolveTargetBehavior(const bool bStunned, c
 }
 
 ELRGuardBehaviorState LRAlertRules::ResolveTargetBehavior(const bool bStunned, const FLRAlertSnapshot& alert,
-	const FLRGuardKnowledgeSnapshot& knowledge, const bool bSearchFlag, const ULRGuardTuning& tuning)
+	const FLRGuardKnowledgeSnapshot& knowledge, const bool bSearchFlag, const FLRGuardTuningSettings& tuning)
 {
 	if (bStunned)
 	{
@@ -108,7 +108,7 @@ ELRGuardBehaviorState LRAlertRules::ResolveTargetBehavior(const bool bStunned, c
 }
 ELRGuardBehaviorState LRAlertRules::ResolveTargetBehavior(const FLRAlertSnapshot& alert,
 	const FLRGuardKnowledgeSnapshot& knowledge, const bool bStunned, const bool bSearchFlag,
-	const ULRGuardTuning& tuning)
+	const FLRGuardTuningSettings& tuning)
 {
 	return ResolveTargetBehavior(bStunned, alert, knowledge, bSearchFlag, tuning);
 }
@@ -116,11 +116,11 @@ ELRGuardBehaviorState LRAlertRules::ResolveTargetBehavior(const FLRAlertSnapshot
 ELRGuardBehaviorState LRAlertRules::ResolveTargetBehavior(const FLRAlertSnapshot& alert,
 	const FLRGuardKnowledgeSnapshot& knowledge, const bool bStunned, const bool bSearchFlag)
 {
-	return ResolveTargetBehavior(bStunned, alert, knowledge, bSearchFlag, *GetDefault<ULRGuardTuning>());
+	return ResolveTargetBehavior(bStunned, alert, knowledge, bSearchFlag, FLRGuardTuningSettings());
 }
 
 ELRGuardBehaviorState LRAlertRules::ResolveTargetBehavior(const FLRGuardAwarenessSnapshot& awareness,
-	const bool bStunned, const bool bSearchFlag, const ULRGuardTuning& tuning)
+	const bool bStunned, const bool bSearchFlag, const FLRGuardTuningSettings& tuning)
 {
 	return ResolveTargetBehavior(bStunned, awareness.Alert, awareness.Knowledge, bSearchFlag, tuning);
 }
@@ -197,7 +197,7 @@ FVector LRAlertRules::ResolveInvestigationLocation(const FLRGuardAwarenessSnapsh
  * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
  */
 float LRAlertRules::ResolveAttractIncreaseCooldown(const int32 currentAlert, const bool bFirstIncreaseInBand,
-	const ULRGuardTuning& tuning)
+	const FLRGuardTuningSettings& tuning)
 {
 	if (currentAlert < tuning.DetectionInvestigateAlertFloor || bFirstIncreaseInBand)
 	{

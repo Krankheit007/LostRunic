@@ -16,15 +16,15 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLRGuardContinuousSightRulesTest, "LostRunic.AI
 
 bool FLRGuardContinuousSightRulesTest::RunTest(const FString& parameters)
 {
-	ULRGuardTuning* tuning = NewObject<ULRGuardTuning>(GetTransientPackage());
-	if (!TestNotNull(TEXT("Guard tuning created"), tuning))
-	{
-		return false;
-	}
+	FLRGuardTuningSettings tuningValue;
+	FLRGuardTuningSettings* tuning = &tuningValue;
+	constexpr float sightRadius = 500.0f;
+	constexpr float halfAngleDegrees = 22.5f;
 
-	const float boundaryDot = FMath::Cos(FMath::DegreesToRadians(tuning->SightConeDegrees * 0.5f));
+	const float boundaryDot = FMath::Cos(FMath::DegreesToRadians(halfAngleDegrees));
 	const FLRGuardVisibilityResult edgeSample = LRGuardPerceptionRules::EvaluateVisibility(
-		tuning->SightRadius, boundaryDot, true, true, true, 1.0f, 1.0f, 1.0f, 1.0f, *tuning);
+		sightRadius, boundaryDot, sightRadius, halfAngleDegrees,
+		true, true, true, 1.0f, 1.0f, 1.0f, 1.0f, *tuning);
 	TestTrue(TEXT("All sight gates pass at the radius boundary"), edgeSample.IsActive());
 	TestEqual(TEXT("Distance factor uses the configured edge multiplier"), edgeSample.DistanceFactor,
 		tuning->SightEdgeDetectionMultiplier, 0.001f);
@@ -32,17 +32,20 @@ bool FLRGuardContinuousSightRulesTest::RunTest(const FString& parameters)
 		tuning->SightEdgeDetectionMultiplier, 0.001f);
 
 	const FLRGuardVisibilityResult beyondRange = LRGuardPerceptionRules::EvaluateVisibility(
-		tuning->SightRadius + 1.0f, 1.0f, true, true, true, 1.0f, 1.0f, 1.0f, 1.0f, *tuning);
+		sightRadius + 1.0f, 1.0f, sightRadius, halfAngleDegrees,
+		true, true, true, 1.0f, 1.0f, 1.0f, 1.0f, *tuning);
 	TestFalse(TEXT("Distance beyond SightRadius fails the range gate"), beyondRange.bRangeGate);
 	TestEqual(TEXT("Distance beyond SightRadius has zero score"), beyondRange.VisibilityScore, 0.0f, 0.001f);
 
 	const FLRGuardVisibilityResult blocked = LRGuardPerceptionRules::EvaluateVisibility(
-		100.0f, 1.0f, true, false, true, 1.0f, 1.0f, 1.0f, 1.0f, *tuning);
+		100.0f, 1.0f, sightRadius, halfAngleDegrees,
+		true, false, true, 1.0f, 1.0f, 1.0f, 1.0f, *tuning);
 	TestFalse(TEXT("LOS gate blocks score"), blocked.bLOSGate);
 	TestEqual(TEXT("Any failed gate produces zero score"), blocked.VisibilityScore, 0.0f, 0.001f);
 
 	const FLRGuardVisibilityResult weighted = LRGuardPerceptionRules::EvaluateVisibility(
-		0.0f, 1.0f, true, true, true, 0.5f, 0.8f, 0.75f, 1.0f, *tuning);
+		0.0f, 1.0f, sightRadius, halfAngleDegrees,
+		true, true, true, 0.5f, 0.8f, 0.75f, 1.0f, *tuning);
 	TestEqual(TEXT("Factors multiply after gates"), weighted.VisibilityScore, 0.3f, 0.001f);
 
 	TestEqual(TEXT("Suspicious threshold resolves once"),
@@ -62,7 +65,8 @@ bool FLRGuardContinuousSightRulesTest::RunTest(const FString& parameters)
 	TestEqual(TEXT("Inactive visibility decays exposure"),
 		LRGuardPerceptionRules::IntegrateDetectionExposure(0.5f, blocked, 0.2f, *tuning), 0.3f, 0.001f);
 	const FLRGuardVisibilityResult fullyVisible = LRGuardPerceptionRules::EvaluateVisibility(
-		0.0f, 1.0f, true, true, true, 1.0f, 1.0f, 1.0f, 1.0f, *tuning);
+		0.0f, 1.0f, sightRadius, halfAngleDegrees,
+		true, true, true, 1.0f, 1.0f, 1.0f, 1.0f, *tuning);
 	TestEqual(TEXT("Integration clamps a long sample to MaxDetectionIntegrationDeltaSeconds"),
 		LRGuardPerceptionRules::IntegrateDetectionExposure(0.0f, fullyVisible, 1.0f, *tuning),
 		0.2f, 0.001f);
@@ -81,11 +85,10 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLRGuardAwarenessSnapshotRulesTest, "LostRunic.
 
 bool FLRGuardAwarenessSnapshotRulesTest::RunTest(const FString& parameters)
 {
-	ULRGuardTuning* tuning = NewObject<ULRGuardTuning>(GetTransientPackage());
-	if (!TestNotNull(TEXT("Guard tuning created"), tuning))
-	{
-		return false;
-	}
+	FLRGuardTuningSettings tuningValue;
+	FLRGuardTuningSettings* tuning = &tuningValue;
+	constexpr float sightRadius = 500.0f;
+	constexpr float halfAngleDegrees = 22.5f;
 
 	FLRAlertSnapshot alert;
 	FLRGuardKnowledgeSnapshot knowledge;
@@ -96,7 +99,8 @@ bool FLRGuardAwarenessSnapshotRulesTest::RunTest(const FString& parameters)
 	knowledge.VisualCandidate = confirmedThreat;
 	knowledge.bHasVisualCandidate = true;
 	knowledge.CurrentVisibility = LRGuardPerceptionRules::EvaluateVisibility(
-		0.0f, 1.0f, true, true, true, 1.0f, 1.0f, 1.0f, 1.0f, *tuning);
+		0.0f, 1.0f, sightRadius, halfAngleDegrees,
+		true, true, true, 1.0f, 1.0f, 1.0f, 1.0f, *tuning);
 	alert.Level = 11;
 	TestEqual(TEXT("Stunned has highest priority"),
 		LRAlertRules::ResolveTargetBehavior(true, alert, knowledge, false, *tuning),
@@ -147,7 +151,8 @@ bool FLRGuardAwarenessSnapshotRulesTest::RunTest(const FString& parameters)
 
 	alert.Level = 5;
 	knowledge.CurrentVisibility = LRGuardPerceptionRules::EvaluateVisibility(
-		0.0f, 1.0f, true, true, true, 1.0f, 1.0f, 1.0f, 1.0f, *tuning);
+		0.0f, 1.0f, sightRadius, halfAngleDegrees,
+		true, true, true, 1.0f, 1.0f, 1.0f, 1.0f, *tuning);
 	TestFalse(TEXT("Active current visibility blocks decay"),
 		LRAlertRules::ShouldDecay(alert, knowledge, false, ELRGuardBehaviorState::Suspicious));
 	knowledge.CurrentVisibility = FLRGuardVisibilityResult();

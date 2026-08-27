@@ -9,7 +9,6 @@
 #include "Data/LRGameContentSet.h"
 
 #include "Data/LRCollectibleDefinition.h"
-#include "Data/LRGuardDefinition.h"
 #include "Data/LRItemDefinition.h"
 #include "Data/LRLevelEventDefinition.h"
 #include "Engine/DataTable.h"
@@ -132,8 +131,7 @@ bool ULRGameContentSet::Validate(FString& outError) const
 		|| !ValidateDefinitionIds(Items, [](const ULRItemDefinition& definition) -> FName { return definition.ItemId; }, TEXT("Items"), outError)
 		|| !ValidateDefinitionIds(Collectibles,
 			[](const ULRCollectibleDefinition& definition) -> FName { return definition.CollectibleId; }, TEXT("Collectibles"), outError)
-		|| !ValidateCollectibleCapacity(Collectibles, outError)
-		|| !ValidateDefinitionIds(Guards, [](const ULRGuardDefinition& definition) -> FName { return definition.GuardId; }, TEXT("Guards"), outError))
+		|| !ValidateCollectibleCapacity(Collectibles, outError))
 	{
 		return false;
 	}
@@ -245,15 +243,6 @@ ULRCollectibleDefinition* ULRGameContentSet::FindCollectibleDefinition(const FNa
 		{
 			return definition && definition->CollectibleId == collectibleId;
 		});
-	return found ? found->Get() : nullptr;
-}
-
-ULRGuardDefinition* ULRGameContentSet::FindGuardDefinition(const FName guardId) const
-{
-	const TObjectPtr<ULRGuardDefinition>* found = Guards.FindByPredicate([guardId](const TObjectPtr<ULRGuardDefinition>& definition)
-	{
-		return definition && definition->GuardId == guardId;
-	});
 	return found ? found->Get() : nullptr;
 }
 

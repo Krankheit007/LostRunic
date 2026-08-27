@@ -16,6 +16,9 @@
 #include "Engine/World.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Navigation/PathFollowingComponent.h"
+#include "Perception/AIPerceptionComponent.h"
+#include "Perception/AISenseConfig_Hearing.h"
+#include "Perception/AISenseConfig_Sight.h"
 #include "TimerManager.h"
 
 ELRGuardBehaviorEntryResult ALRGuardAIController::EnterBehavior(const ELRGuardBehaviorState behavior)
@@ -47,9 +50,21 @@ ELRGuardBehaviorEntryResult ALRGuardAIController::EnterBehavior(const ELRGuardBe
 	else if (behavior == ELRGuardBehaviorState::Investigate)
 	{
 		movement->MaxWalkSpeed = GetEffectiveTuning().InvestigateSpeed;
+		if (AActor* visualCandidate = GetActiveVisualCandidate())
+		{
+			StopMovement();
+			ClearInvestigationMoveRequest();
+			SetFocus(visualCandidate);
+			return ELRGuardBehaviorEntryResult::Running;
+		}
 		const FPathFollowingRequestResult result = RequestInvestigationMove(awareness.InvestigationLocation);
 		if (result.Code == EPathFollowingRequestResult::AlreadyAtGoal)
 		{
+			if (AActor* visualCandidate = GetActiveVisualCandidate())
+			{
+				SetFocus(visualCandidate);
+				return ELRGuardBehaviorEntryResult::Running;
+			}
 			return ELRGuardBehaviorEntryResult::AlreadyAtGoal;
 		}
 		if (result.Code != EPathFollowingRequestResult::RequestSuccessful)
@@ -104,6 +119,12 @@ void ALRGuardAIController::OnMoveCompleted(const FAIRequestID requestId, const F
 	{
 		if (result.IsSuccess())
 		{
+			if (AActor* visualCandidate = GetActiveVisualCandidate())
+			{
+				ClearInvestigationMoveRequest();
+				SetFocus(visualCandidate);
+				return;
+			}
 			MarkInvestigationReached();
 			return;
 		}
@@ -120,6 +141,19 @@ void ALRGuardAIController::OnMoveCompleted(const FAIRequestID requestId, const F
 		MarkInvestigationUnreachable();
 		return;
 	}
+	if (ActiveBehavior == ELRGuardBehaviorState::Chase && result.IsSuccess())
+	{
+		const FLRGuardAwarenessSnapshot awareness = BuildCurrentAwarenessSnapshot();
+		AActor* threat = awareness.Knowledge.ConfirmedThreat.Get();
+		ALRGuardCharacter* guard = Cast<ALRGuardCharacter>(GetPawn());
+		if (guard && IsValid(threat)
+			&& FVector::Dist2D(guard->GetActorLocation(), threat->GetActorLocation())
+			<= GetEffectiveTuning().CaptureRadius)
+		{
+			guard->CaptureTarget(threat);
+		}
+		return;
+	}
 	if (!result.IsSuccess())
 	{
 		return;
@@ -134,6 +168,13 @@ void ALRGuardAIController::RefreshBehaviorContext(const FLRGuardAwarenessSnapsho
 {
 	if (current.ResolvedBehavior == ELRGuardBehaviorState::Investigate)
 	{
+		if (AActor* visualCandidate = GetActiveVisualCandidate())
+		{
+			StopMovement();
+			ClearInvestigationMoveRequest();
+			SetFocus(visualCandidate);
+			return;
+		}
 		if (!current.Knowledge.bHasLastKnownThreatLocation
 			&& !current.Knowledge.bHasLastDisturbanceLocation)
 		{
@@ -161,6 +202,13 @@ void ALRGuardAIController::RefreshBehaviorContext(const FLRGuardAwarenessSnapsho
 		CurrentSuspiciousFocusLocation = current.InvestigationLocation;
 		bHasSuspiciousFocusLocation = true;
 	}
+}
+
+AActor* ALRGuardAIController::GetActiveVisualCandidate() const
+{
+	const FLRGuardAwarenessSnapshot awareness = BuildCurrentAwarenessSnapshot();
+	return awareness.Knowledge.CurrentVisibility.IsActive()
+		? awareness.Knowledge.VisualCandidate.Get() : nullptr;
 }
 
 FPathFollowingRequestResult ALRGuardAIController::RequestInvestigationMove(const FVector& location)
@@ -248,7 +296,17 @@ void ALRGuardAIController::StartPatrolMove()
 		return;
 	}
 	PatrolIndex %= guard->GetPatrolPointCount();
-	MoveToActor(guard->GetPatrolPoint(PatrolIndex), GetEffectiveTuning().MoveAcceptanceRadius);
+	AActor* patrolPoint = guard->GetPatrolPoint(PatrolIndex);
+	const EPathFollowingRequestResult::Type result = MoveToActor(
+		patrolPoint, GetEffectiveTuning().MoveAcceptanceRadius);
+	if (result == EPathFollowingRequestResult::Failed)
+	{
+		UE_LOG(LogLostRunicAI, Warning,
+			TEXT("Controller=%s Pawn=%s patrol MoveTo failed target=%s pawnLocation=%s targetLocation=%s"),
+			*GetNameSafe(this), *GetNameSafe(guard), *GetNameSafe(patrolPoint),
+			*guard->GetActorLocation().ToCompactString(),
+			patrolPoint ? *patrolPoint->GetActorLocation().ToCompactString() : TEXT("None"));
+	}
 }
 
 void ALRGuardAIController::LogAndDrawDiagnostics() const
@@ -259,7 +317,7 @@ void ALRGuardAIController::LogAndDrawDiagnostics() const
 		return;
 	}
 	const FLRGuardAwarenessSnapshot awareness = BuildCurrentAwarenessSnapshot();
-	const ULRGuardTuning& tuning = GetEffectiveTuning();
+	const FLRGuardTuningSettings& tuning = GetEffectiveTuning();
 	UE_LOG(LogLostRunicAI, Display,
 		TEXT("Guard=%s Alert=%d Behavior=%d Stage=%d Visible=%d Threat=%s Reason=%s Location=%s"),
 		*GetNameSafe(guard), awareness.Alert.Level, static_cast<int32>(awareness.ResolvedBehavior),
@@ -267,9 +325,17 @@ void ALRGuardAIController::LogAndDrawDiagnostics() const
 		*GetNameSafe(awareness.Knowledge.ConfirmedThreat.Get()),
 		*Alert->GetLastReason().GetTagName().ToString(), *awareness.InvestigationLocation.ToCompactString());
 	const FVector origin = guard->GetActorLocation();
-	DrawDebugCone(GetWorld(), origin, guard->GetActorForwardVector(), tuning.SightRadius,
-		FMath::DegreesToRadians(tuning.SightConeDegrees * 0.5f),
-		FMath::DegreesToRadians(tuning.SightConeDegrees * 0.5f), 16, FColor::Yellow, false, 5.0f);
-	DrawDebugSphere(GetWorld(), origin, tuning.MaxHearingRange, 32, FColor::Cyan, false, 5.0f);
+	const UAISenseConfig_Sight* sight = AIPerception->GetSenseConfig<UAISenseConfig_Sight>();
+	const UAISenseConfig_Hearing* hearing = AIPerception->GetSenseConfig<UAISenseConfig_Hearing>();
+	if (sight)
+	{
+		const float halfAngleRadians = FMath::DegreesToRadians(sight->PeripheralVisionAngleDegrees);
+		DrawDebugCone(GetWorld(), origin, guard->GetActorForwardVector(), sight->SightRadius,
+			halfAngleRadians, halfAngleRadians, 16, FColor::Yellow, false, 5.0f);
+	}
+	if (hearing)
+	{
+		DrawDebugSphere(GetWorld(), origin, hearing->HearingRange, 32, FColor::Cyan, false, 5.0f);
+	}
 	DrawDebugSphere(GetWorld(), origin, tuning.CaptureRadius, 16, FColor::Red, false, 5.0f);
 }

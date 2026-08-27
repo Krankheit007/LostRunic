@@ -15,7 +15,7 @@
  * @param outError 输出校验失败原因；成功时保持为空。
  * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
  */
-bool ULRNPCTuning::Validate(FString& outError) const
+bool FLRNPCTuningSettings::Validate(FString& outError) const
 {
 	return LRValidation::RequireRange(TEXT("LookAtPlayerRadiusCm"), LookAtPlayerRadiusCm, 10.0f, 5000.0f, outError)
 		&& LRValidation::RequireRange(TEXT("LookAtIntervalSeconds"), LookAtIntervalSeconds, 0.05f, 2.0f, outError)

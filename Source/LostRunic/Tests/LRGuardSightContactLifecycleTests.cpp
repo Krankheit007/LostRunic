@@ -14,6 +14,8 @@
 #include "Engine/Engine.h"
 #include "Engine/World.h"
 #include "Framework/LRCharacter.h"
+#include "Perception/AIPerceptionComponent.h"
+#include "Perception/AISenseConfig_Sight.h"
 #include "TimerManager.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLRGuardSightContactLifecycleRuntimeTest,
@@ -45,15 +47,19 @@ bool FLRGuardSightContactLifecycleRuntimeTest::RunTest(const FString& parameters
 		&& TestNotNull(TEXT("Player spawns"), player);
 	if (bPassed)
 	{
+		UAISenseConfig_Sight* sight = NewObject<UAISenseConfig_Sight>(controller);
+		sight->SightRadius = 500.0f;
+		sight->PeripheralVisionAngleDegrees = 22.5f;
+		controller->AIPerception->ConfigureSense(*sight);
 		controller->Possess(guard);
-		controller->Tuning = NewObject<ULRGuardTuning>(controller);
 		ULRGuardKnowledgeComponent* knowledge = guard->GetKnowledgeComponent();
-		const ULRGuardTuning& tuning = *controller->Tuning;
+		const FLRGuardTuningSettings& tuning = controller->Tuning;
 		guard->SetActorLocation(FVector::ZeroVector);
 		guard->SetActorRotation(FRotator::ZeroRotator);
 		player->SetActorLocation(FVector(450.0f, 0.0f, 0.0f));
 		const FLRGuardVisibilityResult activeSample = LRGuardPerceptionRules::EvaluateVisibility(
-			450.0f, 1.0f, true, true, true, 1.0f, 1.0f, 1.0f, 1.0f, tuning);
+			450.0f, 1.0f, sight->SightRadius, sight->PeripheralVisionAngleDegrees,
+			true, true, true, 1.0f, 1.0f, 1.0f, 1.0f, tuning);
 		knowledge->SetVisualCandidate(player);
 		knowledge->ApplyVisibilitySample(activeSample, 0.5f, tuning);
 		controller->PerceivedSightContact = player;

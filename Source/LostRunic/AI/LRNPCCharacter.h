@@ -15,7 +15,6 @@
 #include "LRNPCCharacter.generated.h"
 
 class ALRNPCController;
-class ULRNPCDefinition;
 class ULRDialogueComponent;
 class ULRDialogueSubsystem;
 class ULRInteractionPresentationComponent;
@@ -35,13 +34,6 @@ public:
 	 * @brief 创建对象并设置默认子对象、能力开关和安全初值；需要 World、资产或玩家的依赖延迟到初始化阶段解析。
 	 */
 	ALRNPCCharacter();
-
-	/**
-	 * @brief 查询 Definition；不修改领域状态。
-	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
-	 */
-	UFUNCTION(BlueprintPure, Category = "Lost Runic|NPC")
-	ULRNPCDefinition* GetDefinition() const { return Definition; }
 
 	/**
 	 * @brief 查询 Patrol Point；不修改领域状态。
@@ -96,10 +88,6 @@ protected:
 	/** SUDS is the production dialogue source. Registry and ScriptId form the single runtime identity. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "NPC|Dialogue")
 	TObjectPtr<ULRDialogueComponent> DialogueComponent;
-
-	/** Definition 的领域数据，由所属类型负责维护和校验。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。 */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "NPC")
-	TObjectPtr<ULRNPCDefinition> Definition;
 
 	/** Patrol Points 的领域数据，由所属类型负责维护和校验。 可在关卡中的蓝图实例详情面板配置。 */
 	UPROPERTY(EditInstanceOnly, Category = "NPC|Patrol")

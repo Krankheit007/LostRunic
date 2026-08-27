@@ -10,16 +10,17 @@
 
 #include "AI/LRNPCTypes.h"
 #include "AIController.h"
+#include "Data/LRNPCTuning.h"
 #include "GameplayTagContainer.h"
 #include "Perception/AIPerceptionTypes.h"
+#if WITH_EDITOR
+#include "Misc/DataValidation.h"
+#endif
 
 #include "LRNPCController.generated.h"
 
 class ALRNPCCharacter;
 class UAIPerceptionComponent;
-class UAISenseConfig_Hearing;
-class ULRNPCDefinition;
-class ULRNPCTuning;
 class UStateTreeAIComponent;
 
 /** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
@@ -58,6 +59,13 @@ public:
 	 * @param result 本次领域操作的结构化数据 `result`；字段语义由对应 USTRUCT 定义。
 	 */
 	virtual void OnMoveCompleted(FAIRequestID requestId, const FPathFollowingResult& result) override;
+
+	/** Validates Blueprint-authored Hearing, StateTree component presence, and inline tuning. */
+	bool ValidateControllerConfiguration(FString& outError, bool bRequirePossessionContext) const;
+
+#if WITH_EDITOR
+	virtual EDataValidationResult IsDataValid(FDataValidationContext& context) const override;
+#endif
 
 	/**
 	 * @brief 进入指定 NPC 行为：Idle 启动玩家朝向检测、Patrol 巡逻、ReactToNoise 转向声源限时反应、Conversation 停止一切反应。
@@ -139,11 +147,13 @@ private:
 	 * @param behavior 要进入或退出的 NPC StateTree 行为状态。
 	 */
 	void DispatchBehaviorEvent(const FGameplayTag event, ELRNPCBehaviorState behavior);
+	void TryInitializeRuntime();
+	void ShutdownRuntime();
 	/**
 	 * @brief 查询 Effective Tuning；不修改领域状态。
 	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
 	 */
-	const ULRNPCTuning& GetEffectiveTuning() const;
+	const FLRNPCTuningSettings& GetEffectiveTuning() const;
 
 	/** State Tree AI 的领域数据，由所属类型负责维护和校验。 仅在蓝图或详情面板中查看，不可编辑。 */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
@@ -153,17 +163,11 @@ private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UAIPerceptionComponent> AIPerception;
 
-	/** Hearing Config 的领域数据，由所属类型负责维护和校验。  */
-	UPROPERTY()
-	TObjectPtr<UAISenseConfig_Hearing> HearingConfig;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "NPC|Tuning", meta = (AllowPrivateAccess = "true"))
+	FLRNPCTuningSettings Tuning;
 
-	/** 运行时解析出的调优资产缓存；不序列化，不由蓝图编辑。 该字段仅为运行时缓存，不进入存档。 */
-	UPROPERTY(Transient)
-	TObjectPtr<ULRNPCTuning> Tuning;
-
-	/** Definition 的领域数据，由所属类型负责维护和校验。 该字段仅为运行时缓存，不进入存档。 */
-	UPROPERTY(Transient)
-	TWeakObjectPtr<ULRNPCDefinition> Definition;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "NPC|Behavior", meta = (AllowPrivateAccess = "true"))
+	ENPCBaseBehavior DefaultBehavior = ENPCBaseBehavior::Idle;
 
 	/** Npc 的领域数据，由所属类型负责维护和校验。 该字段仅为运行时缓存，不进入存档。 */
 	UPROPERTY(Transient)
@@ -171,6 +175,7 @@ private:
 
 	/** Active Behavior 的运行时状态；由所属类型维护，不在蓝图中配置。 */
 	ELRNPCBehaviorState ActiveBehavior = ELRNPCBehaviorState::Idle;
+	bool bRuntimeInitialized = false;
 	/** Patrol Index 的内部运行时数据；不参与蓝图配置。 */
 	int32 PatrolIndex = 0;
 	/** Last Noise Location 的运行时状态；由所属类型维护，不在蓝图中配置。 */

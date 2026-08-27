@@ -14,7 +14,6 @@
 #include "AI/LRGuardStateTreeNodes.h"
 #include "AI/LRNPCStateTreeNodes.h"
 #include "Core/LRGameplayTags.h"
-#include "Data/LRGuardDefinition.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
 #include "Components/StateTreeAIComponentSchema.h"
@@ -22,7 +21,6 @@
 #include "StateTree.h"
 #include "StateTreeConditionBase.h"
 #include "StateTreeTaskBase.h"
-#include "UObject/UnrealType.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLRStateTreeNodeSchemaCompatibilityTest, "LostRunic.AI.StateTreeNodeSchemaCompatibility",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::ProductFilter)
@@ -165,14 +163,6 @@ bool FLRGuardStateTreePersistentRunningTest::RunTest(const FString& parameters)
 		&& TestNotNull(TEXT("Isolated guard controller creates StateTree component"), stateTreeAI);
 	if (bTestPassed)
 	{
-		ULRGuardDefinition* definition = LoadObject<ULRGuardDefinition>(nullptr, TEXT("/Game/LostRunic/Data/Guard/DA_LRGuard1.DA_LRGuard1"));
-		FObjectPropertyBase* definitionProperty = FindFProperty<FObjectPropertyBase>(ALRGuardCharacter::StaticClass(), TEXT("Definition"));
-		bTestPassed &= TestNotNull(TEXT("Guard Definition asset loads"), definition);
-		bTestPassed &= TestNotNull(TEXT("Guard Definition property is available"), definitionProperty);
-		if (definition && definitionProperty)
-		{
-			definitionProperty->SetObjectPropertyValue_InContainer(guard, definition);
-		}
 		controller->Possess(guard);
 
 		if (!stateTreeAI->IsRunning())

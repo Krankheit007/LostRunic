@@ -6,17 +6,18 @@
 
 #include "AIController.h"
 #include "AI/LRGuardTypes.h"
+#include "Data/LRGuardTuning.h"
 #include "Perception/AIPerceptionTypes.h"
+#if WITH_EDITOR
+#include "Misc/DataValidation.h"
+#endif
 
 #include "LRGuardAIController.generated.h"
 
 class ALRGuardCharacter;
 class UAIPerceptionComponent;
-class UAISenseConfig_Hearing;
-class UAISenseConfig_Sight;
 class ULRAlertComponent;
 class ULRGuardKnowledgeComponent;
-class ULRGuardTuning;
 class ULRStateTuning;
 class UStateTreeAIComponent;
 
@@ -42,6 +43,13 @@ public:
 	virtual void EndPlay(const EEndPlayReason::Type endPlayReason) override;
 	virtual void OnPossess(APawn* inPawn) override;
 	virtual void OnUnPossess() override;
+
+	/** Validates Blueprint-authored senses and inline tuning. Runtime mode also requires the possessed Guard context. */
+	bool ValidateControllerConfiguration(FString& outError, bool bRequirePossessionContext) const;
+
+#if WITH_EDITOR
+	virtual EDataValidationResult IsDataValid(FDataValidationContext& context) const override;
+#endif
 
 	UFUNCTION(BlueprintPure, Category = "Lost Runic|AI")
 	ULRAlertComponent* GetAlertComponent() const { return Alert.Get(); }
@@ -86,12 +94,14 @@ private:
 	UFUNCTION()
 	void HandleKnockback(FVector direction);
 
-	void ConfigurePerception();
+	void TryInitializeRuntime();
+	void ShutdownRuntime();
 	void HandleCaptureCheck();
 	void HandleDetectionSample();
 	void HandleAlertDecayRequested();
 	void HandleStunEnd();
 	void StartPatrolMove();
+	AActor* GetActiveVisualCandidate() const;
 	FLRGuardAwarenessSnapshot BuildCurrentAwarenessSnapshot() const;
 	void ProcessAwarenessTransaction(FGameplayTag reason, bool bForcePublish = false);
 	void RefreshBehaviorContext(const FLRGuardAwarenessSnapshot& current);
@@ -109,7 +119,7 @@ private:
 	FLRGuardVisibilityResult EvaluateVisibility(AActor* actor) const;
 	float ResolveMovementVisibilityFactor(const AActor* actor) const;
 	bool IsHiddenFromGuard(AActor* actor) const;
-	const ULRGuardTuning& GetEffectiveTuning() const;
+	const FLRGuardTuningSettings& GetEffectiveTuning() const;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UStateTreeAIComponent> StateTreeAI;
@@ -117,14 +127,8 @@ private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UAIPerceptionComponent> AIPerception;
 
-	UPROPERTY()
-	TObjectPtr<UAISenseConfig_Sight> SightConfig;
-
-	UPROPERTY()
-	TObjectPtr<UAISenseConfig_Hearing> HearingConfig;
-
-	UPROPERTY(Transient)
-	TObjectPtr<ULRGuardTuning> Tuning;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|Tuning", meta = (AllowPrivateAccess = "true"))
+	FLRGuardTuningSettings Tuning;
 
 	UPROPERTY(Transient)
 	TObjectPtr<ULRStateTuning> StateTuning;
@@ -141,6 +145,7 @@ private:
 	ELRGuardBehaviorState ActiveBehavior = ELRGuardBehaviorState::IdlePatrol;
 	int32 PatrolIndex = 0;
 	bool bStunned = false;
+	bool bRuntimeInitialized = false;
 	FTimerHandle DetectionSampleTimer;
 
 	bool bHasInvestigationMoveTarget = false;

@@ -113,7 +113,7 @@ ELRNoiseEnvironment LRMovementRules::ResolveEnvironmentFromSet(const TArray<ELRN
  * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
  */
 int32 LRMovementRules::ResolveRoomRunTargetLevel(const bool bCurrentRoom, const int32 currentAlert,
-	const ULRGuardTuning& tuning)
+	const FLRGuardTuningSettings& tuning)
 {
 	if (bCurrentRoom)
 	{

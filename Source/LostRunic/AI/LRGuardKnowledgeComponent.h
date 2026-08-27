@@ -10,7 +10,7 @@
 #include "LRGuardKnowledgeComponent.generated.h"
 
 class ALRGuardAIController;
-class ULRGuardTuning;
+struct FLRGuardTuningSettings;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FLRGuardKnowledgeChanged,
 	const FLRGuardKnowledgeSnapshot&, snapshot);
@@ -71,7 +71,7 @@ private:
 	void SetVisualCandidate(AActor* candidate);
 	void ClearVisualCandidate();
 	void ApplyVisibilitySample(const FLRGuardVisibilityResult& sample, float deltaSeconds,
-		const ULRGuardTuning& tuning);
+		const FLRGuardTuningSettings& tuning);
 	void RecordVisualEvidence(AActor* actor, const FVector& location, bool bPendingInvestigation);
 	void SetConfirmedThreat(AActor* threat, const FVector& lastKnownLocation, bool bLatch = true);
 	void RecordSightLoss(const FVector& lastKnownLocation);

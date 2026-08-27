@@ -147,7 +147,6 @@ bool FLRPIEContentContractTest::RunTest(const FString& parameters)
 	const ULRGameTuningSet* tuningSet = LoadObject<ULRGameTuningSet>(nullptr,
 		TEXT("/Game/LostRunic/Data/Tuning/DA_LRGameTuningSet.DA_LRGameTuningSet"));
 	TestNotNull(TEXT("Project tuning set loads"), tuningSet);
-	TestNotNull(TEXT("Project tuning set assigns NPC tuning"), tuningSet ? tuningSet->NPC.Get() : nullptr);
 
 	const ULRGameContentSet* contentSet = LoadObject<ULRGameContentSet>(nullptr,
 		TEXT("/Game/LostRunic/Data/DA_LRGameContentSet.DA_LRGameContentSet"));

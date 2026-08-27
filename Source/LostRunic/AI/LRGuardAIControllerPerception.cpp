@@ -177,6 +177,10 @@ void ALRGuardAIController::HandleSightLost(AActor* actor, const FVector& lastKno
 	{
 		return;
 	}
+	// UE Sight can drop a close target below a narrow vertical cone before the
+	// path-following completion callback runs. Resolve an already-earned capture
+	// against the last active visibility sample before committing sight loss.
+	HandleCaptureCheck();
 	Knowledge->RecordSightLoss(lastKnownLocation);
 	if (!actor || PerceivedSightContact.Get() == actor)
 	{
@@ -192,7 +196,9 @@ void ALRGuardAIController::HandleSightLost(AActor* actor, const FVector& lastKno
 FLRGuardVisibilityResult ALRGuardAIController::EvaluateVisibility(AActor* actor) const
 {
 	const APawn* guardPawn = GetPawn();
-	if (!actor || !guardPawn)
+	const UAISenseConfig_Sight* sight = AIPerception
+		? AIPerception->GetSenseConfig<UAISenseConfig_Sight>() : nullptr;
+	if (!actor || !guardPawn || !sight)
 	{
 		return FLRGuardVisibilityResult();
 	}
@@ -201,6 +207,7 @@ FLRGuardVisibilityResult ALRGuardAIController::EvaluateVisibility(AActor* actor)
 	const float forwardDot = FVector::DotProduct(guardPawn->GetActorForwardVector().GetSafeNormal2D(),
 		toTarget.GetSafeNormal2D());
 	return LRGuardPerceptionRules::EvaluateVisibility(distance, forwardDot,
+		sight->SightRadius, sight->PeripheralVisionAngleDegrees,
 		PerceivedSightContact.Get() == actor, LineOfSightTo(actor), !IsHiddenFromGuard(actor),
 		ResolveMovementVisibilityFactor(actor), 1.0f, 1.0f, 1.0f, GetEffectiveTuning());
 }
@@ -226,7 +233,7 @@ float ALRGuardAIController::ResolveMovementVisibilityFactor(const AActor* actor)
 
 void ALRGuardAIController::StartDetectionSampling()
 {
-	if (!GetWorld() || !Tuning)
+	if (!GetWorld())
 	{
 		return;
 	}
@@ -234,7 +241,7 @@ void ALRGuardAIController::StartDetectionSampling()
 	if (!timers.IsTimerActive(DetectionSampleTimer))
 	{
 		timers.SetTimer(DetectionSampleTimer, this, &ALRGuardAIController::HandleDetectionSample,
-			Tuning->DetectionSampleIntervalSeconds, true);
+			Tuning.DetectionSampleIntervalSeconds, true);
 	}
 }
 
@@ -245,24 +252,6 @@ void ALRGuardAIController::StopDetectionSampling()
 		GetWorld()->GetTimerManager().ClearTimer(DetectionSampleTimer);
 	}
 }
-void ALRGuardAIController::ConfigurePerception()
-{
-	const ULRGuardTuning& tuning = GetEffectiveTuning();
-	SightConfig->SightRadius = tuning.SightRadius;
-	SightConfig->LoseSightRadius = tuning.LoseSightRadius;
-	SightConfig->PeripheralVisionAngleDegrees = tuning.SightConeDegrees * 0.5f;
-	SightConfig->DetectionByAffiliation.bDetectEnemies = true;
-	SightConfig->DetectionByAffiliation.bDetectFriendlies = true;
-	SightConfig->DetectionByAffiliation.bDetectNeutrals = true;
-	HearingConfig->HearingRange = tuning.MaxHearingRange * tuning.HearingRangeMultiplier;
-	HearingConfig->DetectionByAffiliation.bDetectEnemies = true;
-	HearingConfig->DetectionByAffiliation.bDetectFriendlies = true;
-	HearingConfig->DetectionByAffiliation.bDetectNeutrals = true;
-	AIPerception->ConfigureSense(*SightConfig);
-	AIPerception->ConfigureSense(*HearingConfig);
-	AIPerception->SetDominantSense(SightConfig->GetSenseImplementation());
-}
-
 void ALRGuardAIController::HandleCaptureCheck()
 {
 	const FLRGuardAwarenessSnapshot awareness = BuildCurrentAwarenessSnapshot();

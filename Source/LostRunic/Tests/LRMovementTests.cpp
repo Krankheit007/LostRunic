@@ -119,20 +119,16 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLRRoomRunAlertTargetTest, "LostRunic.Movement.
 
 bool FLRRoomRunAlertTargetTest::RunTest(const FString& parameters)
 {
-	ULRGuardTuning* tuning = NewObject<ULRGuardTuning>(GetTransientPackage());
-	if (!TestNotNull(TEXT("Guard tuning created"), tuning))
-	{
-		return false;
-	}
+	const FLRGuardTuningSettings tuning;
 
 	// 当前房间：至少提升到 RoomRunAlertLevel(5)。
-	TestEqual(TEXT("Current room raises to floor"), LRMovementRules::ResolveRoomRunTargetLevel(true, 3, *tuning), 5);
-	TestEqual(TEXT("Current room at floor stays"), LRMovementRules::ResolveRoomRunTargetLevel(true, 5, *tuning), 5);
-	TestEqual(TEXT("Current room above floor keeps level"), LRMovementRules::ResolveRoomRunTargetLevel(true, 7, *tuning), 7);
+	TestEqual(TEXT("Current room raises to floor"), LRMovementRules::ResolveRoomRunTargetLevel(true, 3, tuning), 5);
+	TestEqual(TEXT("Current room at floor stays"), LRMovementRules::ResolveRoomRunTargetLevel(true, 5, tuning), 5);
+	TestEqual(TEXT("Current room above floor keeps level"), LRMovementRules::ResolveRoomRunTargetLevel(true, 7, tuning), 7);
 	// 相邻房间：max(当前, 当前+1)。
-	TestEqual(TEXT("Adjacent room raises by amount"), LRMovementRules::ResolveRoomRunTargetLevel(false, 0, *tuning), 1);
-	TestEqual(TEXT("Adjacent room at eight becomes nine"), LRMovementRules::ResolveRoomRunTargetLevel(false, 8, *tuning), 9);
-	TestEqual(TEXT("Adjacent room at ten caps at eleven"), LRMovementRules::ResolveRoomRunTargetLevel(false, 10, *tuning), 11);
+	TestEqual(TEXT("Adjacent room raises by amount"), LRMovementRules::ResolveRoomRunTargetLevel(false, 0, tuning), 1);
+	TestEqual(TEXT("Adjacent room at eight becomes nine"), LRMovementRules::ResolveRoomRunTargetLevel(false, 8, tuning), 9);
+	TestEqual(TEXT("Adjacent room at ten caps at eleven"), LRMovementRules::ResolveRoomRunTargetLevel(false, 10, tuning), 11);
 	return true;
 }
 

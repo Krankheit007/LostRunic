@@ -6,12 +6,12 @@
 
 #include "AI/LRGuardTypes.h"
 #include "Components/ActorComponent.h"
+#include "Data/LRGuardTuning.h"
 #include "GameplayTagContainer.h"
 
 #include "LRAlertComponent.generated.h"
 
 class ALRGuardAIController;
-class ULRGuardTuning;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_FiveParams(FLRAlertChanged, int32, previousLevel, int32, currentLevel,
 	ELRGuardBehaviorState, currentState, FGameplayTag, reason, FVector, disturbanceLocation);
@@ -68,19 +68,22 @@ private:
 	void HandleObservationEnd();
 	void StartObservation();
 	void ClearWhenAlertZero();
-	const ULRGuardTuning& GetEffectiveTuning() const;
+	void InitializeRuntime(const FLRGuardTuningSettings& tuning);
+	void ShutdownRuntime();
+	const FLRGuardTuningSettings& GetEffectiveTuning() const;
 
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Alert", meta = (AllowPrivateAccess = "true"))
 	int32 AlertLevel = 0;
 
-	UPROPERTY(Transient)
-	TObjectPtr<ULRGuardTuning> Tuning;
+	FLRGuardTuningSettings RuntimeTuning;
 
 	FGameplayTag LastReason;
 	double LastIncreaseTimeSeconds = 0.0;
 	bool bSearching = false;
 	bool bObserving = false;
 	bool bFirstIncreaseInBand = false;
+	bool bRuntimeInitialized = false;
+	double ObservationEndTimeSeconds = 0.0;
 	FTimerHandle DecayTimer;
 	FTimerHandle ObservationTimer;
 	FLRAlertDecayRequested OnDecayRequested;

@@ -11,7 +11,7 @@
 #include "Core/LRTypes.h"
 #include "GameplayTagContainer.h"
 
-class ULRGuardTuning;
+struct FLRGuardTuningSettings;
 class ULRMovementTuning;
 
 /** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
@@ -61,5 +61,5 @@ namespace LRMovementRules
 	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
 	 */
 	LOSTRUNIC_API int32 ResolveRoomRunTargetLevel(bool bCurrentRoom, int32 currentAlert,
-		const ULRGuardTuning& tuning);
+		const FLRGuardTuningSettings& tuning);
 }

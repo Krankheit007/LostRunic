@@ -13,31 +13,35 @@
 #include "Core/LRGameplayTags.h"
 #include "Core/LRLog.h"
 #include "Data/LRGameTuningSet.h"
-#include "Data/LRGuardDefinition.h"
-#include "Data/LRGuardTuning.h"
 #include "Data/LRStateTuning.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
 #include "Framework/LRGameInstanceSubsystem.h"
 #include "Items/LRCourageResponseComponent.h"
 #include "Perception/AIPerceptionComponent.h"
+#include "Perception/AISense_Hearing.h"
+#include "Perception/AISense_Sight.h"
 #include "Perception/AISenseConfig_Hearing.h"
 #include "Perception/AISenseConfig_Sight.h"
 #include "Navigation/PathFollowingComponent.h"
 #include "TimerManager.h"
+#if WITH_EDITOR
+#include "Misc/DataValidation.h"
+#endif
 
 ALRGuardAIController::ALRGuardAIController()
 {
 	PrimaryActorTick.bCanEverTick = false;
-	bStartAILogicOnPossess = true;
+	// StateTree depends on guard-owned Alert/Knowledge context. Start it explicitly
+	// at the end of OnPossess, after those dependencies have been resolved.
+	bStartAILogicOnPossess = false;
 	bStopAILogicOnUnposses = true;
 	bAttachToPawn = true;
 	StateTreeAI = CreateDefaultSubobject<UStateTreeAIComponent>(TEXT("StateTreeAI"));
 	StateTreeAI->SetStartLogicAutomatically(false);
 	AIPerception = CreateDefaultSubobject<UAIPerceptionComponent>(TEXT("AIPerception"));
+	AIPerception->SetAutoActivate(false);
 	SetPerceptionComponent(*AIPerception);
-	SightConfig = CreateDefaultSubobject<UAISenseConfig_Sight>(TEXT("SightConfig"));
-	HearingConfig = CreateDefaultSubobject<UAISenseConfig_Hearing>(TEXT("HearingConfig"));
 }
 
 void ALRGuardAIController::BeginPlay()
@@ -48,29 +52,15 @@ void ALRGuardAIController::BeginPlay()
 		? gameInstance->GetSubsystem<ULRGameInstanceSubsystem>() : nullptr;
 	if (subsystem && subsystem->GetTuningSet())
 	{
-		Tuning = subsystem->GetTuningSet()->Guard;
 		StateTuning = subsystem->GetTuningSet()->State;
 	}
-	if (!ensureMsgf(Tuning && StateTuning, TEXT("%s requires Guard and State tuning."), *GetNameSafe(this)))
-	{
-		return;
-	}
-	ConfigurePerception();
-	AIPerception->OnTargetPerceptionUpdated.AddDynamic(this, &ALRGuardAIController::HandlePerception);
 	LastDetectionSampleTime = 0.0;
 	CachedAwareness = BuildCurrentAwarenessSnapshot();
+	TryInitializeRuntime();
 }
 void ALRGuardAIController::EndPlay(const EEndPlayReason::Type endPlayReason)
 {
-	if (AIPerception)
-	{
-		AIPerception->OnTargetPerceptionUpdated.RemoveDynamic(this, &ALRGuardAIController::HandlePerception);
-	}
-	if (GetWorld())
-	{
-		GetWorld()->GetTimerManager().ClearTimer(DetectionSampleTimer);
-		GetWorld()->GetTimerManager().ClearTimer(StunTimer);
-	}
+	ShutdownRuntime();
 	Super::EndPlay(endPlayReason);
 }
 void ALRGuardAIController::OnPossess(APawn* inPawn)
@@ -79,41 +69,123 @@ void ALRGuardAIController::OnPossess(APawn* inPawn)
 	ALRGuardCharacter* guard = Cast<ALRGuardCharacter>(inPawn);
 	Alert = guard ? guard->GetAlertComponent() : nullptr;
 	Knowledge = guard ? guard->GetKnowledgeComponent() : nullptr;
-	if (!ensureMsgf(Alert.IsValid() && Knowledge.IsValid(), TEXT("%s requires Alert and Knowledge."),
-		*GetNameSafe(guard)))
+	if (guard)
 	{
-		return;
-	}
-	Alert->OnDecayRequested.AddUObject(this, &ALRGuardAIController::HandleAlertDecayRequested);
-	if (ULRCourageResponseComponent* courage = guard->GetCourageResponseComponent())
-	{
-		courage->OnKnockbackApplied.AddDynamic(this, &ALRGuardAIController::HandleKnockback);
+		if (ULRCourageResponseComponent* courage = guard->GetCourageResponseComponent())
+		{
+			courage->OnKnockbackApplied.AddUniqueDynamic(this, &ALRGuardAIController::HandleKnockback);
+		}
 	}
 	CachedAwareness = BuildCurrentAwarenessSnapshot();
 	InvestigationMoveRequestCount = 0;
 	ClearInvestigationRetrySuppression();
 	LastDetectionSampleTime = 0.0;
-	ULRGuardDefinition* definition = guard->GetDefinition();
-	if (definition && definition->Behavior)
-	{
-		StateTreeAI->SetStateTree(definition->Behavior);
-		if (!StateTreeAI->IsRunning())
-		{
-			StateTreeAI->StartLogic();
-		}
-	}
-	else
-	{
-		UE_LOG(LogLostRunicAI, Warning, TEXT("Guard=%s definition or Behavior StateTree is missing; using fallback."),
-			*GetNameSafe(guard));
-	}
+	TryInitializeRuntime();
 }
-void ALRGuardAIController::OnUnPossess()
+
+bool ALRGuardAIController::ValidateControllerConfiguration(FString& outError,
+	const bool bRequirePossessionContext) const
 {
+	if (!Tuning.Validate(outError))
+	{
+		outError = FString::Printf(TEXT("Guard tuning is invalid: %s"), *outError);
+		return false;
+	}
+	if (!AIPerception || !StateTreeAI)
+	{
+		outError = TEXT("Native AIPerception and StateTreeAI components are required.");
+		return false;
+	}
+	if (!AIPerception->GetSenseConfig<UAISenseConfig_Sight>()
+		|| !AIPerception->GetSenseConfig<UAISenseConfig_Hearing>())
+	{
+		outError = TEXT("Inherited AIPerception must configure both Sight and Hearing.");
+		return false;
+	}
+	if (AIPerception->GetDominantSense() != UAISense_Sight::StaticClass())
+	{
+		outError = FString::Printf(TEXT("Sight must be the Guard dominant sense; configured=%s."),
+			*GetNameSafe(AIPerception->GetDominantSense()));
+		return false;
+	}
+	if (bRequirePossessionContext
+		&& (!Cast<ALRGuardCharacter>(GetPawn()) || !Alert.IsValid() || !Knowledge.IsValid() || !StateTuning))
+	{
+		outError = TEXT("Possessed Guard, Alert, Knowledge, and State tuning are required.");
+		return false;
+	}
+	return true;
+}
+
+void ALRGuardAIController::TryInitializeRuntime()
+{
+	if (bRuntimeInitialized || !HasActorBegunPlay() || !GetPawn())
+	{
+		return;
+	}
+
+	FString error;
+	if (!ValidateControllerConfiguration(error, true))
+	{
+		UE_LOG(LogLostRunicAI, Error, TEXT("Controller=%s Pawn=%s runtime initialization rejected: %s"),
+			*GetNameSafe(this), *GetNameSafe(GetPawn()), *error);
+		return;
+	}
+
+	Alert->InitializeRuntime(Tuning);
+	Alert->OnDecayRequested.RemoveAll(this);
+	Alert->OnDecayRequested.AddUObject(this, &ALRGuardAIController::HandleAlertDecayRequested);
+	AIPerception->OnTargetPerceptionUpdated.RemoveDynamic(this, &ALRGuardAIController::HandlePerception);
+	AIPerception->OnTargetPerceptionUpdated.AddDynamic(this, &ALRGuardAIController::HandlePerception);
+	AIPerception->Activate(true);
+	if (!AIPerception->IsActive())
+	{
+		UE_LOG(LogLostRunicAI, Error, TEXT("Controller=%s Pawn=%s failed to activate AIPerception."),
+			*GetNameSafe(this), *GetNameSafe(GetPawn()));
+		ShutdownRuntime();
+		return;
+	}
+
+	StateTreeAI->StartLogic();
+	if (!StateTreeAI->IsRunning())
+	{
+		UE_LOG(LogLostRunicAI, Error, TEXT("Controller=%s Pawn=%s failed to start configured StateTree."),
+			*GetNameSafe(this), *GetNameSafe(GetPawn()));
+		ShutdownRuntime();
+		return;
+	}
+	bRuntimeInitialized = true;
+}
+
+void ALRGuardAIController::ShutdownRuntime()
+{
+	if (AIPerception)
+	{
+		AIPerception->OnTargetPerceptionUpdated.RemoveDynamic(this, &ALRGuardAIController::HandlePerception);
+		AIPerception->ForgetAll();
+		AIPerception->Deactivate();
+	}
+	if (StateTreeAI && StateTreeAI->IsRunning())
+	{
+		StateTreeAI->StopLogic(TEXT("Guard runtime shutdown"));
+	}
+	StopDetectionSampling();
+	StopMovement();
+	ClearFocus(EAIFocusPriority::Gameplay);
+	if (GetWorld())
+	{
+		GetWorld()->GetTimerManager().ClearTimer(StunTimer);
+	}
 	if (Alert.IsValid())
 	{
 		Alert->OnDecayRequested.RemoveAll(this);
+		Alert->ShutdownRuntime();
 	}
+	bRuntimeInitialized = false;
+}
+void ALRGuardAIController::OnUnPossess()
+{
+	ShutdownRuntime();
 	if (ALRGuardCharacter* guard = Cast<ALRGuardCharacter>(GetPawn()))
 	{
 		if (ULRCourageResponseComponent* courage = guard->GetCourageResponseComponent())
@@ -128,26 +200,29 @@ void ALRGuardAIController::OnUnPossess()
 	PerceivedSightContact.Reset();
 	LastDetectionSampleTime = 0.0;
 	ClearInvestigationMoveRequest();
-	StopMovement();
 	ClearInvestigationRetrySuppression();
 	bAwarenessCommitDeferred = false;
 	DeferredAwarenessReason = FGameplayTag();
 	bDeferredForcePublish = false;
 	bHasSuspiciousFocusLocation = false;
-	if (GetWorld())
-	{
-		GetWorld()->GetTimerManager().ClearTimer(DetectionSampleTimer);
-		GetWorld()->GetTimerManager().ClearTimer(StunTimer);
-	}
-	if (StateTreeAI->IsRunning())
-	{
-		StateTreeAI->StopLogic(TEXT("OnUnPossess"));
-	}
 	Alert.Reset();
 	Knowledge.Reset();
 	CachedAwareness = FLRGuardAwarenessSnapshot();
 	Super::OnUnPossess();
 }
+
+#if WITH_EDITOR
+EDataValidationResult ALRGuardAIController::IsDataValid(FDataValidationContext& context) const
+{
+	FString error;
+	if (!ValidateControllerConfiguration(error, false))
+	{
+		context.AddError(FText::FromString(error));
+		return EDataValidationResult::Invalid;
+	}
+	return Super::IsDataValid(context);
+}
+#endif
 FLRGuardAwarenessSnapshot ALRGuardAIController::BuildCurrentAwarenessSnapshot() const
 {
 	FLRGuardAwarenessSnapshot snapshot;
@@ -277,7 +352,7 @@ void ALRGuardAIController::HandleAlertDecayRequested()
 	}
 	ProcessAwarenessTransaction(LRGameplayTags::SearchAlertDecay);
 }
-const ULRGuardTuning& ALRGuardAIController::GetEffectiveTuning() const
+const FLRGuardTuningSettings& ALRGuardAIController::GetEffectiveTuning() const
 {
-	return Tuning ? *Tuning : *GetDefault<ULRGuardTuning>();
+	return Tuning;
 }

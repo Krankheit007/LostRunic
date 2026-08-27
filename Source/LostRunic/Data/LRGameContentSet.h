@@ -17,7 +17,6 @@
 class UDataTable;
 class UStringTable;
 class ULRCollectibleDefinition;
-class ULRGuardDefinition;
 class ULRItemDefinition;
 class ULRLevelEventDefinition;
 class ULRDialogueScriptRegistry;
@@ -61,10 +60,6 @@ public:
 	/** Collectibles 的领域数据，由所属类型负责维护和校验。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Content|Definitions")
 	TArray<TObjectPtr<ULRCollectibleDefinition>> Collectibles;
-
-	/** Guards 的领域数据，由所属类型负责维护和校验。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。 */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Content|Definitions")
-	TArray<TObjectPtr<ULRGuardDefinition>> Guards;
 
 	/** Level Events 的领域数据，由所属类型负责维护和校验。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Content|Definitions")
@@ -125,10 +120,6 @@ public:
 	/** Finds a collectible definition by its stable CollectibleId. */
 	UFUNCTION(BlueprintPure, Category = "Lost Runic|Content")
 	ULRCollectibleDefinition* FindCollectibleDefinition(FName collectibleId) const;
-
-	/** Finds a guard definition by its stable GuardId. */
-	UFUNCTION(BlueprintPure, Category = "Lost Runic|Content")
-	ULRGuardDefinition* FindGuardDefinition(FName guardId) const;
 
 	/**
 	 * @brief 按稳定 ID 或运行时条件查找 Map Id For World，未找到时返回明确失败值。

@@ -17,7 +17,6 @@ class ALRGuardAIController;
 class ULRCourageResponseComponent;
 class ULRAlertComponent;
 class ULRGuardKnowledgeComponent;
-class ULRGuardDefinition;
 class UWidgetComponent;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FLRPlayerCaptured, AActor*, playerActor);
@@ -59,13 +58,6 @@ public:
 	bool CaptureTarget(AActor* target);
 
 	/**
-	 * @brief 查询 Definition；不修改领域状态。
-	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
-	 */
-	UFUNCTION(BlueprintPure, Category = "Lost Runic|AI")
-	ULRGuardDefinition* GetDefinition() const { return Definition; }
-
-	/**
 	 * @brief 查询 Courage Response Component；不修改领域状态。
 	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
 	 */
@@ -89,10 +81,6 @@ public:
 	FLRPlayerCaptured OnPlayerCaptured;
 
 protected:
-	/** Definition 的领域数据，由所属类型负责维护和校验。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。 */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard")
-	TObjectPtr<ULRGuardDefinition> Definition;
-
 	/** Patrol Points 的领域数据，由所属类型负责维护和校验。 可在关卡中的蓝图实例详情面板配置。 */
 	UPROPERTY(EditInstanceOnly, Category = "Guard|Patrol")
 	TArray<TObjectPtr<AActor>> PatrolPoints;

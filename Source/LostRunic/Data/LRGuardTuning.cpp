@@ -17,7 +17,7 @@
  * @param outError 输出校验失败原因；成功时保持为空。
  * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
  */
-bool ULRGuardTuning::Validate(FString& outError) const
+bool FLRGuardTuningSettings::Validate(FString& outError) const
 {
 	if (!LRValidation::RequireRange(TEXT("InvestigateSpeed"), InvestigateSpeed, 1.0f, 1000.0f, outError)
 		|| !LRValidation::RequireRange(TEXT("ChaseSpeed"), ChaseSpeed, 1.0f, 1000.0f, outError))
@@ -31,12 +31,7 @@ bool ULRGuardTuning::Validate(FString& outError) const
 		return false;
 	}
 
-	if (!LRValidation::RequireRange(TEXT("SightRadius"), SightRadius, 50.0f, 5000.0f, outError)
-		|| !LRValidation::RequireRange(TEXT("LoseSightRadius"), LoseSightRadius, 50.0f, 5000.0f, outError)
-		|| !LRValidation::RequireRange(TEXT("SightConeDegrees"), SightConeDegrees, 1.0f, 180.0f, outError)
-		|| !LRValidation::RequireRange(TEXT("HearingRangeMultiplier"), HearingRangeMultiplier, 0.0f, 10.0f, outError)
-		|| !LRValidation::RequireRange(TEXT("MaxHearingRange"), MaxHearingRange, 50.0f, 10000.0f, outError)
-		|| !LRValidation::RequireRange(TEXT("AttractAlertAmount"), AttractAlertAmount, 1, 11, outError)
+	if (!LRValidation::RequireRange(TEXT("AttractAlertAmount"), AttractAlertAmount, 1, 11, outError)
 		|| !LRValidation::RequireRange(TEXT("DetectionSuspiciousAlertFloor"), DetectionSuspiciousAlertFloor, 1, 11, outError)
 		|| !LRValidation::RequireRange(TEXT("DetectionInvestigateAlertFloor"), DetectionInvestigateAlertFloor, 1, 11, outError)
 		|| !LRValidation::RequireRange(TEXT("DetectionConfirmedAlertFloor"), DetectionConfirmedAlertFloor, 1, 11, outError)
@@ -83,12 +78,6 @@ bool ULRGuardTuning::Validate(FString& outError) const
 		|| InvestigateExposureThresholdSeconds >= ConfirmedExposureThresholdSeconds)
 	{
 		outError = TEXT("Detection exposure thresholds must be strictly positive and increasing.");
-		return false;
-	}
-
-	if (LoseSightRadius < SightRadius)
-	{
-		outError = TEXT("LoseSightRadius must not be smaller than SightRadius.");
 		return false;
 	}
 

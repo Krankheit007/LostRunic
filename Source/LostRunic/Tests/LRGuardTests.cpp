@@ -48,28 +48,24 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLRNoiseAlertDeltaTest, "LostRunic.AI.NoiseAler
 
 bool FLRNoiseAlertDeltaTest::RunTest(const FString& parameters)
 {
-	ULRGuardTuning* tuning = NewObject<ULRGuardTuning>(GetTransientPackage());
-	if (!TestNotNull(TEXT("Guard tuning created"), tuning))
-	{
-		return false;
-	}
+	const FLRGuardTuningSettings tuning;
 
 	// 室内奔跑：Set 语义，警戒至少提升到 RoomRunAlertLevel，不走吸引 CD。
 	FLRNoiseResponse indoorRun = LRGuardPerceptionRules::ResolveNoiseAlertDelta(
-		LRGameplayTags::NoiseFootstepRunIndoor, 3, *tuning);
+		LRGameplayTags::NoiseFootstepRunIndoor, 3, tuning);
 	TestTrue(TEXT("Indoor run responds"), indoorRun.bRespond);
 	TestEqual(TEXT("Indoor run raises to floor"), indoorRun.Delta, 2);
 	TestFalse(TEXT("Indoor run is not attract"), indoorRun.bIsAttract);
-	indoorRun = LRGuardPerceptionRules::ResolveNoiseAlertDelta(LRGameplayTags::NoiseFootstepRunIndoor, 6, *tuning);
+	indoorRun = LRGuardPerceptionRules::ResolveNoiseAlertDelta(LRGameplayTags::NoiseFootstepRunIndoor, 6, tuning);
 	TestEqual(TEXT("Indoor run above floor is ignored"), indoorRun.Delta, 0);
 
 	// Faint：仅警戒 >=6 的守卫响应，且为吸引语义。
 	FLRNoiseResponse faintLow = LRGuardPerceptionRules::ResolveNoiseAlertDelta(
-		LRGameplayTags::NoiseFootstepWalkFaint, 5, *tuning);
+		LRGameplayTags::NoiseFootstepWalkFaint, 5, tuning);
 	TestFalse(TEXT("Faint ignored below six"), faintLow.bRespond);
 	TestTrue(TEXT("Faint is attract"), faintLow.bIsAttract);
 	FLRNoiseResponse faintHigh = LRGuardPerceptionRules::ResolveNoiseAlertDelta(
-		LRGameplayTags::NoiseFootstepWalkFaint, 6, *tuning);
+		LRGameplayTags::NoiseFootstepWalkFaint, 6, tuning);
 	TestTrue(TEXT("Faint responds at six"), faintHigh.bRespond);
 	TestEqual(TEXT("Faint attracts one"), faintHigh.Delta, 1);
 
@@ -81,9 +77,9 @@ bool FLRNoiseAlertDeltaTest::RunTest(const FString& parameters)
 	};
 	for (const FGameplayTag reason : plainReasons)
 	{
-		const FLRNoiseResponse response = LRGuardPerceptionRules::ResolveNoiseAlertDelta(reason, 4, *tuning);
+		const FLRNoiseResponse response = LRGuardPerceptionRules::ResolveNoiseAlertDelta(reason, 4, tuning);
 		TestTrue(TEXT("Plain noise responds"), response.bRespond);
-		TestEqual(TEXT("Plain noise attracts one"), response.Delta, tuning->AttractAlertAmount);
+		TestEqual(TEXT("Plain noise attracts one"), response.Delta, tuning.AttractAlertAmount);
 		TestTrue(TEXT("Plain noise is attract"), response.bIsAttract);
 	}
 	return true;
@@ -94,19 +90,15 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLRAlertIncreaseCooldownTest, "LostRunic.AI.Ale
 
 bool FLRAlertIncreaseCooldownTest::RunTest(const FString& parameters)
 {
-	ULRGuardTuning* tuning = NewObject<ULRGuardTuning>(GetTransientPackage());
-	if (!TestNotNull(TEXT("Guard tuning created"), tuning))
-	{
-		return false;
-	}
+	const FLRGuardTuningSettings tuning;
 
 	// 1-5 档与首次进入 6-10 档使用 0.5s，6-10 档后续使用 0.2s。
 	TestEqual(TEXT("Low band uses long cooldown"),
-		LRAlertRules::ResolveAttractIncreaseCooldown(3, false, *tuning), tuning->AlertIncreaseCooldownSeconds);
+		LRAlertRules::ResolveAttractIncreaseCooldown(3, false, tuning), tuning.AlertIncreaseCooldownSeconds);
 	TestEqual(TEXT("First increase in red band uses long cooldown"),
-		LRAlertRules::ResolveAttractIncreaseCooldown(6, true, *tuning), tuning->AlertIncreaseCooldownSeconds);
+		LRAlertRules::ResolveAttractIncreaseCooldown(6, true, tuning), tuning.AlertIncreaseCooldownSeconds);
 	TestEqual(TEXT("Later increases in red band use short cooldown"),
-		LRAlertRules::ResolveAttractIncreaseCooldown(6, false, *tuning), tuning->InvestigateIncreaseCooldownSeconds);
+		LRAlertRules::ResolveAttractIncreaseCooldown(6, false, tuning), tuning.InvestigateIncreaseCooldownSeconds);
 
 	// 冷却边界：等于冷却时长时允许；冷却被拒绝的刺激完全忽略。
 	TestTrue(TEXT("Cooldown elapsed allows increase"), LRAlertRules::IsIncreaseAllowed(10.0, 9.5, 0.5f));
@@ -171,34 +163,27 @@ bool FLRAlertComponentSnapshotTest::RunTest(const FString& parameters)
 		ELRGuardBehaviorState::IdlePatrol);
 	return true;
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLRGuardPerceptionRulesTest, "LostRunic.AI.PerceptionConeOcclusionAndHearing",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLRGuardPerceptionRulesTest, "LostRunic.AI.PerceptionConeAndOcclusion",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FLRGuardPerceptionRulesTest::RunTest(const FString& parameters)
 {
-	ULRGuardTuning* tuning = NewObject<ULRGuardTuning>(GetTransientPackage());
-	if (!TestNotNull(TEXT("Guard tuning created"), tuning))
-	{
-		return false;
-	}
-
-	const float boundaryDot = FMath::Cos(FMath::DegreesToRadians(tuning->SightConeDegrees * 0.5f));
+	const FLRGuardTuningSettings tuning;
+	constexpr float sightRadius = 500.0f;
+	constexpr float halfAngleDegrees = 22.5f;
+	const float boundaryDot = FMath::Cos(FMath::DegreesToRadians(halfAngleDegrees));
 	TestTrue(TEXT("Sight accepts 500 cm forward target"),
-		LRGuardPerceptionRules::CanConfirmSight(500.0f, 1.0f, false, false, *tuning));
+		LRGuardPerceptionRules::CanConfirmSight(500.0f, 1.0f, sightRadius, halfAngleDegrees, false, false, tuning));
 	TestTrue(TEXT("Sight accepts cone boundary"),
-		LRGuardPerceptionRules::CanConfirmSight(tuning->SightRadius, boundaryDot, false, false, *tuning));
+		LRGuardPerceptionRules::CanConfirmSight(sightRadius, boundaryDot, sightRadius, halfAngleDegrees, false, false, tuning));
 	TestFalse(TEXT("Sight rejects beyond radius"),
-		LRGuardPerceptionRules::CanConfirmSight(tuning->SightRadius + 0.1f, 1.0f, false, false, *tuning));
+		LRGuardPerceptionRules::CanConfirmSight(sightRadius + 0.1f, 1.0f, sightRadius, halfAngleDegrees, false, false, tuning));
 	TestFalse(TEXT("Sight rejects outside cone"),
-		LRGuardPerceptionRules::CanConfirmSight(tuning->SightRadius, boundaryDot - 0.01f, false, false, *tuning));
+		LRGuardPerceptionRules::CanConfirmSight(sightRadius, boundaryDot - 0.01f, sightRadius, halfAngleDegrees, false, false, tuning));
 	TestFalse(TEXT("Sight rejects occluded target"),
-		LRGuardPerceptionRules::CanConfirmSight(100.0f, 1.0f, true, false, *tuning));
+		LRGuardPerceptionRules::CanConfirmSight(100.0f, 1.0f, sightRadius, halfAngleDegrees, true, false, tuning));
 	TestFalse(TEXT("Sight rejects hidden target"),
-		LRGuardPerceptionRules::CanConfirmSight(100.0f, 1.0f, false, true, *tuning));
-	TestTrue(TEXT("Hearing accepts source radius"), LRGuardPerceptionRules::CanHear(1000.0f, 1000.0f, *tuning));
-	TestFalse(TEXT("Hearing rejects outside source radius"), LRGuardPerceptionRules::CanHear(1000.1f, 1000.0f, *tuning));
-	tuning->HearingRangeMultiplier = 1.5f;
-	TestTrue(TEXT("Hearing multiplier expands radius"), LRGuardPerceptionRules::CanHear(1500.0f, 1000.0f, *tuning));
+		LRGuardPerceptionRules::CanConfirmSight(100.0f, 1.0f, sightRadius, halfAngleDegrees, false, true, tuning));
 	return true;
 }
 

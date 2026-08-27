@@ -43,7 +43,7 @@ void ULRGuardKnowledgeComponent::ClearVisualCandidate()
 	Snapshot.CurrentVisibility = FLRGuardVisibilityResult();
 }
 
-void ULRGuardKnowledgeComponent::ApplyVisibilitySample(const FLRGuardVisibilityResult& sample, const float deltaSeconds, const ULRGuardTuning& tuning)
+void ULRGuardKnowledgeComponent::ApplyVisibilitySample(const FLRGuardVisibilityResult& sample, const float deltaSeconds, const FLRGuardTuningSettings& tuning)
 {
 	Snapshot.CurrentVisibility = sample;
 	Snapshot.EffectiveExposureSeconds = LRGuardPerceptionRules::IntegrateDetectionExposure(

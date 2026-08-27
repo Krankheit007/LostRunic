@@ -12,18 +12,17 @@
 #include "Components/StateTreeAIComponent.h"
 #include "Core/LRGameplayTags.h"
 #include "Core/LRLog.h"
-#include "Data/LRGameTuningSet.h"
-#include "Data/LRNPCDefinition.h"
-#include "Data/LRNPCTuning.h"
-#include "Engine/GameInstance.h"
 #include "Engine/World.h"
-#include "Framework/LRGameInstanceSubsystem.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Navigation/PathFollowingComponent.h"
 #include "Perception/AIPerceptionComponent.h"
 #include "Perception/AISense_Hearing.h"
 #include "Perception/AISenseConfig_Hearing.h"
+#include "Perception/AISenseConfig_Sight.h"
 #include "TimerManager.h"
+#if WITH_EDITOR
+#include "Misc/DataValidation.h"
+#endif
 
 /**
  * @brief 创建对象并设置默认子对象、能力开关和安全初值；需要 World、资产或玩家的依赖延迟到初始化阶段解析。
@@ -31,14 +30,14 @@
 ALRNPCController::ALRNPCController()
 {
 	PrimaryActorTick.bCanEverTick = false;
-	bStartAILogicOnPossess = true;
+	bStartAILogicOnPossess = false;
 	bStopAILogicOnUnposses = true;
 	bAttachToPawn = true;
 	StateTreeAI = CreateDefaultSubobject<UStateTreeAIComponent>(TEXT("StateTreeAI"));
 	StateTreeAI->SetStartLogicAutomatically(false);
 	AIPerception = CreateDefaultSubobject<UAIPerceptionComponent>(TEXT("AIPerception"));
+	AIPerception->SetAutoActivate(false);
 	SetPerceptionComponent(*AIPerception);
-	HearingConfig = CreateDefaultSubobject<UAISenseConfig_Hearing>(TEXT("HearingConfig"));
 }
 
 /**
@@ -47,20 +46,7 @@ ALRNPCController::ALRNPCController()
 void ALRNPCController::BeginPlay()
 {
 	Super::BeginPlay();
-	const UGameInstance* gameInstance = GetWorld() ? GetWorld()->GetGameInstance() : nullptr;
-	const ULRGameInstanceSubsystem* subsystem = gameInstance ? gameInstance->GetSubsystem<ULRGameInstanceSubsystem>() : nullptr;
-	Tuning = subsystem && subsystem->GetTuningSet() ? subsystem->GetTuningSet()->NPC : nullptr;
-	if (!ensureMsgf(Tuning, TEXT("%s requires NPC tuning."), *GetNameSafe(this)))
-	{
-		return;
-	}
-	HearingConfig->HearingRange = 5000.0f;
-	HearingConfig->DetectionByAffiliation.bDetectEnemies = true;
-	HearingConfig->DetectionByAffiliation.bDetectFriendlies = true;
-	HearingConfig->DetectionByAffiliation.bDetectNeutrals = true;
-	AIPerception->ConfigureSense(*HearingConfig);
-	AIPerception->SetDominantSense(HearingConfig->GetSenseImplementation());
-	AIPerception->OnTargetPerceptionUpdated.AddDynamic(this, &ALRNPCController::HandlePerception);
+	TryInitializeRuntime();
 }
 
 /**
@@ -69,15 +55,7 @@ void ALRNPCController::BeginPlay()
  */
 void ALRNPCController::EndPlay(const EEndPlayReason::Type endPlayReason)
 {
-	if (AIPerception)
-	{
-		AIPerception->OnTargetPerceptionUpdated.RemoveDynamic(this, &ALRNPCController::HandlePerception);
-	}
-	if (GetWorld())
-	{
-		GetWorld()->GetTimerManager().ClearTimer(LookAtTimer);
-		GetWorld()->GetTimerManager().ClearTimer(ReactionTimer);
-	}
+	ShutdownRuntime();
 	Super::EndPlay(endPlayReason);
 }
 
@@ -89,20 +67,93 @@ void ALRNPCController::OnPossess(APawn* inPawn)
 {
 	Super::OnPossess(inPawn);
 	Npc = Cast<ALRNPCCharacter>(inPawn);
-	Definition = Npc.IsValid() ? Npc->GetDefinition() : nullptr;
-	if (Definition.IsValid() && Definition->Behavior)
+	TryInitializeRuntime();
+}
+
+bool ALRNPCController::ValidateControllerConfiguration(FString& outError,
+	const bool bRequirePossessionContext) const
+{
+	if (!Tuning.Validate(outError))
 	{
-		StateTreeAI->SetStateTree(Definition->Behavior);
-		if (!StateTreeAI->IsRunning())
-		{
-			StateTreeAI->StartLogic();
-		}
+		outError = FString::Printf(TEXT("NPC tuning is invalid: %s"), *outError);
+		return false;
 	}
-	else
+	if (!AIPerception || !StateTreeAI)
 	{
-		UE_LOG(LogLostRunicAI, Warning, TEXT("NPC=%s definition or Behavior StateTree is missing; using controller fallback."),
-			*GetNameSafe(inPawn));
+		outError = TEXT("Native AIPerception and StateTreeAI components are required.");
+		return false;
 	}
+	if (!AIPerception->GetSenseConfig<UAISenseConfig_Hearing>()
+		|| AIPerception->GetSenseConfig<UAISenseConfig_Sight>())
+	{
+		outError = TEXT("Inherited AIPerception must configure Hearing and must not configure Sight.");
+		return false;
+	}
+	if (AIPerception->GetDominantSense() != UAISense_Hearing::StaticClass())
+	{
+		outError = FString::Printf(TEXT("Hearing must be the NPC dominant sense; configured=%s."),
+			*GetNameSafe(AIPerception->GetDominantSense()));
+		return false;
+	}
+	if (bRequirePossessionContext && (!Npc.IsValid() || GetPawn() != Npc.Get()))
+	{
+		outError = TEXT("A possessed ALRNPCCharacter is required.");
+		return false;
+	}
+	return true;
+}
+
+void ALRNPCController::TryInitializeRuntime()
+{
+	if (bRuntimeInitialized || !HasActorBegunPlay() || !GetPawn())
+	{
+		return;
+	}
+	FString error;
+	if (!ValidateControllerConfiguration(error, true))
+	{
+		UE_LOG(LogLostRunicAI, Error, TEXT("Controller=%s Pawn=%s runtime initialization rejected: %s"),
+			*GetNameSafe(this), *GetNameSafe(GetPawn()), *error);
+		return;
+	}
+	AIPerception->OnTargetPerceptionUpdated.RemoveDynamic(this, &ALRNPCController::HandlePerception);
+	AIPerception->OnTargetPerceptionUpdated.AddDynamic(this, &ALRNPCController::HandlePerception);
+	AIPerception->Activate(true);
+	if (!AIPerception->IsActive())
+	{
+		UE_LOG(LogLostRunicAI, Error, TEXT("Controller=%s Pawn=%s failed to activate AIPerception."),
+			*GetNameSafe(this), *GetNameSafe(GetPawn()));
+		ShutdownRuntime();
+		return;
+	}
+	StateTreeAI->StartLogic();
+	if (!StateTreeAI->IsRunning())
+	{
+		UE_LOG(LogLostRunicAI, Error, TEXT("Controller=%s Pawn=%s failed to start configured StateTree."),
+			*GetNameSafe(this), *GetNameSafe(GetPawn()));
+		ShutdownRuntime();
+		return;
+	}
+	bRuntimeInitialized = true;
+}
+
+void ALRNPCController::ShutdownRuntime()
+{
+	if (AIPerception)
+	{
+		AIPerception->OnTargetPerceptionUpdated.RemoveDynamic(this, &ALRNPCController::HandlePerception);
+		AIPerception->ForgetAll();
+		AIPerception->Deactivate();
+	}
+	if (StateTreeAI && StateTreeAI->IsRunning())
+	{
+		StateTreeAI->StopLogic(TEXT("NPC runtime shutdown"));
+	}
+	StopLookAtTimer();
+	StopNoiseReaction();
+	StopMovement();
+	ClearFocus(EAIFocusPriority::Gameplay);
+	bRuntimeInitialized = false;
 }
 
 /**
@@ -110,19 +161,23 @@ void ALRNPCController::OnPossess(APawn* inPawn)
  */
 void ALRNPCController::OnUnPossess()
 {
-	if (GetWorld())
-	{
-		GetWorld()->GetTimerManager().ClearTimer(LookAtTimer);
-		GetWorld()->GetTimerManager().ClearTimer(ReactionTimer);
-	}
-	if (StateTreeAI->IsRunning())
-	{
-		StateTreeAI->StopLogic(TEXT("OnUnPossess"));
-	}
+	ShutdownRuntime();
 	Npc.Reset();
-	Definition.Reset();
 	Super::OnUnPossess();
 }
+
+#if WITH_EDITOR
+EDataValidationResult ALRNPCController::IsDataValid(FDataValidationContext& context) const
+{
+	FString error;
+	if (!ValidateControllerConfiguration(error, false))
+	{
+		context.AddError(FText::FromString(error));
+		return EDataValidationResult::Invalid;
+	}
+	return Super::IsDataValid(context);
+}
+#endif
 
 /**
  * @brief 处理 On Move Completed 事件：巡逻点到达续走下一段。
@@ -344,7 +399,7 @@ void ALRNPCController::StartPatrolMove()
  */
 ELRNPCBehaviorState ALRNPCController::GetBaseBehavior() const
 {
-	return Definition.IsValid() && Definition->DefaultBehavior == ENPCBaseBehavior::Patrol
+	return DefaultBehavior == ENPCBaseBehavior::Patrol
 		? ELRNPCBehaviorState::Patrol : ELRNPCBehaviorState::Idle;
 }
 
@@ -361,7 +416,8 @@ void ALRNPCController::DispatchBehaviorEvent(const FGameplayTag event, const ELR
 	}
 	else
 	{
-		EnterBehavior(behavior);
+		UE_LOG(LogLostRunicAI, Warning, TEXT("Controller=%s ignored behavior event because StateTree is not running."),
+			*GetNameSafe(this));
 	}
 }
 
@@ -369,7 +425,7 @@ void ALRNPCController::DispatchBehaviorEvent(const FGameplayTag event, const ELR
  * @brief 查询 Effective Tuning；不修改领域状态。
  * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
  */
-const ULRNPCTuning& ALRNPCController::GetEffectiveTuning() const
+const FLRNPCTuningSettings& ALRNPCController::GetEffectiveTuning() const
 {
-	return Tuning ? *Tuning : *GetDefault<ULRNPCTuning>();
+	return Tuning;
 }

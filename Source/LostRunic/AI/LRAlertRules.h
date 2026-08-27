@@ -11,7 +11,7 @@
 #include "AI/LRGuardTypes.h"
 #include "Core/LRGuardConstants.h"
 
-class ULRGuardTuning;
+struct FLRGuardTuningSettings;
 
 namespace LRAlertRules
 {
@@ -47,14 +47,14 @@ namespace LRAlertRules
 		bool bSearching);
 	/** Snapshot-aware behavior resolver; Alert alone never promotes to Chase. */
 	LOSTRUNIC_API ELRGuardBehaviorState ResolveTargetBehavior(bool bStunned, const FLRAlertSnapshot& alert,
-		const FLRGuardKnowledgeSnapshot& knowledge, bool bSearchFlag, const ULRGuardTuning& tuning);
+		const FLRGuardKnowledgeSnapshot& knowledge, bool bSearchFlag, const FLRGuardTuningSettings& tuning);
 	LOSTRUNIC_API ELRGuardBehaviorState ResolveTargetBehavior(const FLRAlertSnapshot& alert,
 		const FLRGuardKnowledgeSnapshot& knowledge, bool bStunned, bool bSearchFlag,
-		const ULRGuardTuning& tuning);
+		const FLRGuardTuningSettings& tuning);
 	LOSTRUNIC_API ELRGuardBehaviorState ResolveTargetBehavior(const FLRAlertSnapshot& alert,
 		const FLRGuardKnowledgeSnapshot& knowledge, bool bStunned, bool bSearchFlag);
 	LOSTRUNIC_API ELRGuardBehaviorState ResolveTargetBehavior(const FLRGuardAwarenessSnapshot& awareness,
-		bool bStunned, bool bSearchFlag, const ULRGuardTuning& tuning);
+		bool bStunned, bool bSearchFlag, const FLRGuardTuningSettings& tuning);
 	/**
 	 * @brief 解析警戒显示档位：0 隐藏、1-5 白色、6-10 红色、11 满值。
 	 * @param alertLevel 本次操作使用的计数、增量或索引 `alertLevel`；由函数校验合法范围。
@@ -83,7 +83,7 @@ namespace LRAlertRules
 	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
 	 */
 	LOSTRUNIC_API float ResolveAttractIncreaseCooldown(int32 currentAlert, bool bFirstIncreaseInBand,
-		const ULRGuardTuning& tuning);
+		const FLRGuardTuningSettings& tuning);
 	/**
 	 * @brief 判断 Is Increase Allowed 对应条件；冷却拒绝的刺激被完全忽略，不改变观察状态。
 	 * @param now 时间值 `now`，单位为秒。

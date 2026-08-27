@@ -11,7 +11,6 @@
 #include "AI/LRGuardAIController.h"
 #include "Core/LRGameplayTags.h"
 #include "Data/LRGameTuningSet.h"
-#include "Data/LRGuardTuning.h"
 #include "Data/LRMovementTuning.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
@@ -43,7 +42,6 @@ void ULRNoiseEmitterComponent::BeginPlay()
 	const UGameInstance* gameInstance = GetWorld() ? GetWorld()->GetGameInstance() : nullptr;
 	const ULRGameInstanceSubsystem* subsystem = gameInstance ? gameInstance->GetSubsystem<ULRGameInstanceSubsystem>() : nullptr;
 	Tuning = subsystem && subsystem->GetTuningSet() ? subsystem->GetTuningSet()->Movement : nullptr;
-	GuardTuning = subsystem && subsystem->GetTuningSet() ? subsystem->GetTuningSet()->Guard : nullptr;
 	if (!ensureMsgf(Locomotion && Interaction && Tuning, TEXT("%s requires locomotion, interaction, and Movement tuning."),
 		*GetNameSafe(this)))
 	{
@@ -108,7 +106,7 @@ void ULRNoiseEmitterComponent::HandleFootstep(const FVector location, const floa
  */
 void ULRNoiseEmitterComponent::ApplyIndoorRunNoise(const FVector location)
 {
-	if (!GetWorld() || !GuardTuning || !Tuning)
+	if (!GetWorld() || !Tuning)
 	{
 		return;
 	}

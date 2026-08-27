@@ -87,7 +87,7 @@
 - **配置步骤**：
   1. 创建 `ALRGameMode` 的蓝图派生类。
   2. 在 **Project Settings > Game > Lost Runic** 的 `Content Set` 中指定 `/Game/LostRunic/Data/DA_LRGameContentSet`，并同时确认 `Tuning Set`、`Input Config` 已指定。内容聚合资产不在 GameMode 默认值中重复配置；`ALRGameMode` 运行时通过 `ULRGameInstanceSubsystem` 读取这三个项目级权威来源。
-  3. 打开 `ULRGameContentSet` 资产，填写对白/阅读 DataTable、物品/收藏品/守卫/关卡事件定义和地图注册信息。DataTable 行名必须与 `DialogueId`/`ReadingId` 一致，定义资产 ID 必须唯一，地图 `MapId` 必须唯一且有 World 引用。
+  3. 打开 `ULRGameContentSet` 资产，填写对白/阅读 DataTable、物品/收藏品/关卡事件定义和地图注册信息。Guard/NPC 不在 Content Set 注册。DataTable 行名必须与 `DialogueId`/`ReadingId` 一致，定义资产 ID 必须唯一，地图 `MapId` 必须唯一且有 World 引用。
   4. 在项目设置或关卡 World Settings 中指定该 GameMode；实例覆盖只用于关卡明确要求的差异。GameMode 蓝图可通过 `GetContentSet`、`GetTuningSet` 和 `HasValidConfiguration` 查询运行时结果，但不应建立第二份配置。
 - **参数要求**：所有 DataTable 行 ID、定义资产 ID、Home/Memory 地图 ID 必须稳定且可解析；`ULRGameContentSet` 的 Data Validation 和 GameInstance 初始化会报告缺失、重复或错误类型引用。
 - **验收**：进入 Home 和 Memory PIE，确认 GameMode、Pawn、Controller、HUD 和内容资产均已加载；在 Output Log 中确认没有 `LogLostRunicTuning` 或 `LogLostRunicSave` 的项目级 Warning/Error。
@@ -120,15 +120,17 @@
 ### 守卫 AI 与 StateTree
 
 - **代码入口**：`ALRGuardCharacter`、`ALRGuardAIController`（生命周期/感知/行为拆三个 cpp）、`ULRAlertComponent`、`ALRRoomVolume`。
-- **蓝图/资产**：`BP_Guard`（守卫角色蓝图）、`DA_LRGuardDefinition`（定义 DataAsset，`Behavior` 为 **StateTree 硬引用**）、`ST_Guard`（StateTree 资产）、`WBP_GuardAlertBar`（世界警戒条）、`ALRRoomVolume`（室内奔跑房间体积）、关卡巡逻点。
+- **蓝图/资产**：`BP_Guard`（Pawn）、`BP_LRGuardController`（Controller 配置资产）、`ST_Guard`、`WBP_GuardAlertBar`、`ALRRoomVolume` 和关卡巡逻点。Guard Definition 与 Guard Tuning DataAsset 已移除。
 - **配置步骤**：
-  1. 创建 `ALRGuardCharacter` 派生蓝图，指定网格、动画和守卫定义；`AlertWidget`（WidgetComponent）的 WidgetClass 指定为 `WBP_GuardAlertBar`，绘制位置与样式在蓝图配置。
-  2. 在实例上填写允许的巡逻点；移动速度、视野、听觉和警戒阈值填写到定义或 Tuning 资产。
-  3. **StateTree 接线**：`ST_Guard` 使用 `StateTreeAIComponentSchema`，`ContextActorClass=ALRGuardCharacter`、`AIControllerClass=ALRGuardAIController`。树根必须是无任务的 `Root` Group，下面按 `IdlePatrol / Suspicious / Investigate / Search / Chase / Stunned` 顺序放六个平级行为状态；每个状态恰有一个 `FLRGuardStateCondition`、一个 `FLRGuardBehaviorTask`，两者的行为枚举一致，Controller 通过绑定的 `AIController` 上下文提供 `GetResolvedBehavior()`（StateTree 不自行推导警戒语义）。`DA_LRGuardDefinition.Behavior` 硬引用 `ST_Guard`，控制器 `OnPossess` 自动 `SetStateTree` + `StartLogic`（无需在 AIController 默认值手动指定）。
-  4. **行为变化重选**：六个行为状态各添加 `On Event: AI.Event.BehaviorChanged -> Goto Root`，Normal 优先级、无延迟、消费事件，并将 `Reactivate Target State` 设为 `ForceChanged`。`ForceChanged` 是必需契约：事件必须离开当前行为状态、从 Root 重新按六个 `Guard Behavior Is` 条件顺序短路选择，再进入当前 `GetResolvedBehavior()` 唯一对应的子状态；仅配置普通 `Goto Root` 若 Root 被 Sustained、没有重新求值，不算完成。
-  5. **持续任务与同状态 Investigate**：`FLRGuardBehaviorTask` 继承 `FStateTreeTaskCommonBase`，有效 Controller 的 `EnterState()` 必须返回 `Running`，`bShouldCallTick=false`；任务不能自行完成，只能由 `BehaviorChanged` 转换退出。新刺激若解析结果和 `ActiveBehavior` 都是 `Investigate`，Controller 直接再次 `EnterBehavior(Investigate)` 更新导航目标，不发送 `BehaviorChanged`，不触发 Root 重选，也不退出/重新进入 Investigate；只有解析后的行为枚举真正变化才发送事件。
-  6. 绑定警戒快照（`OnAlertSnapshotChanged` / `GetAlertSnapshot`）到 UI、音效或动画表现。
-- **参数要求**：警戒范围、导航速度、感知参数、吸引 CD（`AlertIncreaseCooldownSeconds`/`InvestigateIncreaseCooldownSeconds`）、房间警戒（`RoomRunAlertLevel`/`AdjacentRoomRunAlertAmount`）必须来自 Tuning/定义资产；蓝图不能通过 Tick 改写警戒值或直接决定状态转换。`AttractAlertAmount` 已重命名为语义值（资产中必须为 1），`SearchDurationSeconds` 已废弃（搜索由观察+自然衰减驱动）。
+  1. `ALRGuardAIController` 的 C++ 构造函数创建唯一继承组件 `AIPerception` 与 `StateTreeAI`。蓝图只能选择并配置这两个继承组件，禁止在 Controller Blueprint 或 Pawn Blueprint 中手工 Add Component。
+  2. 打开 `/Game/LostRunic/Blueprints/Guard/BP_LRGuardController`，确认父类为 `ALRGuardAIController`。选择继承的 **AIPerception**，配置 Sight、Hearing 和 Dominant Sense；选择继承的 **StateTreeAI**，将 State Tree 设置为 `ST_Guard`。
+  3. 在 `BP_LRGuardController > Class Defaults > Guard|Tuning` 配置 `FLRGuardTuningSettings`。不同敌人类型应派生各自的 Controller Blueprint，并只在继承组件与 Class Defaults 中填写差异。
+  4. 打开 `BP_Guard`，在 **Pawn** 中设置 **AI Controller Class = BP_LRGuardController**、**Auto Possess AI = Placed in World or Spawned**；组件树不得含 AIPerception、StateTree 或 StateTreeAI。实例只填写巡逻点、网格和表现。
+  5. **StateTree 接线**：`ST_Guard` 使用 `StateTreeAIComponentSchema`，`ContextActorClass=ALRGuardCharacter`、`AIControllerClass=ALRGuardAIController`。树根为无任务 `Root` Group，下方按 `IdlePatrol / Suspicious / Investigate / Search / Chase / Stunned` 放六个平级状态；每个状态的 `FLRGuardStateCondition` 与 `FLRGuardBehaviorTask` 行为枚举一致。
+  6. **行为变化重选**：六个行为状态各添加 `On Event: AI.Event.BehaviorChanged -> Goto Root`，Normal 优先级、无延迟、消费事件，并将 `Reactivate Target State` 设为 `ForceChanged`。`ForceChanged` 是必需契约：事件必须离开当前行为状态、从 Root 重新按六个 `Guard Behavior Is` 条件顺序短路选择，再进入当前 `GetResolvedBehavior()` 唯一对应的子状态；仅配置普通 `Goto Root` 若 Root 被 Sustained、没有重新求值，不算完成。
+  7. **持续任务与同状态 Investigate**：`FLRGuardBehaviorTask` 继承 `FStateTreeTaskCommonBase`，有效 Controller 的 `EnterState()` 必须返回 `Running`，`bShouldCallTick=false`；任务不能自行完成，只能由 `BehaviorChanged` 转换退出。新刺激若解析结果和 `ActiveBehavior` 都是 `Investigate`，Controller 直接再次 `EnterBehavior(Investigate)` 更新导航目标，不发送 `BehaviorChanged`，不触发 Root 重选，也不退出/重新进入 Investigate；只有解析后的行为枚举真正变化才发送事件。
+  8. 绑定警戒快照（`OnAlertSnapshotChanged` / `GetAlertSnapshot`）到 UI、音效或动画表现。
+- **参数要求**：Sight/Hearing 参数只来自继承的 AIPerception；警戒、检测积分、导航速度、吸引 CD 和房间响应只来自 Controller 的 Inline Tuning。C++ 不在运行时 `ConfigureSense()` 或 `SetStateTree()`。
 - **验收**：在 `/Game/LostRunic/Levels/PIE_Test/L_PIE_Test` 用六种目标行为分别验证 Root 重选，不只确认最终状态，还要在 StateTree Debugger 看到当前状态离开、Root 重新求值并进入目标状态；在无行为事件下连续至少三个 StateTree 更新机会，确认同一行为仍 Active、组件仍 `Running`、没有自动完成/跳转。先进入 Investigate，再提交新异常位置且仍解析为 Investigate，确认导航目标更新而 Investigate 始终 Active、无额外 `BehaviorChanged`；随后切到 Search/Chase，确认事件触发 Root 重选；最后验证 Stunned 恢复。检查 `LR.Debug.Alert`、Visual Logger 与 Output Log。
 
 ### UI 屏幕与输入配置
@@ -197,7 +199,7 @@
 
 1. 将 `Plugins/SUDS` 保持为 Git submodule，当前已固定到 commit `3b3145d727b2e140bb3f37c155a651013eae8af5`。升级 SUDS 时先运行 Editor build 和 Contract Test，再修改唯一的 `LRSUDSLocalizationParser` 适配层。
 2. 在 `/Game/LostRunic/Dialogue/Data/` 创建 `DA_DialogueScriptRegistry`，类型为 `ULRDialogueScriptRegistry`。每个条目填写唯一 `ScriptId` 和对应的 `USUDSScript`；同一 Script 不得绑定到两个 ID。第一版 NPC 使用硬引用，保证同步 `TryStartDialogue` 可用。
-3. 打开 `BP_NPC`（父类 `ALRNPCCharacter`），选择 C++ 自动创建的 `DialogueComponent`，填写 `ScriptRegistry`、`ScriptId`、可选 `StartLabel` 和可选 `CompletionStoryTag`。不要在蓝图或旧 `DA_LRNPCDefinition` 中维护第二套对白身份。
+3. 打开 `BP_NPC1`（父类 `ALRNPCCharacter`），选择 C++ 自动创建的 `DialogueComponent`，填写 `ScriptRegistry`、`ScriptId`、可选 `StartLabel` 和可选 `CompletionStoryTag`。对白身份只保留在该组件中。
 4. 在 `/Game/LostRunic/Dialogue/Data/` 创建 `ST_DialogueSpeakers`，添加 `Adele`、`Butler`、`Narrator`（必要时添加 `Player`）条目；创建 `DA_DialogueSpeakers`（类型 `ULRDialogueSpeakerRegistry`），使每个 `DisplayName` 直接引用该 String Table entry。普通手写 FText 会被 Registry 校验拒绝。
    同时在 `DA_LRGameContentSet` 的 `Content|Localization|DialogueSpeakerRegistry` 指定该资产，运行时从中读取本地化 Speaker Name 和硬引用 Portrait。
 5. 在项目的 SUDS Editor Settings 中确认 `AlwaysGenerateSpeakerLinesFromChoices=False`。`.sud` Fixture 也必须保持 `GenerateSpeakerLinesFromChoices false`；LostRunic UI 由 `OnSpeakerLine` 读取 Choice，不依赖 `OnChoice` 生成选项。
@@ -318,11 +320,11 @@ Editor Contract Test 名称：
 
 ### 通用 NPC
 
-- **`BP_NPC`**：继承 `ALRNPCCharacter`，配置网格、动画与 `DA_LRNPCDefinition`。
-- **`DA_LRNPCDefinition`**：`NpcId`（稳定 FName）、`Behavior`（StateTree **硬引用** `ST_NPC`）、`DefaultBehavior`（Idle/Patrol）。对白不再从 Dialogue DataTable 读取。
-- **`ST_NPC` 资产（编辑器人工创建 + MCP 检查）**：四个状态 `Idle / Patrol / ReactToNoise / Conversation`；条件 `FLRNPCStateCondition` 比较控制器 `GetActiveBehavior()`，任务 `FLRNPCBehaviorTask`；Idle 附加 `FLRNPCLookAtPlayerTask`（低频朝向检测），ReactToNoise 附加 `FLRNPCReactToNoiseTask`（限时反应，到时发 `AI.Event.NPCReactionEnded` 回默认行为）。树由 `AI.Event.NPCNoiseHeard` / `NPCDialogueStarted` / `NPCDialogueEnded` / `NPCReactionEnded` 驱动。
+- **`BP_LRNPCController`**：继承 `ALRNPCController`；只配置 C++ 继承的 AIPerception（Hearing）和 StateTreeAI（`ST_NPC_Stand`），禁止手工添加同类组件；Class Defaults 配置 `FLRNPCTuningSettings` 和 `DefaultBehavior=Idle`。
+- **`BP_NPC1`**：继承 `ALRNPCCharacter`，只配置网格、动画、对白和 **AI Controller Class = BP_LRNPCController**；不得含 AIPerception、StateTree 或 StateTreeAI。
+- **`ST_NPC_Stand`**：状态 `Idle / Patrol / ReactToNoise / Conversation`；条件 `FLRNPCStateCondition` 比较控制器 `GetActiveBehavior()`，任务 `FLRNPCBehaviorTask`；Idle 附加 `FLRNPCLookAtPlayerTask`，ReactToNoise 附加 `FLRNPCReactToNoiseTask`。树由 NPC 行为事件驱动。
 - **对话**：交互选项 `Interaction.Action.Talk`（Normal 状态）经 NPC 上的 `ULRDialogueComponent::TryStartDialogue` 启动 SUDS；Conversation 高优先级，普通噪声不打断（只触发 `OnNoiseHeard` 表现钩子）。对白脚本由 `ULRDialogueScriptRegistry` 通过 `ScriptId` 唯一解析，巡逻点按实例配置。
-- **调优**：`DA_LRNPCTuning`（登记进 `DA_LRGameTuningSet.NPC`）：`LookAtPlayerRadiusCm`、`LookAtIntervalSeconds`、`NoiseReactionDurationSeconds`、`PatrolSpeedCm`。
+- **调优**：在 `BP_LRNPCController > Class Defaults > NPC|Tuning` 配置 `LookAtPlayerRadiusCm`、`LookAtIntervalSeconds`、`NoiseReactionDurationSeconds`、`PatrolSpeedCm`。
 - **预留**：`OnNoiseHeard`（BlueprintImplementableEvent）与 `OnNPCAttentionChanged` 委托为未来告警/逃离扩展钩子，本批次不实现告警逻辑。
 
 ### 四状态美术表现预留（不实现视觉效果）
@@ -335,7 +337,7 @@ Editor Contract Test 名称：
 
 - `SneakAction` 已废弃（`DeprecatedProperty`，移出 Validate 必填）；潜行切换继续使用 `ToggleCrouchAction`（C / B 切换）。
 - 调优迁移（PropertyRedirects 已配置）：`CaptureCheckIntervalSeconds`→`DetectionSampleIntervalSeconds`、`SightInvestigateLevel`→`DetectionInvestigateAlertFloor`、`SightChaseLevel`/`SightAlertLevel`→`DetectionConfirmedAlertFloor`。旧 runtime property 已删除，运行时只有一个 Detection/Capture sample interval；`SearchDurationSeconds` 废弃。
-- 新建资产清单（StateTree 需编辑器人工创建，其余可 MCP）：`ST_Guard`、`ST_NPC`、`DA_LRGuardDefinition`、`DA_LRNPCDefinition`、`DA_LRNPCTuning`、`BP_Guard`、`WBP_GuardAlertBar`、`BP_NPC`；`DA_LRGameTuningSet` 登记 `DA_LRNPCTuning`。
+- AI 资产清单：`ST_Guard`、`ST_NPC_Stand`、`BP_LRGuardController`、`BP_LRNPCController`、`BP_Guard`、`BP_NPC1`、`WBP_GuardAlertBar`。Guard/NPC Definition 与独立 Tuning DataAsset 不再存在。
 - **PIE 验收（`/Game/LostRunic/Levels/PIE_Test/L_PIE_Test`，键鼠+手柄，Output Log 无项目级 Warning/Error）**：状态步态（Perception 强制潜行、Courage 拒潜行、Memory 仅走路）；掩体进入强制潜行/固定掩体不可移动/掩体内不可见/**掩体中发生状态变化（死亡或调试强制切换）仍保持潜行，退出后为当前状态默认步态**；噪声区域进入退出与重叠优先级、7 行步态×环境噪声、房间传播（本房→5、邻房+1、多房间取最大、无房间兜底、**缩放体积（Scale≠1）包含判定正确**）；完整警戒流程（0→吸引→1 观察 3s、CD 内忽略、看见→6 前往、抵达 Search 观察→衰减→0 巡逻、6-10 看见→11 追逐、丢失→10、追上死亡→Memory）；`ST_Guard` 六行为覆盖、持续 `Running`、Investigate 同状态重定位、Search/Chase 真实变化重选、Stunned 恢复；世界警戒条四档表现与首帧同步；击退眩晕 0.6s 恢复（`LR.Debug.Alert` 显示 Stunned）；NPC 巡逻/站立/对话开合/噪声限时反应/Idle 朝向玩家/对话结束回默认；`LR.Debug.Tuning` 确认重命名后来源。
 
 ## 更新记录
@@ -615,8 +617,7 @@ Editor Contract Test 名称：
 7. `/Game/LostRunic/Blueprints/UI/BP_LRMainMenuHUD`：父类 `ALRMainMenuHUD`；Class Defaults 设置 `Main Menu Screen Class = WBP_MainMenu`、`Save Slots Screen Class = WBP_SaveSelection`。
 8. `/Game/LostRunic/Blueprints/UI/BP_LRMainMenuGameMode`：父类 `ALRMainMenuGameMode`；`HUD Class = BP_LRMainMenuHUD`、`Default Pawn Class = None`。`L_MainMenu` 的 **World Settings > GameMode Override** 指向该类。
 9. `/Game/LostRunic/Blueprints/Character/BP_LRGameMode`：`Default Pawn Class = /Game/LostRunic/Blueprints/Character/BP_Ruth.BP_Ruth_C`，供 `L_Home` 生成可见主角。
-10. `/Game/LostRunic/Data/Tuning/DA_LRNPCTuning`：类型 `ULRNPCTuning`，使用 C++ 合法默认值；`/Game/LostRunic/Data/DA_LRGameTuningSet` 的 `NPC` 指向该资产。
-11. `/Game/LostRunic/Data/DA_LRGameContentSet`：`MainMenuMapId = Menu`；`Maps` 中必须已有 `Menu` 注册。Pause 返回主菜单只调用 GameFlow 注册旅行，不在 UI C++ 中写地图路径。
+10. `/Game/LostRunic/Data/DA_LRGameContentSet`：`MainMenuMapId = Menu`；`Maps` 中必须已有 `Menu` 注册。Pause 返回主菜单只调用 GameFlow 注册旅行，不在 UI C++ 中写地图路径。
 
 `ALRHUD` 是 `ULRSaveWidgetController` 的唯一宿主。Widget 只在 `SetSaveWidgetController` 时绑定 `OnSnapshotChanged`，在 `NativeDestruct` 时解除绑定，不调用 `Initialize/Deinitialize`，也不保存玩法状态。
 
@@ -700,7 +701,7 @@ StringTable 的 `Source String` 只填写源语言（本项目约定为 `zh-Hans
 
 - `LostRunicEditor Win64 Development` 构建通过。
 - 定向自动化测试 7/7 通过、0 Warning/Error：主菜单无 Pawn、PIE 内容契约、Designer Widget 契约、刷新后焦点恢复、焦点目标规则、Primary/Delete 动作规则和存档快照规则。
-- `L_MainMenu` 已确认菜单显示、专用 GameMode/HUD 生效、无 Pawn，且 `LogGameMode`、`LogLostRunicUI`、`LogBlueprint` 无项目级 Warning/Error；`DA_LRNPCTuning` 已由调优日志确认加载。
+- `L_MainMenu` 已确认菜单显示、专用 GameMode/HUD 生效、无 Pawn，且 `LogGameMode`、`LogLostRunicUI`、`LogBlueprint` 无项目级 Warning/Error。
 - `L_Home` 已确认运行时生成 `BP_Ruth_C` 且角色模型可见。Pause → Save、确认弹窗及返回链路的最终手动 PIE 由项目负责人继续验收。
 
 ## 架构边界与 GameFlow/StoryState 配置登记
@@ -735,78 +736,73 @@ StringTable 的 `Source String` 只填写源语言（本项目约定为 `zh-Hans
 - 旧 TopDown class redirect 保留，目标为 LRCharacter、LRGameMode、LRPlayerController；本次不删除 Redirect。
 
 正式边界文档：Docs/Technical/08_ArchitectureBoundaries.md。
-## Guard Awareness / 连续视觉配置（2026-08-24）
+## Guard / NPC Controller Blueprint 唯一配置（2026-08-26）
 
-本节覆盖前文 4.2.1 中旧的二次 Sight 回调语义，是当前 Guard 配置的权威说明。
+本节覆盖此前所有 Guard/NPC Definition 与独立 Tuning DataAsset 说明，是当前 AI 蓝图装配的唯一权威路径。
 
-### 资产和组件关系
+### 组件所有权和运行生命周期
 
-- 守卫蓝图：`/Game/LostRunic/Blueprints/Guard/BP_Guard`，父类必须为 `ALRGuardCharacter`。C++ 自动创建 `Alert`、`Knowledge`、`StateTreeAI`、`AlertWidget`，蓝图不得重复添加。
-- 守卫定义：`/Game/LostRunic/Data/Guard/DA_LRGuard1`；`Behavior` 指向 `/Game/LostRunic/Blueprints/Guard/ST_Guard`，`Tuning` 指向 `/Game/LostRunic/Data/Tuning/DA_LRGuardTuning`。
-- 世界警戒条：`/Game/LostRunic/UI/WBP_GuardAlertBar`，继承 `ULRWorldAlertBarWidgetBase`。既有 `HandleAlertSnapshotChanged` 蓝图事件继续可用；其中 `Behavior` 仅为表现兼容字段，权威行为在组合快照 `FLRGuardAwarenessSnapshot.ResolvedBehavior`。
-- 玩家目标契约：`ALRCharacter` 已原生实现 `ILRGuardPerceptionTarget` 并返回 true；`ALRGuardCharacter`、普通 NPC 和其他 Pawn 默认不会成为视觉目标。自定义玩家若继承 `ALRCharacter` 无需额外操作；其他蓝图类需在 **Class Settings > Implemented Interfaces** 添加 `Lost Runic Guard Perception Target`，并实现 `Is Relevant Guard Sight Target` 返回 true。
+- `ALRGuardAIController` 与 `ALRNPCController` 在 C++ 构造函数中各创建且只创建一个 `AIPerception` 和一个 `StateTreeAI`。两者分别关闭 Auto Activate 与 Auto Start。
+- 派生 Controller Blueprint 只配置继承组件；Controller Blueprint 的 SimpleConstructionScript、`BP_Guard` 和 `BP_NPC1` 均禁止手工添加 AIPerception、StateTree 或 StateTreeAI。
+- `BeginPlay` 与 `OnPossess` 都进入同一个 `TryInitializeRuntime()`；只有 Actor 已 BeginPlay、Pawn 已 Possess、配置和运行依赖完整时，才按“Alert runtime → Perception delegate → Perception Activate → StateTree StartLogic”启动一次。
+- `UnPossess` 对称执行“移除委托 → ForgetAll → Deactivate → StopLogic → 停移动/Timer/Focus → Alert Shutdown”。重新 Possess 可再次初始化。
+- `Alert::InitializeRuntime/ShutdownRuntime` 只管理计时器和运行时 Tuning 副本，不清零 Alert、Search、ConfirmedThreat、LastKnown 或 Pending；观察窗口只恢复真实剩余时间。
+- C++ 运行时只用 `GetSenseConfig<T>()` 读取蓝图 Sense；不得 `ConfigureSense()`、`SetStateTree()`、反射 `StateTreeRef` 或使用延迟 Timer 启动。具体 StateTree 资产路径只由 Editor Validation/Contract Test 检查。
 
-### BP_Guard 配置步骤
+### BP_LRGuardController
 
-1. 在 Content Browser 打开 `BP_Guard`，进入 **Class Defaults**。
-2. 在 **Lost Runic|AI**（或搜索 `Definition`）把 **Definition** 设置为 `DA_LRGuard1`。
-3. 在 **Pawn** 分类确认 **AI Controller Class = LRGuardAIController**，**Auto Possess AI = Placed in World or Spawned**。
-4. 选择组件树中的 **AlertWidget**，把 **Widget Class** 设置为 `WBP_GuardAlertBar`；仅配置 Draw Size、Pivot、相对位置和表现，不在 Widget Tick 中写警戒。
-5. 编译并保存。当前资产已通过 UE MCP 编译（Warnings as Errors）并保存；`Definition`、AIController 和 Auto Possess 值已回读确认。
+路径：`/Game/LostRunic/Blueprints/Guard/BP_LRGuardController`，父类 `ALRGuardAIController`。
 
-### DA_LRGuard1 与 StateTree
+1. 在 Components 选择带“继承”标记的 **AIPerception**。在 **AI Perception > Senses Config** 只保留一份 Sight 和一份 Hearing，并将 **Dominant Sense** 设为 AISense_Sight。
+2. Sight：Sight Radius `500 cm`；Lose Sight Radius `600 cm`；Peripheral Vision Half Angle `22.5°`；Max Age `0 (Never)`；Auto Success Range From Last Seen Location `-1`；Enemies/Friendlies/Neutrals 全部启用。
+3. Hearing：Hearing Range `5000 cm`；Max Age `0 (Never)`；Enemies/Friendlies/Neutrals 全部启用。
+4. 选择继承的 **StateTreeAI**，将 **State Tree** 设置为 `/Game/LostRunic/Blueprints/Guard/ST_Guard`。Auto Start 由 C++ 固定关闭。
+5. 在 **Class Defaults > Guard|Tuning** 配置 Inline `FLRGuardTuningSettings`：
 
-1. 打开 `DA_LRGuard1`，确认 **Behavior = ST_Guard**、**Tuning = DA_LRGuardTuning**。
-2. 打开 `ST_Guard`。保留 `Root` 下六个平级状态：`IdlePatrol / Suspicious / Investigate / Search / Chase / Stunned`；宏观行为仍由 `ResolveTargetBehavior` 唯一决定。
-3. 行为枚举变化才发送 `AI.Event.BehaviorChanged` 并从 Root 重选；调查位置变化但仍为 Investigate 时由 Controller 的 `RefreshBehaviorContext` 直接调用统一导航 Helper。行为改变后的首次 `EnterBehavior` 只由 StateTree 的 `FLRGuardBehaviorTask::EnterState` 执行，Controller 不在提交前重复发起首次 Move。
-4. `PendingThreatInvestigation` 优先于满警戒 Search：有尚未抵达的可靠位置时 Investigate；抵达后且仍处红档才 Search。`Alert.Level == 11` 本身绝不代表已确认威胁，也不能单独进入 Chase。
+| 分类 | 字段 | 基线 |
+| --- | --- | ---: |
+| Detection | Detection Sample Interval Seconds | 0.1 s |
+| Detection | Max Detection Integration Delta Seconds | 0.2 s |
+| Detection | Detection Suspicious / Investigate / Confirmed Alert Floor | 1 / 6 / 11 |
+| Detection | Suspicious / Investigate / Confirmed Exposure Threshold Seconds | 0.2 / 0.6 / 1.5 s |
+| Detection | Detection Exposure Decay Rate | 1.0 |
+| Visibility | Sight Edge Detection Multiplier | 0.5 |
+| Visibility | Sneak / Walk / Run Visibility Multiplier | 0.5 / 0.75 / 1.0 |
+| Movement | Investigation Retarget Distance | 75 cm |
+| Alert | Attract Alert Amount | 1 |
 
+不同敌人类型可继续派生不同的 `ALRGuardAIController` Blueprint，在各自的继承 Sense、StateTree 和 Inline Tuning 中配置差异；不要恢复 Guard Definition 或全局 Guard Tuning。
 
-### 执行权与 Detection 生命周期（2026-08-25）
+### BP_Guard
 
-- **事务顺序**：修改 Knowledge/Alert → `ResolveTargetBehavior` → 行为变化时发送 `BehaviorChanged` 由 StateTree 首次进入；同状态 Investigate 只由 Controller 刷新导航 → 处理同步 Move 结果 → 重新解析最终行为 → `CommitAwareness()`。
-- **提交器契约**：`CommitAwareness()` 只构建最终 `FLRGuardAwarenessSnapshot`、更新缓存、调用 `PublishIfChanged` 和按字段变化广播；不得在其中调用 `MoveTo`、`EnterBehavior`、修改 Knowledge/Alert 或递归提交。
-- **导航结果**：首次 `RequestSuccessful` 保持 Investigate；`AlreadyAtGoal` 或同步失败立即清 Pending、设置 `Search.Unreachable`/SearchReached 语义并提交最终 Search。已运行的 Investigate 在稍后收到 `Blocked`/`OffPath`/当前请求 Abort 时，`OnMoveCompleted` 作为新事务转 Search；旧请求的 `NewRequest` Abort 直接忽略。
-- **Investigate 执行上下文**：Controller 保存当前已下发的 `CurrentInvestigationMoveTarget` 与 `FAIRequestID`。相同有效目标 NoOp；证据相对当前导航目标达到 `InvestigationRetargetDistance` 才 Retarget。`InvestigationContextRevision` 只在导航请求被接受后递增；Suspicious 的焦点刷新不递增它。
-- **失视**：Sight Lost 只清 Candidate/CurrentVisibility，保留 Exposure、Stage、LastDetectionSampleTime；唯一 `DetectionSampleTimer` 继续执行 inactive decay，Exposure 精确归零后 Stage 回到 None 且 Timer 停止。失视不直接降低 Alert。
-- **解除占有**：UnPossess 清 Candidate/CurrentVisibility、Exposure 和 Stage，并立即停止 Detection timer/导航；保留 ConfirmedThreat、LastKnownThreatLocation、LastDisturbanceLocation、Pending、Revision 与 Alert，重新 Possess 同一 Pawn 时不会冻结旧的瞬时视觉进度。
-- **广播契约**：Exposure 单独变化不触发 `OnGuardAwarenessChanged`；Alert、Stage、Visual contact、Threat、Pending、Revision 或 ResolvedBehavior 变化才发布 Awareness。Knowledge 的内部快照仍会更新，Widget 只消费最终快照/委托。
-### DA_LRGuardTuning 配置
+1. 路径 `/Game/LostRunic/Blueprints/Guard/BP_Guard`，父类 `ALRGuardCharacter`。
+2. **Class Defaults > Pawn**：`AI Controller Class = BP_LRGuardController`；`Auto Possess AI = Placed in World or Spawned`。
+3. Components 中不得出现 AIPerception、StateTree 或 StateTreeAI。`Alert`、`Knowledge`、`AlertWidget` 等 Pawn 能力继续由 C++ 创建；`AlertWidget.Widget Class = WBP_GuardAlertBar`。
+4. Pawn/实例只配置网格、动画、Widget 表现和巡逻点，不保存 StateTree、Sense 或 Guard Tuning。
 
-打开 `DA_LRGuardTuning`，在 Details 中填写或确认：
+### BP_LRNPCController 与 BP_NPC1
 
-| Details 分类 | 字段 | 当前基线 | 语义 |
-| --- | --- | ---: | --- |
-| Guard\|Detection | Detection Sample Interval Seconds | 0.1 s | Controller 的连续视觉采样周期 |
-| Guard\|Detection | Max Detection Integration Delta Seconds | 0.2 s | 卡顿/断点时单次积分上限 |
-| Guard\|Detection | Detection Suspicious Alert Floor | 1 | Suspicious 阶段进入时的最低 Alert，必须大于 0 |
-| Guard\|Detection | Detection Investigate Alert Floor | 6 | Investigate 阶段与 Search 红档下限 |
-| Guard\|Detection | Detection Confirmed Alert Floor | 11 | Confirmed 阶段与 Chase 下限 |
-| Guard\|Detection | Suspicious Exposure Threshold Seconds | 0.2 s | 跨入 Suspicious 的有效暴露秒 |
-| Guard\|Detection | Investigate Exposure Threshold Seconds | 0.6 s | 跨入 Investigate 的有效暴露秒 |
-| Guard\|Detection | Confirmed Exposure Threshold Seconds | 1.5 s | 确认威胁的有效暴露秒 |
-| Guard\|Detection | Detection Exposure Decay Rate | 1.0 | 失去有效视觉时每现实秒减少的有效暴露秒 |
-| Guard\|Visibility | Sight Edge Detection Multiplier | 0.5 | SightRadius 边缘的线性距离倍率 |
-| Guard\|Visibility | Sneak / Walk / Run Visibility Multiplier | 0.5 / 0.75 / 1.0 | 当前步态倍率 |
-| Guard\|Movement | Investigation Retarget Distance | 75 cm | 调查点变化达到该距离才刷新导航 |
-| Guard\|Sight | Sight Radius / Lose Sight Radius | 500 / 600 cm | 连续积分只允许 Distance <= SightRadius；LoseSightRadius 仅保留 UE 接触迟滞 |
+1. `/Game/LostRunic/Blueprints/Character/BP_LRNPCController` 的父类为现有 `ALRNPCController`，不重命名 C++ 类。
+2. 选择继承的 **AIPerception**：只配置 Hearing；Hearing Range `5000 cm`、Max Age `0 (Never)`、三种 Affiliation 全开，Dominant Sense = AISense_Hearing；不得配置 Sight。
+3. 选择继承的 **StateTreeAI**：State Tree = `/Game/LostRunic/Blueprints/Guard/ST_NPC_Stand`。
+4. **Class Defaults > NPC|Tuning** 配置 Inline `FLRNPCTuningSettings`；**NPC|Behavior > Default Behavior = Idle**。
+5. `/Game/LostRunic/Blueprints/Character/BP_NPC1` 的 **AI Controller Class = BP_LRNPCController**；Pawn Components 中不得出现 AIPerception、StateTree 或 StateTreeAI。网格、动画、Dialogue、Interaction 与巡逻点仍在 Pawn/实例配置。
 
-首版公式：`EffectiveExposure += VisibilityScore * ActualDeltaSeconds`；`ActualDeltaSeconds` 按 `MaxDetectionIntegrationDeltaSeconds` clamp，且该上限必须不小于 `DetectionSampleIntervalSeconds`。失视时按 `DetectionExposureDecayRate` 递减并重新解析 Stage，严格允许 `Confirmed → Investigate → Suspicious → None` 回落。Alert Floors 与 Exposure thresholds 均严格递增。
+### 行为、噪声和数据边界
 
-### 噪声、Knowledge 与只读蓝图边界
+- `ST_Guard` 保留 `Root` 下 `IdlePatrol / Suspicious / Investigate / Search / Chase / Stunned` 六个平级状态；`AI.Event.BehaviorChanged` 使用 `ForceChanged` 从 Root 重选。行为改变后的首次 Move 由 StateTree Task 执行，同状态 Investigate retarget 由 Controller 执行。
+- Investigate 若仍有有效 VisualCandidate，Guard 停止调查移动并持续 Focus 目标，让连续可见时间稳定累计到 Confirmed；只有失去视觉目标后，才移动到 LastKnownLocation。不得改回“看见目标时直接走到目标原点”，否则 22.5° 窄视锥会在贴近角色时先触发 Sight Lost。
+- Chase 到达 `CaptureRadius` 时由路径完成回调结算捕获；若 UE Sight 在同一帧因近距离视锥先报告 Lost，则在提交 Sight Lost 前先用上一份有效可见快照结算已经满足半径的捕获，避免到达玩家附近后停住。
+- NoiseEmitter/Movement 只决定声音传播半径、声音类别、房间接收者与无 Room fallback；Guard Controller 用自身 Inline Tuning 决定警戒增量、Floor、Faint 响应和 Cooldown。NoiseEmitter 不读取 Controller Tuning。
+- `ULRAlertComponent` 与 `ULRGuardKnowledgeComponent` 的 mutation API 仍为 C++ 内部入口；Blueprint 只读 Snapshot/Delegate。`AlertLevel == 11` 不等于 ConfirmedThreat，Chase 仍要求可见的已确认威胁。
+- Guard/NPC Definition、`DA_LRGuard1`、`DA_LRGuardTuning`、`DA_LRNPCTuning`、`LRGameTuningSet.Guard/NPC` 与 `LRGameContentSet.Guards` 均已删除，不得重新建立引用。
 
-- AI Hearing、房间传播和未来证据统一进入 `ALRGuardAIController::ReceiveNoiseStimulus`。噪声先解析接受/冷却；被拒绝的 Faint 或冷却刺激不会提交 `LastDisturbanceLocation`。
-- 已确认玩家发出的脚步声或 ConfirmedThreat 自身噪声更新 `LastKnownThreatLocation` 并置 `PendingThreatInvestigation=true`；瓶子、门、环境声和其他 Actor 只更新 `LastDisturbanceLocation`，不把 false 强行改成 true，已有 Threat Pending 会保持。
-- `ULRAlertComponent` 与 `ULRGuardKnowledgeComponent` 的核心 mutation API 均为 C++ 内部入口；Blueprint 只读 Snapshot/Delegate。UI 和 StateTree 以 Controller 一次性提交后的 Awareness 为完整状态，不监听中间半状态。
-- 持续有效视觉会阻止 Alert 自然衰减；Alert 归零、Search Reset 与 UnPossess 的 Knowledge 清理由 Controller 协调。
+### 验收
 
-### 验收记录
-
-- 本次执行权回归覆盖：StateTree 首次进入负责行为变化后的首次 Move；Controller 负责同状态 Investigate retarget；同步 Move 失败收敛最终 Search；异步 Blocked/OffPath 独立提交；stale NewRequest Abort 忽略；Sight Lost decay、UnPossess 瞬时状态清理、Exposure-only 不重复广播。
-- Automation：`LostRunic.AI` 14/14 通过，`LostRunic.Tuning` 3/3 通过；编辑器目标 `LostRunicEditor Win64 Development` 构建通过。
-
-- 构建：`LostRunicEditor Win64 Development` 成功。
-- UE MCP 自动化：`LostRunic.AI` 14/14 通过；Movement/Noise/Framework 定向契约 7/7 通过。
-- UE MCP 资产检查：`BP_Guard` 和 `DA_LRGuardTuning` 已编译、保存并回读上述引用/数值；`ST_Guard` 六状态名称未改变。
-- PIE：`/Game/LostRunic/Levels/PIE_Test/L_PIE_Test` 已启动并完成基础冒烟；本次 PIE 时间窗内没有新增项目级 Warning/Error。
+- Contract Test 同时检查 Blueprint SCS 和 Transient World 实例：Controller 各只有一个 Perception/StateTreeAI；Pawn 为零；Sense、Dominant Sense、Auto Activate、Auto Start、StateTree 资产和 Inline Tuning 符合契约。
+- 在 `/Game/LostRunic/Levels/PIE_Test/L_PIE_Test` 验证 Guard 巡逻、Suspicious、Investigate、持续 Chase、Lost→Search→Patrol，以及 NPC 的 `ST_NPC_Stand`。
+- 原卡住时间点记录 `ResolvedBehavior`、Active State、MoveRequestId、PathFollowing Status、Threat Actor 和双方位置。预期 Chase、Chase State active、请求有效、Moving、Threat=Player；若配置链统一后仍卡住，只转查 NavMesh、路径请求和移动目标。
+- 验证 Possess → UnPossess → Repossess；Output Log 不得出现重复委托、无效 Listener ID、StateTree Context/Schema、配置缺失或项目级 Warning/Error。
+- 自动验收记录（2026-08-27）：`LostRunicEditor Win64 Development` 完整构建成功；`LostRunic.AI` 定向自动化测试 17/17 通过，0 Warning/Error。构建输出仅含 UE 5.8 引擎头和既有 UI API 的弃用警告。
+- 修复前后对照：自动 PIE 诊断确认旧行为会在 Investigate 接近玩家后先收到 `Sight.Player.Lost`；改为可见时停下观察后，日志已稳定经过 Alert `0 → 1 → 6 → 11`，进入 Chase，并从约 440 cm 外持续移动到 `CaptureRadius` 附近。最终捕获回调修复后的手工 PIE 由项目负责人继续验收。
 - 手工玩法复验建议：Guard 看到 Guard/NPC 不追逐；连续看玩家依次跨 0.2/0.6/1.5 秒；掩体使分数为 0；追逐时听到瓶子不替换玩家；失视后玩家脚步更新调查点；纯噪声把 Alert 推到 11 仍不得 Chase。

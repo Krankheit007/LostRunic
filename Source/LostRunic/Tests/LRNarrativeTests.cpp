@@ -14,7 +14,6 @@
 #include "Data/LRContentRows.h"
 #include "Data/LRCollectibleDefinition.h"
 #include "Data/LRGameContentSet.h"
-#include "Data/LRGuardDefinition.h"
 #include "Data/LRItemDefinition.h"
 #include "Data/LRLevelEventDefinition.h"
 #include "Data/LRUITuning.h"
@@ -95,11 +94,8 @@ bool FLRContentRegistryTest::RunTest(const FString& parameters)
 	item->ItemId = TEXT("Key.Home");
 	ULRCollectibleDefinition* collectible = NewObject<ULRCollectibleDefinition>(contentSet);
 	collectible->CollectibleId = TEXT("Collectible.Doll");
-	ULRGuardDefinition* guard = NewObject<ULRGuardDefinition>(contentSet);
-	guard->GuardId = TEXT("Guard.Home");
 	contentSet->Items.Add(item);
 	contentSet->Collectibles.Add(collectible);
-	contentSet->Guards.Add(guard);
 
 	FString error;
 	TestTrue(TEXT("Content definitions validate"), contentSet->Validate(error));
@@ -110,8 +106,6 @@ bool FLRContentRegistryTest::RunTest(const FString& parameters)
 	TestTrue(TEXT("Item definition is found by stable ID"), contentSet->FindItemDefinition(TEXT("Key.Home")) == item);
 	TestTrue(TEXT("Collectible definition is found by stable ID"),
 		contentSet->FindCollectibleDefinition(TEXT("Collectible.Doll")) == collectible);
-	TestTrue(TEXT("Guard definition is found by stable ID"), contentSet->FindGuardDefinition(TEXT("Guard.Home")) == guard);
-
 	ULRItemDefinition* duplicate = NewObject<ULRItemDefinition>(contentSet);
 	duplicate->ItemId = item->ItemId;
 	contentSet->Items.Add(duplicate);

@@ -1,6 +1,6 @@
 /**
  * @file LRNPCTuning.h
- * @brief 通用 NPC 的公共调优 DataAsset：玩家朝向检测、噪声反应与巡逻参数；逐 NPC 内容配置在 ULRNPCDefinition，巡逻点按实例配置。
+ * @brief Controller 蓝图 Class Defaults 中的 NPC 内联调优：玩家朝向检测、噪声反应与巡逻参数。
  *
  * 关联文件：LRNPCTuning.cpp；所属领域：Data。
  * 设计依据：Docs/Technical/08_ArchitectureBoundaries.md。
@@ -8,13 +8,13 @@
  */
 #pragma once
 
-#include "Data/LRTuningAsset.h"
+#include "CoreMinimal.h"
 
 #include "LRNPCTuning.generated.h"
 
 /** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
-UCLASS(BlueprintType, meta = (DisplayName = "Lost Runic NPC Tuning"))
-class LOSTRUNIC_API ULRNPCTuning : public ULRTuningAsset
+USTRUCT(BlueprintType, meta = (DisplayName = "Lost Runic NPC Tuning Settings"))
+struct LOSTRUNIC_API FLRNPCTuningSettings
 {
 	GENERATED_BODY()
 
@@ -40,5 +40,5 @@ public:
 	 * @param outError 输出校验失败原因；成功时保持为空。
 	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
 	 */
-	virtual bool Validate(FString& outError) const override;
+	bool Validate(FString& outError) const;
 };

@@ -140,6 +140,14 @@ Content/TopDown was not deleted wholesale. Asset Registry found current BP_LRPla
 - .agents/ue-project-context.md is an agent context summary and should link here; it is not the source of architecture truth.
 ## Guard awareness boundary
 
+### Controller component and configuration ownership
+
+- `ALRGuardAIController` and `ALRNPCController` create the only `UAIPerceptionComponent` and `UStateTreeAIComponent` native default subobjects. Derived Controller Blueprints configure those inherited components; neither Controller SCS nor Pawn Blueprints may add duplicate AI components.
+- Perception auto activation and StateTree automatic startup are disabled. `TryInitializeRuntime()` is the only facility startup path after a valid possession; `UnPossess()` symmetrically unbinds, forgets perception cache, deactivates perception, stops StateTree and clears controller-owned timers/navigation/focus.
+- Guard and NPC balance values live in `FLRGuardTuningSettings` / `FLRNPCTuningSettings` inside the derived Controller Blueprint Class Defaults. Guard/NPC Definition and Tuning DataAssets are not part of the runtime dependency graph.
+- Runtime reads Blueprint-authored senses through `GetSenseConfig<T>()` and starts the already-configured StateTree. It does not call `ConfigureSense()`, `SetStateTree()`, or reflect `StateTreeRef`. Exact StateTree asset reflection is restricted to Editor validation and contract tests.
+- `AlertComponent::InitializeRuntime/ShutdownRuntime` owns infrastructure only. It copies/clears runtime tuning and resumes/stops valid timers without resetting Alert, Search, ConfirmedThreat, LastKnown, or Pending gameplay state.
+
 Guard runtime state follows this one-way ownership flow:
 
     UE AI Perception / Room Noise

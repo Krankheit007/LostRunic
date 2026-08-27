@@ -13,7 +13,6 @@
 #include "Core/LRCollisionChannels.h"
 #include "Core/LRGameplayTags.h"
 #include "Core/LRLog.h"
-#include "Data/LRNPCDefinition.h"
 #include "Engine/GameInstance.h"
 #include "Interaction/LRInteractionPresentationComponent.h"
 #include "Narrative/LRDialogueComponent.h"

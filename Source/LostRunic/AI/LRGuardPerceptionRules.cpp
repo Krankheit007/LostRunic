@@ -26,18 +26,19 @@ namespace
 }
 
 FLRGuardVisibilityResult LRGuardPerceptionRules::EvaluateVisibility(const float distance, const float forwardDot,
+	const float sightRadius, const float peripheralVisionHalfAngleDegrees,
 	const bool bHasValidContact, const bool bHasLineOfSight, const bool bHardVisibility,
 	const float movementFactor, const float exposureFactor, const float lightingFactor, const float postureFactor,
-	const ULRGuardTuning& tuning)
+	const FLRGuardTuningSettings& tuning)
 {
 	FLRGuardVisibilityResult result;
-	result.bRangeGate = distance >= 0.0f && distance <= tuning.SightRadius;
-	const float halfAngleRadians = FMath::DegreesToRadians(tuning.SightConeDegrees * 0.5f);
+	result.bRangeGate = distance >= 0.0f && distance <= sightRadius;
+	const float halfAngleRadians = FMath::DegreesToRadians(peripheralVisionHalfAngleDegrees);
 	result.bConeGate = forwardDot >= FMath::Cos(halfAngleRadians);
 	result.bLOSGate = bHasLineOfSight;
 	result.bValidContactGate = bHasValidContact;
 	result.bHardVisibilityGate = bHardVisibility;
-	result.DistanceFactor = ResolveDistanceFactor(distance, tuning);
+	result.DistanceFactor = ResolveDistanceFactor(distance, sightRadius, tuning);
 	result.MovementFactor = ClampVisibilityFactor(movementFactor);
 	result.ExposureFactor = ClampVisibilityFactor(exposureFactor);
 	result.LightingFactor = ClampVisibilityFactor(lightingFactor);
@@ -46,14 +47,15 @@ FLRGuardVisibilityResult LRGuardPerceptionRules::EvaluateVisibility(const float 
 	return result;
 }
 
-float LRGuardPerceptionRules::ResolveDistanceFactor(const float distance, const ULRGuardTuning& tuning)
+float LRGuardPerceptionRules::ResolveDistanceFactor(const float distance, const float sightRadius,
+	const FLRGuardTuningSettings& tuning)
 {
-	if (tuning.SightRadius <= 0.0f || distance < 0.0f || distance > tuning.SightRadius)
+	if (sightRadius <= 0.0f || distance < 0.0f || distance > sightRadius)
 	{
 		return 0.0f;
 	}
 
-	const float alpha = FMath::Clamp(distance / tuning.SightRadius, 0.0f, 1.0f);
+	const float alpha = FMath::Clamp(distance / sightRadius, 0.0f, 1.0f);
 	return FMath::Lerp(1.0f, tuning.SightEdgeDetectionMultiplier, alpha);
 }
 
@@ -72,7 +74,7 @@ float LRGuardPerceptionRules::CalculateVisibilityScore(const FLRGuardVisibilityR
 }
 
 ELRGuardDetectionStage LRGuardPerceptionRules::ResolveDetectionStage(const float effectiveExposureSeconds,
-	const ULRGuardTuning& tuning)
+	const FLRGuardTuningSettings& tuning)
 {
 	const float exposure = FMath::Max(effectiveExposureSeconds, 0.0f);
 	if (exposure >= tuning.ConfirmedExposureThresholdSeconds)
@@ -96,14 +98,14 @@ bool LRGuardPerceptionRules::HasNewInvestigationContext(const FLRGuardKnowledgeS
 	return currentSnapshot.InvestigationContextRevision != previousSnapshot.InvestigationContextRevision;
 }
 float LRGuardPerceptionRules::DecayDetectionExposure(const float currentExposureSeconds, const float deltaSeconds,
-	const ULRGuardTuning& tuning)
+	const FLRGuardTuningSettings& tuning)
 {
 	const float boundedDelta = FMath::Clamp(deltaSeconds, 0.0f, tuning.MaxDetectionIntegrationDeltaSeconds);
 	return FMath::Max(currentExposureSeconds - boundedDelta * tuning.DetectionExposureDecayRate, 0.0f);
 }
 
 float LRGuardPerceptionRules::IntegrateDetectionExposure(const float currentExposureSeconds,
-	const FLRGuardVisibilityResult& sample, const float deltaSeconds, const ULRGuardTuning& tuning)
+	const FLRGuardVisibilityResult& sample, const float deltaSeconds, const FLRGuardTuningSettings& tuning)
 {
 	const float boundedDelta = FMath::Clamp(deltaSeconds, 0.0f, tuning.MaxDetectionIntegrationDeltaSeconds);
 	if (boundedDelta <= 0.0f)
@@ -128,23 +130,13 @@ float LRGuardPerceptionRules::IntegrateDetectionExposure(const float currentExpo
  * @param tuning 数据或调优来源 `tuning`；调用期间只读，并按稳定 ID 解析内容。
  * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
  */
-bool LRGuardPerceptionRules::CanConfirmSight(const float distance, const float forwardDot, const bool bOccluded,
-	const bool bHidden, const ULRGuardTuning& tuning)
+bool LRGuardPerceptionRules::CanConfirmSight(const float distance, const float forwardDot,
+	const float sightRadius, const float peripheralVisionHalfAngleDegrees, const bool bOccluded,
+	const bool bHidden, const FLRGuardTuningSettings& tuning)
 {
-	return EvaluateVisibility(distance, forwardDot, true, !bOccluded, !bHidden,
+	return EvaluateVisibility(distance, forwardDot, sightRadius, peripheralVisionHalfAngleDegrees,
+		true, !bOccluded, !bHidden,
 		1.0f, 1.0f, 1.0f, 1.0f, tuning).IsActive();
-}
-
-/**
- * @brief 判断 Can Hear 对应条件；不产生玩法副作用。
- * @param distance 空间值 `distance`；距离和位置使用 Unreal 厘米单位。
- * @param sourceRadius 空间值 `sourceRadius`；距离和位置使用 Unreal 厘米单位。
- * @param tuning 数据或调优来源 `tuning`；调用期间只读，并按稳定 ID 解析内容。
- * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
- */
-bool LRGuardPerceptionRules::CanHear(const float distance, const float sourceRadius, const ULRGuardTuning& tuning)
-{
-	return distance <= sourceRadius * tuning.HearingRangeMultiplier;
 }
 
 /**
@@ -155,7 +147,7 @@ bool LRGuardPerceptionRules::CanHear(const float distance, const float sourceRad
  * @return 结构化响应：是否响应、Delta 与是否走吸引语义（IsAttract 时调用方使用带 CD 门控的 ApplyAttract）。
  */
 FLRNoiseResponse LRGuardPerceptionRules::ResolveNoiseAlertDelta(const FGameplayTag reason, const int32 currentAlert,
-	const ULRGuardTuning& tuning)
+	const FLRGuardTuningSettings& tuning)
 {
 	FLRNoiseResponse response;
 	if (reason == LRGameplayTags::NoiseFootstepRunIndoor)
