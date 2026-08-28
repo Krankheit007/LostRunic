@@ -50,13 +50,13 @@ struct LOSTRUNIC_API FLRGuardTuningSettings
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|视觉", meta = (DisplayName = "视觉跟踪间隔", ToolTip = "Raw UE Sight Contact 存在时检查有效视觉的定时器间隔；Hard Hidden 不会停止该定时器。", ClampMin = "0.01", ClampMax = "1.0", Units = "s"))
 	float SightTrackingIntervalSeconds = 0.1f;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|视觉", meta = (DisplayName = "奔跑首次刺激冷却倍率", ToolTip = "玩家奔跑发出的噪声首次进入当前警戒档位时使用的冷却倍率。", ClampMin = "0.0", ClampMax = "4.0"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|警戒", meta = (DisplayName = "奔跑首次刺激冷却倍率", ToolTip = "玩家奔跑发出的噪声首次进入当前警戒档位时使用的冷却倍率。", ClampMin = "0.0", ClampMax = "4.0"))
 	float FirstAttractRunCooldownMultiplier = 0.6f;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|视觉", meta = (DisplayName = "走路首次刺激冷却倍率", ToolTip = "玩家走路发出的噪声首次进入当前警戒档位时使用的冷却倍率。", ClampMin = "0.0", ClampMax = "4.0"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|警戒", meta = (DisplayName = "走路首次刺激冷却倍率", ToolTip = "玩家走路发出的噪声首次进入当前警戒档位时使用的冷却倍率。", ClampMin = "0.0", ClampMax = "4.0"))
 	float FirstAttractWalkCooldownMultiplier = 1.0f;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|视觉", meta = (DisplayName = "潜行首次刺激冷却倍率", ToolTip = "玩家潜行发出的噪声首次进入当前警戒档位时使用的冷却倍率。", ClampMin = "0.0", ClampMax = "4.0"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|警戒", meta = (DisplayName = "潜行首次刺激冷却倍率", ToolTip = "玩家潜行发出的噪声首次进入当前警戒档位时使用的冷却倍率。", ClampMin = "0.0", ClampMax = "4.0"))
 	float FirstAttractSneakCooldownMultiplier = 1.6f;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|移动", meta = (DisplayName = "巡逻速度", ToolTip = "Guard Idle/Patrol 时的移动速度。", ClampMin = "1.0", ClampMax = "1000.0", Units = "cm/s"))

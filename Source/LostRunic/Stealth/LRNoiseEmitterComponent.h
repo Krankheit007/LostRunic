@@ -40,7 +40,7 @@ private:
 
 	void EmitNoiseWithPace(FVector location, float radius, FGameplayTag reason,
 		ELRMovementPace sourcePace, bool bHasSourcePace);
-	void ApplyIndoorRunNoise(FVector location);
+	void ApplyIndoorRunNoise(FVector location, ELRMovementPace sourcePace);
 
 	UFUNCTION()
 	void HandleInteraction(FLRInteractionResult result);

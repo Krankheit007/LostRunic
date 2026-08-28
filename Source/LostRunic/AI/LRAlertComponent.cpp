@@ -106,7 +106,6 @@ void ULRAlertComponent::ApplySightAlertLevel()
 {
 	const int32 previousLevel = AlertLevel;
 	AlertLevel = LRAlertRules::InvestigateMinLevel;
-	bRedAttractAccepted = true;
 	StopObservationAndDecay();
 	if (previousLevel != AlertLevel)
 	{

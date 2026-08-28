@@ -1,6 +1,6 @@
 /**
  * @file LRNoiseEmitterComponent.cpp
- * @brief 实现带发声时刻 Pace 快照的脚步、房间传播和互动噪声。
+ * @brief 实现按不可变 Footstep Reason 表达发声时步态的脚步、房间传播和互动噪声。
  */
 #include "Stealth/LRNoiseEmitterComponent.h"
 
@@ -65,9 +65,10 @@ void ULRNoiseEmitterComponent::EmitNoise(const FVector location, const float rad
 void ULRNoiseEmitterComponent::EmitNoiseWithPace(const FVector location, const float radius,
 	const FGameplayTag reason, const ELRMovementPace sourcePace, const bool bHasSourcePace)
 {
+	// UAISense_Hearing transports the immutable Reason tag only. Direct room
+	// propagation constructs FLRGuardNoiseStimulus and carries this snapshot.
 	(void)sourcePace;
 	(void)bHasSourcePace;
-
 	if (!GetWorld() || radius <= 0.0f || !reason.IsValid())
 	{
 		return;
@@ -85,13 +86,12 @@ void ULRNoiseEmitterComponent::HandleFootstep(const FVector location, const floa
 		? Locomotion->GetPace() : ELRMovementPace::Walk;
 	if (reason == LRGameplayTags::NoiseFootstepRunIndoor)
 	{
-		ApplyIndoorRunNoise(location);
+		ApplyIndoorRunNoise(location, sourcePace);
 		return;
 	}
 	EmitNoiseWithPace(location, radius, reason, sourcePace, true);
 }
-
-void ULRNoiseEmitterComponent::ApplyIndoorRunNoise(const FVector location)
+void ULRNoiseEmitterComponent::ApplyIndoorRunNoise(const FVector location, const ELRMovementPace sourcePace)
 {
 	if (!GetWorld() || !Tuning)
 	{
@@ -103,7 +103,7 @@ void ULRNoiseEmitterComponent::ApplyIndoorRunNoise(const FVector location)
 	if (rooms.Num() == 0)
 	{
 		EmitNoiseWithPace(location, Tuning->IndoorRunNoiseRadius,
-			LRGameplayTags::NoiseFootstepRunIndoor, ELRMovementPace::Run, true);
+			LRGameplayTags::NoiseFootstepRunIndoor, sourcePace, true);
 		return;
 	}
 
@@ -150,7 +150,7 @@ void ULRNoiseEmitterComponent::ApplyIndoorRunNoise(const FVector location)
 		stimulus.Location = location;
 		stimulus.Reason = LRGameplayTags::NoiseFootstepRunIndoor;
 		stimulus.PropagationMode = recipient.Value;
-		stimulus.SourcePace = ELRMovementPace::Run;
+		stimulus.SourcePace = sourcePace;
 		stimulus.bHasSourcePace = true;
 		stimulus.TimeSeconds = GetWorld()->GetTimeSeconds();
 		controller->ReceiveNoiseStimulus(stimulus);

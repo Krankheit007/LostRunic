@@ -139,7 +139,7 @@ struct LOSTRUNIC_API FLRGuardAwarenessSnapshot
 	FVector InvestigationLocation = FVector::ZeroVector;
 };
 
-/** 已被 Controller 接受的噪声事件；SourcePace 是发声时刻的快照。 */
+/** 已被 Controller 接受的噪声事件；SourcePace 在发声时快照，接收端不读取角色当前步态。 */
 USTRUCT(BlueprintType, meta = (DisplayName = "Lost Runic Guard Noise Stimulus"))
 struct LOSTRUNIC_API FLRGuardNoiseStimulus
 {
@@ -157,6 +157,7 @@ struct LOSTRUNIC_API FLRGuardNoiseStimulus
 	UPROPERTY(BlueprintReadOnly, Category = "Guard|Noise")
 	ELRGuardNoisePropagationMode PropagationMode = ELRGuardNoisePropagationMode::Hearing;
 
+	/** 脚步发出瞬间的步态；门、机关等非脚步声音不使用 Pace 倍率。 */
 	UPROPERTY(BlueprintReadOnly, Category = "Guard|Noise")
 	ELRMovementPace SourcePace = ELRMovementPace::Walk;
 

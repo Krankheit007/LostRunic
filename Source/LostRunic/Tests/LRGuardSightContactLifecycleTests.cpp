@@ -7,6 +7,7 @@
 #include "Misc/AutomationTest.h"
 
 #include "AI/LRAlertComponent.h"
+#include "AI/LRAlertRules.h"
 #include "AI/LRGuardAIController.h"
 #include "AI/LRGuardCharacter.h"
 #include "AI/LRGuardKnowledgeComponent.h"
@@ -121,8 +122,67 @@ bool FLRGuardSightContactLifecycleRuntimeTest::RunTest(const FString& parameters
 			world->GetTimerManager().IsTimerActive(controller->SightTrackingTimer));
 		bPassed &= TestFalse(TEXT("Raw UE Sight Lost clears current visibility"), lost.bCurrentlyVisible);
 		bPassed &= TestTrue(TEXT("Raw UE Sight Lost clears visual candidate"), !lost.bHasVisualCandidate);
-	bPassed &= TestTrue(TEXT("Raw UE Sight Lost retains confirmed threat memory"), lost.bHasConfirmedThreat);
+		bPassed &= TestTrue(TEXT("Raw UE Sight Lost retains confirmed threat memory"), lost.bHasConfirmedThreat);
 		bPassed &= TestEqual(TEXT("Raw UE Sight Lost returns to investigate level ten"), alert->GetAlertLevel(), 10);
+
+		while (alert->GetAlertLevel() > LRAlertRules::MinAlertLevel)
+		{
+			controller->HandleAlertDecayRequested();
+		}
+		bPassed &= TestEqual(TEXT("Alert zero ends the awareness memory cycle"), alert->GetAlertLevel(), 0);
+		bPassed &= TestFalse(TEXT("Alert zero clears confirmed threat memory"),
+			knowledge->GetSnapshot().bHasConfirmedThreat);
+
+		controller->RawSightContact = player;
+		controller->bHasRawSightContact = true;
+		knowledge->SetVisualCandidate(player);
+		controller->StartSightTracking();
+		controller->HandleSightAcquiredOrTracked(player);
+		bPassed &= TestEqual(TEXT("Fresh Sight from zero enters level six"), alert->GetAlertLevel(), 6);
+		bPassed &= TestTrue(TEXT("Fresh Sight starts a Grace window"), controller->IsSightToChaseGraceActive());
+
+		controller->HandleSightLost(player, player->GetActorLocation());
+		controller->MarkInvestigationUnreachable();
+		bPassed &= TestFalse(TEXT("Grace plus navigation failure does not start RedObserve"),
+			alert->IsObserving());
+		bPassed &= TestEqual(TEXT("Navigation failure is not treated as arrival"),
+			controller->InvestigationMoveStatus, ELRGuardInvestigationMoveStatus::Failed);
+
+		controller->HandleSightGraceExpired();
+		bPassed &= TestTrue(TEXT("Grace expiry after navigation failure starts RedObserve"),
+			alert->IsObserving());
+		bPassed &= TestEqual(TEXT("Navigation failure remains Failed while observing"),
+			controller->InvestigationMoveStatus, ELRGuardInvestigationMoveStatus::Failed);
+
+		FLRGuardNoiseStimulus postGraceRun;
+		postGraceRun.Source = player;
+		postGraceRun.Location = player->GetActorLocation();
+		postGraceRun.Reason = LRGameplayTags::NoiseFootstepRunIndoor;
+		postGraceRun.PropagationMode = ELRGuardNoisePropagationMode::CurrentRoom;
+		postGraceRun.SourcePace = ELRMovementPace::Run;
+		postGraceRun.bHasSourcePace = true;
+		postGraceRun.TimeSeconds = world->GetTimeSeconds();
+		controller->ReceiveNoiseStimulus(postGraceRun);
+		bPassed &= TestEqual(TEXT("Noise after Grace can raise red alert"), alert->GetAlertLevel(), 7);
+		const double redCooldownRemaining = alert->AttractCooldownEndTimeSeconds
+			- world->GetTimeSeconds();
+		bPassed &= TestTrue(TEXT("First real red footstep uses its emission Pace snapshot"),
+			redCooldownRemaining > 0.1 && redCooldownRemaining < 0.14);
+
+		controller->HandleAlertDecayRequested();
+		controller->HandleAlertDecayRequested();
+		bPassed &= TestEqual(TEXT("Red decay crosses to white level five"), alert->GetAlertLevel(), 5);
+		bPassed &= TestFalse(TEXT("Red to white decay does not start observation"),
+			alert->IsObserving());
+
+		controller->RawSightContact = player;
+		controller->bHasRawSightContact = true;
+		knowledge->SetVisualCandidate(player);
+		controller->StartSightTracking();
+		controller->HandleSightAcquiredOrTracked(player);
+		bPassed &= TestEqual(TEXT("Sight after six to five starts at six"), alert->GetAlertLevel(), 6);
+		bPassed &= TestTrue(TEXT("Sight after six to five gets a fresh Grace"),
+			controller->IsSightToChaseGraceActive());
 	}
 
 	if (controller)

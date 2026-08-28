@@ -28,8 +28,12 @@ bool FLRAlertRulesTest::RunTest(const FString& parameters)
 	TestEqual(TEXT("One to five resolves Suspicious"), LRAlertRules::ResolveState(5), ELRGuardBehaviorState::Suspicious);
 	TestEqual(TEXT("Six to ten resolves Investigate"), LRAlertRules::ResolveState(6), ELRGuardBehaviorState::Investigate);
 	TestEqual(TEXT("Ten remains Investigate"), LRAlertRules::ResolveState(10), ELRGuardBehaviorState::Investigate);
-	TestEqual(TEXT("Eleven resolves Chase"), LRAlertRules::ResolveState(11), ELRGuardBehaviorState::Chase);
-	TestEqual(TEXT("Stun overrides every alert band"), LRAlertRules::ResolveTargetBehavior(true, 0),
+	TestEqual(TEXT("Alert eleven alone never authorizes Chase"),
+		LRAlertRules::ResolveState(11), ELRGuardBehaviorState::Investigate);
+	FLRAlertSnapshot emptyAlert;
+	FLRGuardKnowledgeSnapshot emptyKnowledge;
+	TestEqual(TEXT("Stun overrides every alert band"),
+		LRAlertRules::ResolveTargetBehavior(true, emptyAlert, emptyKnowledge),
 		ELRGuardBehaviorState::Stunned);
 	TestNotEqual(TEXT("Runtime resolver never returns deprecated Search slot"),
 		static_cast<uint8>(LRAlertRules::ResolveState(6)),
@@ -111,13 +115,15 @@ bool FLRAlertIncreaseCooldownTest::RunTest(const FString& parameters)
 	(void)parameters;
 	const FLRGuardTuningSettings tuning;
 	TestEqual(TEXT("First white run uses pace multiplier"),
-		LRAlertRules::ResolveAttractCooldown(5, true, ELRMovementPace::Run, tuning), 0.3f, 0.001f);
+		LRAlertRules::ResolveAttractCooldown(5, true, ELRMovementPace::Run, true, tuning), 0.3f, 0.001f);
 	TestEqual(TEXT("First red run uses red base and pace multiplier"),
-		LRAlertRules::ResolveAttractCooldown(6, true, ELRMovementPace::Run, tuning), 0.12f, 0.001f);
+		LRAlertRules::ResolveAttractCooldown(6, true, ELRMovementPace::Run, true, tuning), 0.12f, 0.001f);
 	TestEqual(TEXT("First white sneak uses configured multiplier"),
-		LRAlertRules::ResolveAttractCooldown(1, true, ELRMovementPace::Sneak, tuning), 0.8f, 0.001f);
+		LRAlertRules::ResolveAttractCooldown(1, true, ELRMovementPace::Sneak, true, tuning), 0.8f, 0.001f);
 	TestEqual(TEXT("Later red noise uses fixed red cooldown"),
-		LRAlertRules::ResolveAttractCooldown(7, false, ELRMovementPace::Run, tuning), 0.2f, 0.001f);
+		LRAlertRules::ResolveAttractCooldown(7, false, ELRMovementPace::Run, true, tuning), 0.2f, 0.001f);
+	TestEqual(TEXT("Non-footstep noise uses neutral first cooldown"),
+		LRAlertRules::ResolveAttractCooldown(6, true, ELRMovementPace::Run, false, tuning), 0.2f, 0.001f);
 	TestTrue(TEXT("Cooldown boundary allows increase"), LRAlertRules::IsIncreaseAllowed(10.0, 9.5, 0.5f));
 	TestFalse(TEXT("Active cooldown rejects increase"), LRAlertRules::IsIncreaseAllowed(10.0, 9.6, 0.5f));
 	TestTrue(TEXT("Zero cooldown always allows increase"), LRAlertRules::IsIncreaseAllowed(10.0, 0.0, 0.0f));

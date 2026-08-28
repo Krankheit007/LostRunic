@@ -17,18 +17,49 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLRGuardAwarenessSnapshotRulesTest, "LostRunic.
 bool FLRGuardAwarenessSnapshotRulesTest::RunTest(const FString& parameters)
 {
 	(void)parameters;
-	TestEqual(TEXT("Stunned overrides zero alert"), LRAlertRules::ResolveTargetBehavior(true, 0),
+	FLRAlertSnapshot alert;
+	FLRGuardKnowledgeSnapshot knowledge;
+	TestEqual(TEXT("Stunned overrides zero alert"),
+		LRAlertRules::ResolveTargetBehavior(true, alert, knowledge),
 		ELRGuardBehaviorState::Stunned);
-	TestEqual(TEXT("Zero alert is IdlePatrol"), LRAlertRules::ResolveTargetBehavior(false, 0),
+	TestEqual(TEXT("Zero alert is IdlePatrol"),
+		LRAlertRules::ResolveTargetBehavior(false, alert, knowledge),
 		ELRGuardBehaviorState::IdlePatrol);
-	TestEqual(TEXT("One to five is Suspicious"), LRAlertRules::ResolveTargetBehavior(false, 1),
+
+	alert.Level = 1;
+	TestEqual(TEXT("One to five is Suspicious"),
+		LRAlertRules::ResolveTargetBehavior(false, alert, knowledge),
 		ELRGuardBehaviorState::Suspicious);
-	TestEqual(TEXT("Six to ten is Investigate"), LRAlertRules::ResolveTargetBehavior(false, 10),
+
+	alert.Level = 10;
+	TestEqual(TEXT("Six to ten is Investigate"),
+		LRAlertRules::ResolveTargetBehavior(false, alert, knowledge),
 		ELRGuardBehaviorState::Investigate);
-	TestEqual(TEXT("Eleven is Chase"), LRAlertRules::ResolveTargetBehavior(false, 11),
+
+	alert.Level = 11;
+	TestEqual(TEXT("Alert eleven without Knowledge does not Chase"),
+		LRAlertRules::ResolveTargetBehavior(false, alert, knowledge),
+		ELRGuardBehaviorState::Investigate);
+
+	AActor* player = NewObject<AActor>(GetTransientPackage());
+	knowledge.VisualCandidate = player;
+	knowledge.bHasVisualCandidate = true;
+	knowledge.ConfirmedThreat = player;
+	knowledge.bHasConfirmedThreat = true;
+	knowledge.bCurrentlyVisible = true;
+	TestTrue(TEXT("Matching confirmed visible Knowledge authorizes Chase"),
+		LRAlertRules::IsChaseEligible(alert, knowledge));
+	TestEqual(TEXT("Alert eleven with matching visible Knowledge chases"),
+		LRAlertRules::ResolveTargetBehavior(false, alert, knowledge),
 		ELRGuardBehaviorState::Chase);
 
-	FLRGuardKnowledgeSnapshot knowledge;
+	knowledge.bCurrentlyVisible = false;
+	TestFalse(TEXT("Invisible confirmed Knowledge cannot Chase"),
+		LRAlertRules::IsChaseEligible(alert, knowledge));
+	TestEqual(TEXT("Alert eleven after sight loss returns to Investigate"),
+		LRAlertRules::ResolveTargetBehavior(false, alert, knowledge),
+		ELRGuardBehaviorState::Investigate);
+
 	TestEqual(TEXT("No latest location resolves to zero"),
 		LRAlertRules::ResolveInvestigationLocation(knowledge), FVector::ZeroVector);
 	knowledge.bHasLatestInvestigationLocation = true;

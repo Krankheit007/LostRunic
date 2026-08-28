@@ -11,7 +11,6 @@
 
 class ALRGuardAIController;
 class ALRGuardCharacter;
-class UWidgetAnimation;
 
 UCLASS(Abstract, BlueprintType, meta = (DisplayName = "Lost Runic World Alert Bar Base"))
 class LOSTRUNIC_API ULRWorldAlertBarWidgetBase : public UUserWidget
@@ -39,12 +38,10 @@ private:
 	UFUNCTION()
 	void HandleAwarenessChanged(const FLRGuardAwarenessSnapshot& snapshot);
 
-	/** Applies the generic white/red/full presentation when the WBP has no event-graph override. */
-	void ApplyDefaultPresentation(const FLRAlertSnapshot& snapshot);
-	UWidgetAnimation* FindFullAlertAnimation() const;
 
 	UPROPERTY(Transient)
 	TWeakObjectPtr<ALRGuardAIController> GuardController;
 
 	FLRAlertSnapshot CurrentSnapshot;
+	bool bHasSnapshot = false;
 };

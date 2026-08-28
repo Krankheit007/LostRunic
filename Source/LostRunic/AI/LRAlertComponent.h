@@ -67,6 +67,7 @@ private:
 	friend class ALRGuardAIController;
 #if WITH_DEV_AUTOMATION_TESTS
 	friend class FLRAlertSnapshotPresentationTest;
+	friend class FLRGuardSightContactLifecycleRuntimeTest;
 #endif
 
 	bool ApplyDelta(int32 delta);

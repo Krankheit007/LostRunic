@@ -25,20 +25,22 @@
 
 namespace
 {
-	ELRMovementPace ResolveReasonPace(const FGameplayTag reason, bool& bHasPace)
+	ELRMovementPace ResolveReasonPace(const FGameplayTag reason, bool& bUsePaceMultiplier)
 	{
-		bHasPace = true;
+		bUsePaceMultiplier = reason == LRGameplayTags::NoiseFootstepRun
+			|| reason == LRGameplayTags::NoiseFootstepRunIndoor
+			|| reason == LRGameplayTags::NoiseFootstepWalk
+			|| reason == LRGameplayTags::NoiseFootstepWalkFaint
+			|| reason == LRGameplayTags::NoiseFootstepSneak;
 		if (reason == LRGameplayTags::NoiseFootstepRun
 			|| reason == LRGameplayTags::NoiseFootstepRunIndoor)
 		{
 			return ELRMovementPace::Run;
 		}
-		if (reason == LRGameplayTags::NoiseFootstepWalk
-			|| reason == LRGameplayTags::NoiseFootstepWalkFaint)
+		if (reason == LRGameplayTags::NoiseFootstepSneak)
 		{
-			return ELRMovementPace::Walk;
+			return ELRMovementPace::Sneak;
 		}
-		bHasPace = false;
 		return ELRMovementPace::Walk;
 	}
 }
@@ -90,8 +92,11 @@ void ALRGuardAIController::HandlePerception(AActor* actor, const FAIStimulus sti
 	noise.Location = stimulus.StimulusLocation;
 	noise.Reason = reason;
 	noise.PropagationMode = ELRGuardNoisePropagationMode::Hearing;
-	noise.TimeSeconds = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0f;
+	// Hearing transports the immutable footstep Reason; convert it to the event snapshot
+	// before the controller applies any alert rule. Non-footstep reasons stay neutral.
 	noise.SourcePace = ResolveReasonPace(reason, noise.bHasSourcePace);
+	noise.TimeSeconds = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0f;
+
 	ReceiveNoiseStimulus(noise);
 }
 
@@ -287,8 +292,11 @@ void ALRGuardAIController::HandleSightGraceExpired()
 		return;
 	}
 
-	if (InvestigationMoveStatus == ELRGuardInvestigationMoveStatus::AtLocation)
+	if (InvestigationMoveStatus == ELRGuardInvestigationMoveStatus::AtLocation
+		|| InvestigationMoveStatus == ELRGuardInvestigationMoveStatus::Failed)
 	{
+		// Grace owns the freeze; after it ends, an unreachable point observes in place
+		// without pretending the navigation request reached its destination.
 		RequestInvestigationObservationIfReady();
 	}
 	else if (InvestigationMoveStatus == ELRGuardInvestigationMoveStatus::None
@@ -331,10 +339,11 @@ void ALRGuardAIController::HandleAttractStimulus(const FLRGuardNoiseStimulus& st
 	const int32 resultAlert = LRGuardPerceptionRules::ResolveNoiseResultLevel(
 		currentAlert, response, GetEffectiveTuning());
 	const bool bFirstAttractInBand = Alert->IsFirstAttractInResultBand(resultAlert);
+	bool bUsePaceMultiplier = stimulus.bHasSourcePace;
 	const ELRMovementPace sourcePace = stimulus.bHasSourcePace
-		? stimulus.SourcePace : ELRMovementPace::Walk;
+		? stimulus.SourcePace : ResolveReasonPace(stimulus.Reason, bUsePaceMultiplier);
 	const float cooldown = LRAlertRules::ResolveAttractCooldown(
-		resultAlert, bFirstAttractInBand, sourcePace, GetEffectiveTuning());
+		resultAlert, bFirstAttractInBand, sourcePace, bUsePaceMultiplier, GetEffectiveTuning());
 	Alert->ApplyAcceptedAttract(resultAlert, nowSeconds, cooldown,
 		resultAlert <= LRAlertRules::SuspiciousMaxLevel);
 	Knowledge->RecordDisturbance(stimulus, !Knowledge->IsCurrentlyVisible());
@@ -347,14 +356,19 @@ void ALRGuardAIController::HandleAttractStimulus(const FLRGuardNoiseStimulus& st
 
 void ALRGuardAIController::HandleCaptureCheck()
 {
-	if (!Alert.IsValid() || !Knowledge.IsValid()
-		|| bStunned || Alert->GetAlertLevel() != LRAlertRules::ConfirmedAlertLevel
-		|| !Knowledge->IsCurrentlyVisible())
+	if (!Alert.IsValid() || !Knowledge.IsValid() || bStunned)
 	{
 		return;
 	}
 
-	AActor* target = Knowledge->GetSnapshot().ConfirmedThreat.Get();
+	const FLRAlertSnapshot alertSnapshot = Alert->GetAlertSnapshot();
+	const FLRGuardKnowledgeSnapshot knowledgeSnapshot = Knowledge->GetSnapshot();
+	if (!LRAlertRules::IsChaseEligible(alertSnapshot, knowledgeSnapshot))
+	{
+		return;
+	}
+
+	AActor* target = knowledgeSnapshot.ConfirmedThreat.Get();
 	ALRGuardCharacter* guard = Cast<ALRGuardCharacter>(GetPawn());
 	if (guard && IsValid(target)
 		&& FVector::Dist2D(guard->GetActorLocation(), target->GetActorLocation())

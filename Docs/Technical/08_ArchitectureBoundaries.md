@@ -166,14 +166,15 @@ Content/TopDown was not deleted wholesale. Asset Registry found current BP_LRPla
 
 ### Alert 与行为语义
 
-Guard 行为只由警戒值和眩晕覆盖解析：
+Guard 行为由警戒值、Knowledge 证据和眩晕覆盖解析
 
 ```text
 Stunned      -> Stunned
 Alert 0      -> IdlePatrol
 Alert 1..5   -> Suspicious
 Alert 6..10  -> Investigate
-Alert 11     -> Chase
+Alert 11 + 当前可见确认目标        -> Chase
+Alert 11 + 证据不完整             -> Investigate（安全回退）
 ```
 
 | 警戒值 | UI | 行为与计时 |
@@ -181,7 +182,7 @@ Alert 11     -> Chase
 | `0` | 隐藏 | 原地或巡逻；异常刺激到 `1`，有效 Sight 到 `6` |
 | `1-5` | 白色，`Level / 5` | 面向异常；从 `0` 进入时观察 `SuspiciousObserveSeconds`；接受异常 +1、最高 5、刷新白色观察；自然衰减每 `AlertDecayIntervalSeconds` 减 `AlertDecayAmount` |
 | `6-10` | 红色，`(Level - 5) / 5` | 以 `InvestigateSpeed` 前往唯一的 `LatestInvestigationLocation`；抵达后才开始 `InvestigateObserveSeconds`，然后自然衰减；异常 +1、最高 10，发现敌对角色直接到 11 |
-| `11` | 红色 100% + `Alert_Full_Red` | `ConfirmedThreat` 有效时以 `ChaseSpeed` 持续追逐；捕获进入占位死亡流程；真实 Sight Lost 后变为 10 并调查最后可见位置 |
+| `11` | 红色 100% + `Alert_Full_Red` | 只有 `ConfirmedThreat`、`VisualCandidate` 相同且当前有效可见时才以 `ChaseSpeed` 追逐；否则安全回退到 Investigate。真实 Sight Lost 后变为 10 并调查最后可见位置 |
 
 AlertComponent 的内部枚举若存在，只表示计时模式：`None`、`WhiteObservation`、`RedObservation`、`Decay`。它不表示移动、导航成功/失败或 StateTree 行为。
 

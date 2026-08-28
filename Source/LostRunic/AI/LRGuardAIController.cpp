@@ -252,7 +252,8 @@ FLRGuardAwarenessSnapshot ALRGuardAIController::BuildCurrentAwarenessSnapshot() 
 		snapshot.Knowledge = Knowledge->GetSnapshot();
 		snapshot.InvestigationLocation = LRAlertRules::ResolveInvestigationLocation(snapshot.Knowledge);
 	}
-	snapshot.ResolvedBehavior = LRAlertRules::ResolveTargetBehavior(bStunned, snapshot.Alert.Level);
+	snapshot.ResolvedBehavior = LRAlertRules::ResolveTargetBehavior(bStunned,
+		snapshot.Alert, snapshot.Knowledge);
 	snapshot.Alert.Behavior = snapshot.ResolvedBehavior;
 	return snapshot;
 }
@@ -288,7 +289,7 @@ void ALRGuardAIController::MarkInvestigationUnreachable()
 	{
 		return;
 	}
-	SetInvestigationAtLocation();
+	SetInvestigationFailed();
 	ProcessAwarenessTransaction(LRGameplayTags::InvestigationUnreachable, true);
 }
 

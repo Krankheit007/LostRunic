@@ -311,8 +311,8 @@ Editor Contract Test 名称：
 ### 敌人警戒（2026-08-27 重构基线）
 
 - 旧版 `VisibilityScore → EffectiveExposureSeconds → DetectionStage → AlertFloor` 已移除；本系统不再积分 Exposure，也不使用光照/姿态可见度系数。详细架构边界见 `Docs/Technical/08_ArchitectureBoundaries.md`。
-- Guard 行为固定为：`0=IdlePatrol`、`1-5=Suspicious`、`6-10=Investigate`、`11=Chase`，另有 `Stunned` 覆盖。有效 Sight 从 `0-5` 直接到 `6`，从 `6-10` 直接到 `11`；Noise/吸引注意只能把 Alert 推到 10。
-- `SightToChaseGraceSeconds` 是低警戒首次 Sight `→6` 的一次性 Grace。Grace 内 Alert 冻结；Noise 只记录 Disturbance。调查抵达或导航失败都要等 Grace 结束后，才按仍可见/已抵达/未抵达分别确认、观察或继续移动。
+- Guard 行为固定为：`0=IdlePatrol`、`1-5=Suspicious`、`6-10=Investigate`；`11` 只有同时存在匹配的 `ConfirmedThreat`、`VisualCandidate` 和当前有效视觉时才进入 `Chase`，否则回退到 `Investigate`；另有 `Stunned` 覆盖。有效 Sight 从 `0-5` 直接到 `6`，从 `6-10` 直接到 `11`；Noise/吸引注意只能把 Alert 推到 10。
+- `SightToChaseGraceSeconds` 是低警戒首次 Sight `→6` 的一次性 Grace。Grace 内 Alert 冻结；Noise 只记录 Disturbance。调查抵达或导航失败都要等 Grace 结束后处理：仍可见则确认，已抵达或导航失败则开始 RedObserve；失败状态保持 Failed，不伪装成已抵达，也不自动重试。
 - Hard Hidden 不等于 UE Raw Sight Lost：Raw Contact 存在时持续 `SightTrackingIntervalSeconds` 检查，有效视觉暂时为 false；真正 Sight Lost 才停止跟踪。`11→10` 保留 ConfirmedThreat 和最后可见位置；Alert 回到 0 才清空本轮记忆。
 - UI 四档由 `FLRAlertSnapshot` 驱动：0 隐藏；1-5 使用 `Alert_Bar_White` 且百分比 `Level/5`；6-10 使用 `Alert_Bar_Red` 且百分比 `(Level-5)/5`；11 红条满并播放 `Alert_Full_Red`。C++ 不 Bind 两个 ProgressBar，WBP 负责最终布局、颜色和动画表现。
 - Room Run 当前房间按“低于 Floor 先到 `RoomRunAlertLevel`，达到 Floor 后按 `AttractAlertAmount` 继续 +1”；相邻房间按 `AdjacentRoomRunAlertAmount` +1；所有噪声最高到 10。声音步态在产生时快照，首次刺激 CD 再按结果所属白/红档和步态倍率计算。
@@ -767,9 +767,9 @@ StringTable 的 `Source String` 只填写源语言（本项目约定为 `zh-Hans
 | 警戒 | `RoomRunAlertLevel` | 当前房奔跑警戒下限 | 5 |
 | 警戒 | `AdjacentRoomRunAlertAmount` | 相邻房奔跑警戒增加量 | 1 |
 | 视觉 | `SightTrackingIntervalSeconds` | 视觉跟踪间隔 | 0.1 s |
-| 视觉 | `FirstAttractRunCooldownMultiplier` | 奔跑首次刺激冷却倍率 | 0.6 |
-| 视觉 | `FirstAttractWalkCooldownMultiplier` | 走路首次刺激冷却倍率 | 1.0 |
-| 视觉 | `FirstAttractSneakCooldownMultiplier` | 潜行首次刺激冷却倍率 | 1.6 |
+| 警戒 | `FirstAttractRunCooldownMultiplier` | 奔跑首次刺激冷却倍率 | 0.6 |
+| 警戒 | `FirstAttractWalkCooldownMultiplier` | 走路首次刺激冷却倍率 | 1.0 |
+| 警戒 | `FirstAttractSneakCooldownMultiplier` | 潜行首次刺激冷却倍率 | 1.6 |
 | 移动 | `PatrolSpeed` | 巡逻速度 | 120 cm/s |
 | 移动 | `InvestigateSpeed` | 调查速度 | 170 cm/s |
 | 移动 | `ChaseSpeed` | 追逐速度 | 300 cm/s |
@@ -782,7 +782,7 @@ StringTable 的 `Source String` 只填写源语言（本项目约定为 `zh-Hans
 - `Alert=0` 隐藏警戒条并 Idle/Patrol；异常刺激到 1，有效 Sight 直接到 6。
 - `Alert=1-5` 显示白条、面向异常；从 0 进入观察 3 秒，接受 Noise 后 +1 并刷新观察；自然衰减每 0.5 秒 -1。
 - `Alert=6-10` 显示红条，前往 `LatestInvestigationLocation`，速度默认 170 cm/s；抵达后才开始红色观察，观察结束后衰减；Noise 最多到 10，Sight 直接到 11。
-- `Alert=11` 显示满红条和额外红色动画，速度默认 300 cm/s；持续追逐 `ConfirmedThreat`，进入 `CaptureRadius` 执行死亡占位；真实 Sight Lost 后 11→10 并调查最后可见位置。
+- `Alert=11` 显示满红条和额外红色动画；只有当前有效可见的匹配 `ConfirmedThreat` 才以默认 300 cm/s 持续追逐并在 `CaptureRadius` 执行死亡占位；真实 Sight Lost 后 11→10 并调查最后可见位置。
 - `SightToChaseGraceSeconds` 只在 `Alert<=5` 首次有效 Sight `→6` 时启动一次。Grace 内 Alert 冻结；Noise 只记录异常位置，不改 Alert、不启动刺激 CD、不刷新观察、不抢调查目标。Grace 内抵达或导航失败也不启动 RedObserve，等 Grace 结束后按仍可见→11、已抵达→观察、未抵达→继续移动处理。
 - Hard Hidden 不等于 Raw Sight Lost：Raw Contact 仍存在时持续视觉跟踪；真正的 UE Sight Lost 才停止跟踪。Grace 已消费后，红色周期内再次 Sight 立即 11；进入白色（含 6→5）或回到 0 时重置该标记。
 - Room Run 当前房间低于 Floor 时先到 5，达到 Floor 后继续按 `AttractAlertAmount` +1；相邻房间按 `AdjacentRoomRunAlertAmount` +1；Noise 不能到 11。首次刺激 CD 按事件结果所属白/红档选择 0.5/0.2 基准，再乘声音产生时快照的步态倍率；非玩家/无步态事件使用 1.0。Sight 不受 Noise CD 阻挡。
@@ -797,8 +797,8 @@ StringTable 的 `Source String` 只填写源语言（本项目约定为 `zh-Hans
 ### BP_Guard、警戒条与 Room Volume
 
 1. 打开 `/Game/LostRunic/Blueprints/Guard/BP_Guard`，设置 **AI Controller Class = BP_LRGuardController**、**Auto Possess AI = Placed in World or Spawned**。Pawn 组件树不得出现 AIPerception、StateTree 或 StateTreeAI；Alert、Knowledge、AlertWidget 由 C++ 创建。
-2. `AlertWidget.Widget Class` 设置为 `/Game/LostRunic/UI/WBP_GuardAlertBar`。保留现有控件名 `Alert_Bar_White`、`Alert_Bar_Red`，在 WBP 中创建/保留名为 `Alert_Full_Red` 的 Widget Animation，并让动画绑定 `Alert_Bar_Red`。WBP 可以覆盖 `HandleAlertSnapshotChanged` 做最终颜色、布局和动画表现；C++ 只发布快照，不 Bind 接管 ProgressBar。
-3. 快照表现必须为：Alert 0 隐藏；1-5 只显示白条，Percent=`Level/5`；6-10 只显示红条，Percent=`(Level-5)/5`；11 红条 100% 并播放 `Alert_Full_Red`。
+2. `AlertWidget.Widget Class` 设置为 `/Game/LostRunic/UI/WBP_GuardAlertBar`。保留现有控件名 `Alert_Bar_White`、`Alert_Bar_Red`，在 WBP 中创建/保留名为 `Alert_Full_Red` 的 Widget Animation，并让动画绑定 `Alert_Bar_Red`。在 WBP 事件图实现继承事件 `HandleAlertSnapshotChanged`，由该事件控制两个进度条的 Percent/Visibility 和满红动画；C++ 只转发快照，不查找或控制具体控件。
+3. 快照表现必须为：Alert 0 隐藏；1-5 只显示白条，Percent=`Level/5`；6-10 只显示红条，Percent=`(Level-5)/5`；11 红条 100% 并循环播放 `Alert_Full_Red`，离开 11 时停止动画。
 4. 在关卡摆放 `ALRRoomVolume`，填写稳定 `RoomId` 并配置 `AdjacentRooms`。当前房奔跑和相邻房传播由 Room Volume 接线触发；无房间时使用普通 Hearing fallback。Room Volume 必须早于 Guard 生成。
 
 ### BP_LRNPCController 与 BP_NPC1

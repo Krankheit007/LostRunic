@@ -22,9 +22,12 @@ namespace LRAlertRules
 	/** 按全局边界应用警戒变化。 */
 	LOSTRUNIC_API int32 ApplyDelta(int32 currentLevel, int32 delta);
 
-	/** 只按警戒值解析行为；Stunned 由覆盖参数优先。 */
+	/** Alert 11 still requires valid Knowledge evidence before Chase. */
 	LOSTRUNIC_API ELRGuardBehaviorState ResolveState(int32 alertLevel);
-	LOSTRUNIC_API ELRGuardBehaviorState ResolveTargetBehavior(bool bStunned, int32 alertLevel);
+	LOSTRUNIC_API bool IsChaseEligible(const FLRAlertSnapshot& alert,
+		const FLRGuardKnowledgeSnapshot& knowledge);
+	LOSTRUNIC_API ELRGuardBehaviorState ResolveTargetBehavior(bool bStunned,
+		const FLRAlertSnapshot& alert, const FLRGuardKnowledgeSnapshot& knowledge);
 
 	/** 解析警戒条显示档位。 */
 	LOSTRUNIC_API ELRGuardAlertTier ResolveAlertTier(int32 alertLevel);
@@ -34,7 +37,8 @@ namespace LRAlertRules
 
 	/** 解析一次噪声事件应使用的冷却；首次进入结果档位才使用步态倍率。 */
 	LOSTRUNIC_API float ResolveAttractCooldown(int32 resultAlertLevel, bool bFirstAttractInBand,
-		ELRMovementPace sourcePace, const FLRGuardTuningSettings& tuning);
+		ELRMovementPace sourcePace, bool bUsePaceMultiplier,
+		const FLRGuardTuningSettings& tuning);
 
 	/** 判断时间冷却是否结束。 */
 	LOSTRUNIC_API bool IsIncreaseAllowed(double nowSeconds, double lastIncreaseTimeSeconds, float cooldownSeconds);

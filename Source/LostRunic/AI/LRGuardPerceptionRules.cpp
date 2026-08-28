@@ -45,9 +45,14 @@ FLRNoiseResponse LRGuardPerceptionRules::ResolveNoiseAlertDelta(const FGameplayT
 int32 LRGuardPerceptionRules::ResolveNoiseResultLevel(const int32 currentAlert,
 	const FLRNoiseResponse& response, const FLRGuardTuningSettings& tuning)
 {
-	if (!response.bRespond || currentAlert >= LRGuardConstants::MaxAlertLevel)
+	if (!response.bRespond)
 	{
-		return FMath::Clamp(currentAlert, LRGuardConstants::MinAlertLevel, LRAlertRules::InvestigateMaxLevel);
+		return FMath::Clamp(currentAlert, LRGuardConstants::MinAlertLevel, LRAlertRules::MaxAlertLevel);
+	}
+
+	if (currentAlert >= LRAlertRules::ConfirmedAlertLevel)
+	{
+		return LRAlertRules::ConfirmedAlertLevel;
 	}
 
 	if (response.bUseCurrentRoomRunFloor && currentAlert < tuning.RoomRunAlertLevel)

@@ -39,16 +39,32 @@ ELRGuardBehaviorState LRAlertRules::ResolveState(const int32 alertLevel)
 	{
 		return ELRGuardBehaviorState::Suspicious;
 	}
-	if (clampedLevel <= InvestigateMaxLevel)
-	{
-		return ELRGuardBehaviorState::Investigate;
-	}
-	return ELRGuardBehaviorState::Chase;
+	// Alert 11 is only a numeric band. Knowledge and current effective sight
+	// are required by ResolveTargetBehavior before Chase can be selected.
+	return ELRGuardBehaviorState::Investigate;
 }
 
-ELRGuardBehaviorState LRAlertRules::ResolveTargetBehavior(const bool bStunned, const int32 alertLevel)
+bool LRAlertRules::IsChaseEligible(const FLRAlertSnapshot& alert,
+	const FLRGuardKnowledgeSnapshot& knowledge)
 {
-	return bStunned ? ELRGuardBehaviorState::Stunned : ResolveState(alertLevel);
+	return alert.Level >= ConfirmedAlertLevel
+		&& knowledge.bHasConfirmedThreat
+		&& knowledge.ConfirmedThreat.IsValid()
+		&& knowledge.bHasVisualCandidate
+		&& knowledge.VisualCandidate.IsValid()
+		&& knowledge.VisualCandidate.Get() == knowledge.ConfirmedThreat.Get()
+		&& knowledge.bCurrentlyVisible;
+}
+
+ELRGuardBehaviorState LRAlertRules::ResolveTargetBehavior(const bool bStunned,
+	const FLRAlertSnapshot& alert, const FLRGuardKnowledgeSnapshot& knowledge)
+{
+	if (bStunned)
+	{
+		return ELRGuardBehaviorState::Stunned;
+	}
+	return IsChaseEligible(alert, knowledge) ? ELRGuardBehaviorState::Chase
+		: ResolveState(alert.Level);
 }
 
 ELRGuardAlertTier LRAlertRules::ResolveAlertTier(const int32 alertLevel)
@@ -75,11 +91,13 @@ FVector LRAlertRules::ResolveInvestigationLocation(const FLRGuardKnowledgeSnapsh
 }
 
 float LRAlertRules::ResolveAttractCooldown(const int32 resultAlertLevel, const bool bFirstAttractInBand,
-	const ELRMovementPace sourcePace, const FLRGuardTuningSettings& tuning)
+	const ELRMovementPace sourcePace, const bool bUsePaceMultiplier,
+	const FLRGuardTuningSettings& tuning)
 {
 	const float baseCooldown = resultAlertLevel <= SuspiciousMaxLevel
 		? tuning.SuspiciousStimulusCooldownSeconds : tuning.InvestigateStimulusCooldownSeconds;
-	return bFirstAttractInBand ? baseCooldown * ResolvePaceMultiplier(sourcePace, tuning) : baseCooldown;
+	return bFirstAttractInBand && bUsePaceMultiplier
+		? baseCooldown * ResolvePaceMultiplier(sourcePace, tuning) : baseCooldown;
 }
 
 bool LRAlertRules::IsIncreaseAllowed(const double nowSeconds, const double lastIncreaseTimeSeconds,

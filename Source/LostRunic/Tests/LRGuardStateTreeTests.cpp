@@ -118,6 +118,12 @@ bool FLRGuardStateTreeAssetContractTest::RunTest(const FString& parameters)
 		TestEqual(TEXT("Transition trigger is OnEvent"), transition->Trigger, EStateTreeTransitionTrigger::OnEvent);
 		TestTrue(TEXT("Transition event is BehaviorChanged"), transition->RequiredEvent.Tag == LRGameplayTags::AIEventBehaviorChanged);
 		TestEqual(TEXT("Transition targets Root"), transition->State, FStateTreeStateHandle::Root);
+		TestEqual(TEXT("BehaviorChanged transition uses normal priority"),
+			transition->Priority, EStateTreeTransitionPriority::Normal);
+		TestEqual(TEXT("BehaviorChanged transition forces root re-selection"),
+			transition->ChangeTypeTargetStateRule, EStateTreeTransitionChangeTypeRules::ForceChanged);
+		TestTrue(TEXT("BehaviorChanged transition consumes its event"),
+			transition->bConsumeEventOnSelect);
 	}
 	return true;
 }

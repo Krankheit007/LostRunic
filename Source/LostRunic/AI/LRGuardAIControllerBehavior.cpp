@@ -31,7 +31,6 @@ ELRGuardBehaviorEntryResult ALRGuardAIController::EnterBehavior(
 		return ELRGuardBehaviorEntryResult::Running;
 	}
 
-	ActiveBehavior = behavior;
 	ALRGuardCharacter* guard = Cast<ALRGuardCharacter>(GetPawn());
 	if (!guard)
 	{
@@ -46,6 +45,19 @@ ELRGuardBehaviorEntryResult ALRGuardAIController::EnterBehavior(
 
 	if (behavior == ELRGuardBehaviorState::Chase)
 	{
+		const FLRAlertSnapshot alertSnapshot = Alert.IsValid()
+			? Alert->GetAlertSnapshot() : FLRAlertSnapshot();
+		const FLRGuardKnowledgeSnapshot knowledgeSnapshot = Knowledge.IsValid()
+			? Knowledge->GetSnapshot() : FLRGuardKnowledgeSnapshot();
+		if (!LRAlertRules::IsChaseEligible(alertSnapshot, knowledgeSnapshot))
+		{
+			UE_LOG(LogLostRunicAI, Warning,
+				TEXT("Controller=%s rejected Chase entry without matching visible confirmed threat"),
+				*GetNameSafe(this));
+			return ELRGuardBehaviorEntryResult::Failed;
+		}
+
+		ActiveBehavior = behavior;
 		movement->MaxWalkSpeed = GetEffectiveTuning().ChaseSpeed;
 		movement->bOrientRotationToMovement = false;
 		movement->bUseControllerDesiredRotation = true;
@@ -57,6 +69,7 @@ ELRGuardBehaviorEntryResult ALRGuardAIController::EnterBehavior(
 		return ELRGuardBehaviorEntryResult::Running;
 	}
 
+	ActiveBehavior = behavior;
 	if (behavior == ELRGuardBehaviorState::Investigate)
 	{
 		movement->MaxWalkSpeed = GetEffectiveTuning().InvestigateSpeed;
@@ -109,6 +122,7 @@ ELRGuardBehaviorEntryResult ALRGuardAIController::EnterBehavior(
 
 void ALRGuardAIController::ExitBehavior(const ELRGuardBehaviorState behavior)
 {
+	ActiveBehavior = behavior;
 	if (behavior == ELRGuardBehaviorState::Investigate)
 	{
 		ClearInvestigationMoveRequest();
@@ -143,7 +157,7 @@ void ALRGuardAIController::OnMoveCompleted(const FAIRequestID requestId,
 			return;
 		}
 
-		SetInvestigationAtLocation();
+		SetInvestigationFailed();
 		ProcessAwarenessTransaction(LRGameplayTags::InvestigationUnreachable, true);
 		return;
 	}
@@ -218,6 +232,11 @@ void ALRGuardAIController::RefreshBehaviorContext(const FLRGuardAwarenessSnapsho
 		return;
 	}
 
+	if (InvestigationMoveStatus == ELRGuardInvestigationMoveStatus::Failed)
+	{
+		return;
+	}
+
 	if (InvestigationMoveStatus == ELRGuardInvestigationMoveStatus::None)
 	{
 		RequestInvestigationMove(current.InvestigationLocation);
@@ -254,6 +273,13 @@ void ALRGuardAIController::SetInvestigationAtLocation()
 	InvestigationMoveRequestId = FAIRequestID::InvalidRequest;
 	InvestigationMoveStatus = ELRGuardInvestigationMoveStatus::AtLocation;
 	RequestInvestigationObservationIfReady();
+}
+
+void ALRGuardAIController::SetInvestigationFailed()
+{
+	StopMovement();
+	InvestigationMoveRequestId = FAIRequestID::InvalidRequest;
+	InvestigationMoveStatus = ELRGuardInvestigationMoveStatus::Failed;
 }
 
 void ALRGuardAIController::RequestInvestigationObservationIfReady()
@@ -323,17 +349,17 @@ FPathFollowingRequestResult ALRGuardAIController::RequestInvestigationMove(
 	}
 
 	InvestigationMoveRequestId = FAIRequestID::InvalidRequest;
-	InvestigationMoveStatus = ELRGuardInvestigationMoveStatus::AtLocation;
+	InvestigationMoveStatus = ELRGuardInvestigationMoveStatus::Failed;
 	if (result.Code == EPathFollowingRequestResult::AlreadyAtGoal)
 	{
+		InvestigationMoveStatus = ELRGuardInvestigationMoveStatus::AtLocation;
 		RequestInvestigationObservationIfReady();
 	}
 	else
 	{
 		UE_LOG(LogLostRunicAI, Warning,
-			TEXT("Controller=%s investigation navigation failed; observing target=%s"),
+			TEXT("Controller=%s investigation navigation failed; target remains pending=%s"),
 			*GetNameSafe(this), *location.ToCompactString());
-		RequestInvestigationObservationIfReady();
 	}
 	return result;
 }

@@ -35,7 +35,8 @@ enum class ELRGuardInvestigationMoveStatus : uint8
 {
 	None,
 	Moving,
-	AtLocation
+	AtLocation,
+	Failed
 };
 
 /** Guard 感知入口和行为执行协调器。 */
@@ -81,7 +82,7 @@ public:
 	/** UE Hearing、当前房和相邻房噪声统一进入这里。 */
 	void ReceiveNoiseStimulus(const FLRGuardNoiseStimulus& stimulus);
 
-	/** 导航完成/失败回调的行为入口；Grace 活跃时只记录抵达，不启动红色观察。 */
+	/** 导航完成/失败回调的行为入口；Grace 活跃时只记录结果，Grace 结束后抵达或失败均可开始红色观察。 */
 	void MarkInvestigationReached();
 	void MarkInvestigationUnreachable();
 
@@ -142,6 +143,7 @@ private:
 
 	void ClearInvestigationMoveRequest();
 	void SetInvestigationAtLocation();
+	void SetInvestigationFailed();
 	void RequestInvestigationObservationIfReady();
 	FPathFollowingRequestResult RequestInvestigationMove(const FVector& location,
 		bool bForceRetarget = false);
