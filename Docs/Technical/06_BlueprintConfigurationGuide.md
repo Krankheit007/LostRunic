@@ -783,7 +783,7 @@ StringTable 的 `Source String` 只填写源语言（本项目约定为 `zh-Hans
 - `Alert=1-5` 显示白条、面向异常；从 0 进入观察 3 秒，接受 Noise 后 +1 并刷新观察；自然衰减每 0.5 秒 -1。
 - `Alert=6-10` 显示红条，前往 `LatestInvestigationLocation`，速度默认 170 cm/s；抵达后才开始红色观察，观察结束后衰减；Noise 最多到 10，Sight 直接到 11。
 - `Alert=11` 显示满红条和额外红色动画；只有当前有效可见的匹配 `ConfirmedThreat` 才以默认 300 cm/s 持续追逐并在 `CaptureRadius` 执行死亡占位；真实 Sight Lost 后 11→10 并调查最后可见位置。
-- `SightToChaseGraceSeconds` 只在 `Alert<=5` 首次有效 Sight `→6` 时启动一次。Grace 内 Alert 冻结；Noise 只记录异常位置，不改 Alert、不启动刺激 CD、不刷新观察、不抢调查目标。Grace 内抵达或导航失败也不启动 RedObserve，等 Grace 结束后按仍可见→11、已抵达→观察、未抵达→继续移动处理。
+- `SightToChaseGraceSeconds` 只在 `Alert<=5` 首次有效 Sight `→6` 时启动一次。Grace 内 Alert 冻结；Noise 只记录异常位置，不改 Alert、不启动刺激 CD、不刷新观察、不抢调查目标。Grace 内抵达或导航失败也不启动 RedObserve；Grace 结束后仍可见→11，已抵达或导航失败→观察；失败状态保持 Failed，不伪装成已抵达，也不自动重试。
 - Hard Hidden 不等于 Raw Sight Lost：Raw Contact 仍存在时持续视觉跟踪；真正的 UE Sight Lost 才停止跟踪。Grace 已消费后，红色周期内再次 Sight 立即 11；进入白色（含 6→5）或回到 0 时重置该标记。
 - Room Run 当前房间低于 Floor 时先到 5，达到 Floor 后继续按 `AttractAlertAmount` +1；相邻房间按 `AdjacentRoomRunAlertAmount` +1；Noise 不能到 11。首次刺激 CD 按事件结果所属白/红档选择 0.5/0.2 基准，再乘声音产生时快照的步态倍率；非玩家/无步态事件使用 1.0。Sight 不受 Noise CD 阻挡。
 

@@ -154,6 +154,14 @@ bool FLRGuardSightContactLifecycleRuntimeTest::RunTest(const FString& parameters
 		bPassed &= TestEqual(TEXT("Navigation failure remains Failed while observing"),
 			controller->InvestigationMoveStatus, ELRGuardInvestigationMoveStatus::Failed);
 
+		// Stop the Grace-finished observation to isolate the ordinary non-Grace failure path.
+		alert->StopObservationAndDecay();
+		controller->MarkInvestigationUnreachable();
+		bPassed &= TestTrue(TEXT("Non-Grace navigation failure starts RedObserve"),
+			alert->IsObserving());
+		bPassed &= TestEqual(TEXT("Non-Grace navigation failure remains Failed"),
+			controller->InvestigationMoveStatus, ELRGuardInvestigationMoveStatus::Failed);
+
 		FLRGuardNoiseStimulus postGraceRun;
 		postGraceRun.Source = player;
 		postGraceRun.Location = player->GetActorLocation();

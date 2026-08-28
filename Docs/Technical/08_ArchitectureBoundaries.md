@@ -196,7 +196,7 @@ AlertComponent 的内部枚举若存在，只表示计时模式：`None`、`Whit
 - Sight 的距离、Lose Sight 距离、半角、Affiliation 和遮挡由 `BP_LRGuardController` 的 `UAISenseConfig_Sight` 唯一配置。`PeripheralVisionAngleDegrees` 是半角；C++ 不复制距离/扇形/LOS 计算。
 - Controller 区分 **Raw Sight Contact** 与 **Effective Sight**。Hard Hidden 只会令 Effective Sight 暂时无效，保留 Raw Contact、VisualCandidate、LastKnownThreatLocation，并继续运行 `SightTrackingTimer`；只有真正收到 UE Sight Lost 才停止该 Timer 并清 Raw Contact。
 - `Alert<=5` 的有效首次 Sight 直接 `→6`，启动一次 `SightToChaseGraceSeconds`。Grace 是最高优先级的警戒冻结：Noise 只记录 `LastDisturbanceLocation`，不改 Alert、不启动刺激 CD、不刷新观察、不抢 `LatestInvestigationLocation`。
-- Grace 期间若导航已抵达或失败：停止移动，面向最后可见位置，但不启动 RedObserve；Grace 结束后仍可见才 `→11`，否则只有已抵达调查点才开始 RedObserve，未抵达则继续 Investigate。
+- Grace 期间若导航已抵达或失败：停止移动，面向最后可见位置，但不启动 RedObserve；Grace 结束后仍可见才 `→11`，已抵达或导航失败均开始 RedObserve；失败状态保持 Failed，不伪装成已抵达，也不自动重试。
 - Grace 消费标记只对当前连续红色周期有效；进入白色（包括 `6→5`）或回到 `0` 时清除。Grace 已消费后，`Alert 6-10` 再次有效 Sight 立即 `→11`，不重新等待。
 - `11` 丢失视线先 `→10`，保留 ConfirmedThreat 和 LastKnownThreatLocation，随后调查该位置。只有 Alert 回到 `0` 才执行本轮 Awareness Memory reset：清除候选目标、确认目标和全部调查位置。
 
@@ -205,7 +205,7 @@ AlertComponent 的内部枚举若存在，只表示计时模式：`None`、`Whit
 - 固定入口只有三个：`HandleSightAcquiredOrTracked`、`HandleSightLost`、`HandleAttractStimulus`。Sight 入口负责 `6`、Grace、`11`、LastKnown 和追逐；Sight Lost 负责 `11→10`；Attract 入口负责 0-10 的异常增长、Room Run Floor、刺激 CD 与 Disturbance 记忆。
 - Knowledge 对外保留 `VisualCandidate`、`ConfirmedThreat`、`LastKnownThreatLocation`、`LastDisturbanceLocation`、`LatestInvestigationLocation` 和 `bCurrentlyVisible`。可见目标与异常位置的更新集中在 `RecordVisibleThreat`、`RecordSightLost`、`RecordDisturbance`；当前有效视觉优先于 Noise，不允许旁侧 Noise 抢走调查目标。
 - `LatestInvestigationLocation` 是 Controller 唯一的实际 MoveTo 目标。连续 Sight 用 `InvestigateMoveRetargetDistanceCm` 限制重复导航请求；离散 Noise 被接受后直接重定向，若已在接受半径内则重新开始 RedObserve。
-- Controller 保存 `CurrentInvestigationMoveTarget`、请求 ID、移动状态和 Grace/追踪 Timer；Knowledge 不保存 Pending/Revision，AlertComponent 不知道导航阶段。导航失败只结束当前移动执行，不改变 Grace 的优先级规则。
+- Controller 保存 `CurrentInvestigationMoveTarget`、请求 ID、移动状态和 Grace/追踪 Timer；Knowledge 不保存 Pending/Revision，AlertComponent 不知道导航阶段。导航失败保持 `Failed`：非 Grace 时立即原地开始 RedObserve，Grace 时延后到 Grace 结束；不伪装成已抵达，也不自动重试。
 
 ### StateTree、UI 与验收边界
 

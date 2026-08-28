@@ -280,6 +280,9 @@ void ALRGuardAIController::SetInvestigationFailed()
 	StopMovement();
 	InvestigationMoveRequestId = FAIRequestID::InvalidRequest;
 	InvestigationMoveStatus = ELRGuardInvestigationMoveStatus::Failed;
+	// A failed investigation observes in place unless Sight Grace is still active.
+	// RequestInvestigationObservationIfReady() deliberately defers in that case.
+	RequestInvestigationObservationIfReady();
 }
 
 void ALRGuardAIController::RequestInvestigationObservationIfReady()
@@ -349,7 +352,6 @@ FPathFollowingRequestResult ALRGuardAIController::RequestInvestigationMove(
 	}
 
 	InvestigationMoveRequestId = FAIRequestID::InvalidRequest;
-	InvestigationMoveStatus = ELRGuardInvestigationMoveStatus::Failed;
 	if (result.Code == EPathFollowingRequestResult::AlreadyAtGoal)
 	{
 		InvestigationMoveStatus = ELRGuardInvestigationMoveStatus::AtLocation;
@@ -357,6 +359,7 @@ FPathFollowingRequestResult ALRGuardAIController::RequestInvestigationMove(
 	}
 	else
 	{
+		SetInvestigationFailed();
 		UE_LOG(LogLostRunicAI, Warning,
 			TEXT("Controller=%s investigation navigation failed; target remains pending=%s"),
 			*GetNameSafe(this), *location.ToCompactString());
