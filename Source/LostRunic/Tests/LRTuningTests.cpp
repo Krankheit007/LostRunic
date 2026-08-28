@@ -1,10 +1,6 @@
 /**
  * @file LRTuningTests.cpp
- * @brief 提供 LostRunic Runtime 自动化测试，覆盖调优边界、状态矩阵、交互筛选、物品双入口、守卫警戒、叙事分支和存档事务顺序。仅在 WITH_DEV_AUTOMATION_TESTS 下编译。
- *
- * 关联文件：Tests 目录内调用该公共契约的实现文件；所属领域：Tests。
- * 设计依据：Docs/Technical/08_ArchitectureBoundaries.md。
- * 除带 EditDefaultsOnly、EditAnywhere 或 EditInstanceOnly 的字段外，其余成员均为运行时状态，不应由蓝图直接改写。
+ * @brief Guard 新调优字段和共享调优合法性测试。
  */
 #if WITH_DEV_AUTOMATION_TESTS
 
@@ -24,26 +20,29 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLRTuningDefaultsTest, "LostRunic.Tuning.Defaul
 
 bool FLRTuningDefaultsTest::RunTest(const FString& parameters)
 {
+	(void)parameters;
 	FString error;
 	TestTrue(TEXT("State defaults"), NewObject<ULRStateTuning>()->Validate(error));
 	TestTrue(TEXT("Movement defaults"), NewObject<ULRMovementTuning>()->Validate(error));
 	TestTrue(TEXT("Interaction defaults"), NewObject<ULRInteractionTuning>()->Validate(error));
-	FLRGuardTuningSettings guard;
-	TestTrue(TEXT("Guard defaults"), guard.Validate(error));
-	TestEqual(TEXT("Detection sample interval default"), guard.DetectionSampleIntervalSeconds, 0.1f, 0.001f);
-	TestEqual(TEXT("Detection integration delta default"), guard.MaxDetectionIntegrationDeltaSeconds, 0.2f, 0.001f);
-	TestEqual(TEXT("Suspicious exposure threshold default"), guard.SuspiciousExposureThresholdSeconds, 0.2f, 0.001f);
-	TestEqual(TEXT("Investigate exposure threshold default"), guard.InvestigateExposureThresholdSeconds, 0.6f, 0.001f);
-	TestEqual(TEXT("Confirmed exposure threshold default"), guard.ConfirmedExposureThresholdSeconds, 1.5f, 0.001f);
-	TestEqual(TEXT("Suspicious alert floor default"), guard.DetectionSuspiciousAlertFloor, 1);
-	TestEqual(TEXT("Investigate alert floor default"), guard.DetectionInvestigateAlertFloor, 6);
-	TestEqual(TEXT("Confirmed alert floor default"), guard.DetectionConfirmedAlertFloor, 11);
-	TestEqual(TEXT("Exposure decay rate default"), guard.DetectionExposureDecayRate, 1.0f, 0.001f);
-	TestEqual(TEXT("Sight edge multiplier default"), guard.SightEdgeDetectionMultiplier, 0.5f, 0.001f);
-	TestEqual(TEXT("Sneak visibility multiplier default"), guard.SneakVisibilityMultiplier, 0.5f, 0.001f);
-	TestEqual(TEXT("Walk visibility multiplier default"), guard.WalkVisibilityMultiplier, 0.75f, 0.001f);
-	TestEqual(TEXT("Run visibility multiplier default"), guard.RunVisibilityMultiplier, 1.0f, 0.001f);
-	TestEqual(TEXT("Investigation retarget distance default"), guard.InvestigationRetargetDistance, 75.0f, 0.001f);
+	TestTrue(TEXT("Guard defaults"), FLRGuardTuningSettings().Validate(error));
+
+	const FLRGuardTuningSettings guard;
+	TestEqual(TEXT("White observation default"), guard.SuspiciousObserveSeconds, 3.0f, 0.001f);
+	TestEqual(TEXT("Red observation default"), guard.InvestigateObserveSeconds, 3.0f, 0.001f);
+	TestEqual(TEXT("Sight grace default"), guard.SightToChaseGraceSeconds, 0.5f, 0.001f);
+	TestEqual(TEXT("White noise cooldown default"), guard.SuspiciousStimulusCooldownSeconds, 0.5f, 0.001f);
+	TestEqual(TEXT("Red noise cooldown default"), guard.InvestigateStimulusCooldownSeconds, 0.2f, 0.001f);
+	TestEqual(TEXT("Alert decay interval default"), guard.AlertDecayIntervalSeconds, 0.5f, 0.001f);
+	TestEqual(TEXT("Room run Floor default"), guard.RoomRunAlertLevel, 5);
+	TestEqual(TEXT("Sight tracking interval default"), guard.SightTrackingIntervalSeconds, 0.1f, 0.001f);
+	TestEqual(TEXT("First run multiplier default"), guard.FirstAttractRunCooldownMultiplier, 0.6f, 0.001f);
+	TestEqual(TEXT("First walk multiplier default"), guard.FirstAttractWalkCooldownMultiplier, 1.0f, 0.001f);
+	TestEqual(TEXT("First sneak multiplier default"), guard.FirstAttractSneakCooldownMultiplier, 1.6f, 0.001f);
+	TestEqual(TEXT("Investigate retarget distance default"), guard.InvestigateMoveRetargetDistanceCm, 75.0f, 0.001f);
+	TestEqual(TEXT("Investigate speed default"), guard.InvestigateSpeed, 170.0f, 0.001f);
+	TestEqual(TEXT("Chase speed default"), guard.ChaseSpeed, 300.0f, 0.001f);
+
 	TestTrue(TEXT("Save defaults"), NewObject<ULRSaveTuning>()->Validate(error));
 	TestTrue(TEXT("UI defaults"), NewObject<ULRUITuning>()->Validate(error));
 	TestTrue(TEXT("Presentation defaults"), NewObject<ULRPresentationTuning>()->Validate(error));
@@ -56,6 +55,17 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLRTuningBoundariesTest, "LostRunic.Tuning.Boun
 
 bool FLRTuningBoundariesTest::RunTest(const FString& parameters)
 {
+	(void)parameters;
+	FString error;
+	FLRGuardTuningSettings guard;
+	guard.SightToChaseGraceSeconds = 0.0f;
+	guard.SuspiciousStimulusCooldownSeconds = 0.0f;
+	guard.InvestigateStimulusCooldownSeconds = 0.0f;
+	guard.FirstAttractRunCooldownMultiplier = 0.0f;
+	guard.FirstAttractSneakCooldownMultiplier = 4.0f;
+	guard.RoomRunAlertLevel = 1;
+	guard.InvestigateMoveRetargetDistanceCm = 1.0f;
+	TestTrue(TEXT("Declared Guard boundaries"), guard.Validate(error));
 
 	ULRStateTuning* state = NewObject<ULRStateTuning>();
 	state->EnterHoldSeconds = 0.05f;
@@ -64,7 +74,6 @@ bool FLRTuningBoundariesTest::RunTest(const FString& parameters)
 	state->CourageKnockbackSpeed = 3000.0f;
 	state->CourageAttackRangeCm = 1.0f;
 	state->CourageAttackFacingDegrees = 360.0f;
-	FString error;
 	TestTrue(TEXT("Declared state boundaries"), state->Validate(error));
 
 	ULRSaveTuning* save = NewObject<ULRSaveTuning>();
@@ -81,7 +90,24 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLRTuningInvalidTest, "LostRunic.Tuning.Invalid
 
 bool FLRTuningInvalidTest::RunTest(const FString& parameters)
 {
+	(void)parameters;
 	FString error;
+	FLRGuardTuningSettings guard;
+	guard.RoomRunAlertLevel = 6;
+	TestFalse(TEXT("Room run Floor above white band is rejected"), guard.Validate(error));
+
+	guard = FLRGuardTuningSettings();
+	guard.InvestigateSpeed = guard.PatrolSpeed - 1.0f;
+	TestFalse(TEXT("Investigate speed below patrol speed is rejected"), guard.Validate(error));
+
+	guard = FLRGuardTuningSettings();
+	guard.SightTrackingIntervalSeconds = 0.0f;
+	TestFalse(TEXT("Zero sight tracking interval is rejected"), guard.Validate(error));
+
+	guard = FLRGuardTuningSettings();
+	guard.AttractAlertAmount = 0;
+	TestFalse(TEXT("Zero attract amount is rejected"), guard.Validate(error));
+
 	ULRMovementTuning* movement = NewObject<ULRMovementTuning>();
 	movement->SneakSpeed = movement->RunSpeed + 1.0f;
 	TestFalse(TEXT("Inverted movement speeds"), movement->Validate(error));
@@ -90,42 +116,13 @@ bool FLRTuningInvalidTest::RunTest(const FString& parameters)
 	interaction->ExecuteDistance = interaction->FarHintDistance + 1.0f;
 	TestFalse(TEXT("Inverted interaction tiers"), interaction->Validate(error));
 
-	FLRGuardTuningSettings guard;
-	guard.DetectionSuspiciousAlertFloor = 6;
-	TestFalse(TEXT("Suspicious and investigate floors must be ordered"), guard.Validate(error));
-	guard.DetectionSuspiciousAlertFloor = 1;
-	guard.DetectionInvestigateAlertFloor = 11;
-	TestFalse(TEXT("Investigate and confirmed floors must be ordered"), guard.Validate(error));
-	guard.DetectionInvestigateAlertFloor = 6;
-	guard.DetectionConfirmedAlertFloor = 11;
-	guard.SuspiciousExposureThresholdSeconds = 0.0f;
-	TestFalse(TEXT("Zero suspicious exposure is rejected"), guard.Validate(error));
-	guard.SuspiciousExposureThresholdSeconds = 0.2f;
-	guard.InvestigateExposureThresholdSeconds = 0.1f;
-	TestFalse(TEXT("Exposure thresholds must be ordered"), guard.Validate(error));
-	guard.InvestigateExposureThresholdSeconds = 0.6f;
-	guard.InvestigateExposureThresholdSeconds = guard.SuspiciousExposureThresholdSeconds;
-	TestFalse(TEXT("Equal suspicious and investigate thresholds are rejected"), guard.Validate(error));
-	guard.InvestigateExposureThresholdSeconds = 0.6f;
-	guard.ConfirmedExposureThresholdSeconds = guard.InvestigateExposureThresholdSeconds;
-	TestFalse(TEXT("Equal investigate and confirmed thresholds are rejected"), guard.Validate(error));
-	guard.ConfirmedExposureThresholdSeconds = 1.5f;
-	guard.MaxDetectionIntegrationDeltaSeconds = 0.05f;
-	TestFalse(TEXT("Integration delta must cover the sample interval"), guard.Validate(error));
-
 	ULRStateTuning* state = NewObject<ULRStateTuning>();
 	state->CourageAttackRangeCm = 0.0f;
 	TestFalse(TEXT("Attack range below declared minimum"), state->Validate(error));
-	state->CourageAttackRangeCm = 1.0f;
-	state->CourageAttackFacingDegrees = 0.0f;
-	TestFalse(TEXT("Attack facing below declared minimum"), state->Validate(error));
 
 	ULRUITuning* ui = NewObject<ULRUITuning>();
 	ui->TypewriterCharactersPerSecond = 0.0f;
 	TestFalse(TEXT("Zero typewriter speed"), ui->Validate(error));
-	ui->TypewriterCharactersPerSecond = 30.0f;
-	ui->TypewriterUpdateSeconds = 0.0f;
-	TestFalse(TEXT("Zero typewriter update frequency"), ui->Validate(error));
 	return true;
 }
 

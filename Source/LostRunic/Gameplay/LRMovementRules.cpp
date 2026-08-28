@@ -9,6 +9,7 @@
 #include "Gameplay/LRMovementRules.h"
 
 #include "Core/LRGameplayTags.h"
+#include "Core/LRGuardConstants.h"
 #include "Data/LRGuardTuning.h"
 #include "Data/LRMovementTuning.h"
 
@@ -106,7 +107,7 @@ ELRNoiseEnvironment LRMovementRules::ResolveEnvironmentFromSet(const TArray<ELRN
 }
 
 /**
- * @brief 解析室内奔跑的房间警戒目标值：当前房间 max(当前警戒, RoomRunAlertLevel)；相邻房间 max(当前警戒, 当前警戒+AdjacentRoomRunAlertAmount)。多房间候选取最大由调用方完成，不在此累加。
+ * @brief 解析室内奔跑的房间警戒目标值：当前房间低于 RoomRunAlertLevel 时提升到该下限，否则按 AttractAlertAmount +1；相邻房间按 AdjacentRoomRunAlertAmount +1；噪声最高到10。多房间候选取最大由调用方完成，不在此累加。
  * @param bCurrentRoom 布尔开关 `bCurrentRoom`；true 表示启用或条件成立，false 表示禁用或条件不成立。
  * @param currentAlert 本次操作使用的计数、增量或索引 `currentAlert`；由函数校验合法范围。
  * @param tuning 数据或调优来源 `tuning`；调用期间只读，并按稳定 ID 解析内容。
@@ -115,9 +116,12 @@ ELRNoiseEnvironment LRMovementRules::ResolveEnvironmentFromSet(const TArray<ELRN
 int32 LRMovementRules::ResolveRoomRunTargetLevel(const bool bCurrentRoom, const int32 currentAlert,
 	const FLRGuardTuningSettings& tuning)
 {
-	if (bCurrentRoom)
+	if (bCurrentRoom && currentAlert < tuning.RoomRunAlertLevel)
 	{
-		return FMath::Max(currentAlert, tuning.RoomRunAlertLevel);
+		return tuning.RoomRunAlertLevel;
 	}
-	return FMath::Max(currentAlert, currentAlert + tuning.AdjacentRoomRunAlertAmount);
+
+	const int32 alertDelta = bCurrentRoom ? tuning.AttractAlertAmount : tuning.AdjacentRoomRunAlertAmount;
+	return FMath::Clamp(currentAlert + alertDelta, LRGuardConstants::MinAlertLevel,
+		LRGuardConstants::MaxNoiseAlertLevel);
 }

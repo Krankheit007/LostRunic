@@ -1,18 +1,19 @@
 /**
  * @file LRGuardAIControllerBehavior.cpp
- * @brief Executes resolved behavior and refreshes behavior context without inventing state transitions.
+ * @brief 执行 Idle、Suspicious、Investigate、Chase、Stunned 五个 StateTree 行为。
  */
 #include "AI/LRGuardAIController.h"
+
+#include "AI/LRAlertRules.h"
 
 #include "AI/LRAlertComponent.h"
 #include "AI/LRGuardCharacter.h"
 #include "AI/LRGuardKnowledgeComponent.h"
-#include "Components/StateTreeAIComponent.h"
 #include "Core/LRGameplayTags.h"
+#include "DrawDebugHelpers.h"
 #include "Core/LRLog.h"
 #include "Data/LRGuardTuning.h"
 #include "Data/LRStateTuning.h"
-#include "DrawDebugHelpers.h"
 #include "Engine/World.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Navigation/PathFollowingComponent.h"
@@ -21,81 +22,91 @@
 #include "Perception/AISenseConfig_Sight.h"
 #include "TimerManager.h"
 
-ELRGuardBehaviorEntryResult ALRGuardAIController::EnterBehavior(const ELRGuardBehaviorState behavior)
+ELRGuardBehaviorEntryResult ALRGuardAIController::EnterBehavior(
+	const ELRGuardBehaviorState behavior)
 {
 	if (bStunned && behavior != ELRGuardBehaviorState::Stunned)
 	{
 		ActiveBehavior = ELRGuardBehaviorState::Stunned;
 		return ELRGuardBehaviorEntryResult::Running;
 	}
+
 	ActiveBehavior = behavior;
 	ALRGuardCharacter* guard = Cast<ALRGuardCharacter>(GetPawn());
 	if (!guard)
 	{
-		return behavior == ELRGuardBehaviorState::Investigate
-			? ELRGuardBehaviorEntryResult::Failed : ELRGuardBehaviorEntryResult::Running;
+		return ELRGuardBehaviorEntryResult::Running;
 	}
-	const FLRGuardAwarenessSnapshot awareness = BuildCurrentAwarenessSnapshot();
+
 	UCharacterMovementComponent* movement = guard->GetCharacterMovement();
+	if (!movement)
+	{
+		return ELRGuardBehaviorEntryResult::Running;
+	}
+
 	if (behavior == ELRGuardBehaviorState::Chase)
 	{
-		AActor* threat = awareness.Knowledge.ConfirmedThreat.Get();
 		movement->MaxWalkSpeed = GetEffectiveTuning().ChaseSpeed;
-		if (threat)
+		movement->bOrientRotationToMovement = false;
+		movement->bUseControllerDesiredRotation = true;
+		if (AActor* threat = Knowledge.IsValid() ? Knowledge->GetSnapshot().ConfirmedThreat.Get() : nullptr)
 		{
 			SetFocus(threat);
 			MoveToActor(threat, GetEffectiveTuning().CaptureRadius);
 		}
+		return ELRGuardBehaviorEntryResult::Running;
 	}
-	else if (behavior == ELRGuardBehaviorState::Investigate)
+
+	if (behavior == ELRGuardBehaviorState::Investigate)
 	{
 		movement->MaxWalkSpeed = GetEffectiveTuning().InvestigateSpeed;
-		if (AActor* visualCandidate = GetActiveVisualCandidate())
+		movement->bOrientRotationToMovement = true;
+		movement->bUseControllerDesiredRotation = false;
+		ClearFocus(EAIFocusPriority::Gameplay);
+		if (Knowledge.IsValid())
 		{
-			StopMovement();
-			ClearInvestigationMoveRequest();
-			SetFocus(visualCandidate);
-			return ELRGuardBehaviorEntryResult::Running;
-		}
-		const FPathFollowingRequestResult result = RequestInvestigationMove(awareness.InvestigationLocation);
-		if (result.Code == EPathFollowingRequestResult::AlreadyAtGoal)
-		{
-			if (AActor* visualCandidate = GetActiveVisualCandidate())
+			const FLRGuardKnowledgeSnapshot knowledge = Knowledge->GetSnapshot();
+			if (knowledge.bHasLatestInvestigationLocation)
 			{
-				SetFocus(visualCandidate);
-				return ELRGuardBehaviorEntryResult::Running;
+				RequestInvestigationMove(knowledge.LatestInvestigationLocation);
 			}
-			return ELRGuardBehaviorEntryResult::AlreadyAtGoal;
 		}
-		if (result.Code != EPathFollowingRequestResult::RequestSuccessful)
+		return ELRGuardBehaviorEntryResult::Running;
+	}
+
+	if (behavior == ELRGuardBehaviorState::Suspicious)
+	{
+		StopMovement();
+		movement->bOrientRotationToMovement = false;
+		movement->bUseControllerDesiredRotation = true;
+		if (Knowledge.IsValid())
 		{
-			return ELRGuardBehaviorEntryResult::Failed;
+			const FLRGuardKnowledgeSnapshot knowledge = Knowledge->GetSnapshot();
+			if (knowledge.bHasLatestInvestigationLocation)
+			{
+				SetFocalPoint(knowledge.LatestInvestigationLocation);
+				CurrentSuspiciousFocusLocation = knowledge.LatestInvestigationLocation;
+				bHasSuspiciousFocusLocation = true;
+			}
 		}
+		return ELRGuardBehaviorEntryResult::Running;
 	}
-	else if (behavior == ELRGuardBehaviorState::Search)
-	{
-		StopMovement();
-		SetFocalPoint(awareness.InvestigationLocation);
-	}
-	else if (behavior == ELRGuardBehaviorState::Suspicious)
-	{
-		StopMovement();
-		SetFocalPoint(awareness.InvestigationLocation);
-		CurrentSuspiciousFocusLocation = awareness.InvestigationLocation;
-		bHasSuspiciousFocusLocation = true;
-	}
-	else if (behavior == ELRGuardBehaviorState::Stunned)
+
+	if (behavior == ELRGuardBehaviorState::Stunned)
 	{
 		StopMovement();
 		ClearFocus(EAIFocusPriority::Gameplay);
+		return ELRGuardBehaviorEntryResult::Running;
 	}
-	else
-	{
-		movement->MaxWalkSpeed = GetEffectiveTuning().InvestigateSpeed;
-		StartPatrolMove();
-	}
+
+	movement->MaxWalkSpeed = GetEffectiveTuning().PatrolSpeed;
+	movement->bOrientRotationToMovement = true;
+	movement->bUseControllerDesiredRotation = false;
+	ClearFocus(EAIFocusPriority::Gameplay);
+	StartPatrolMove();
 	return ELRGuardBehaviorEntryResult::Running;
 }
+
 void ALRGuardAIController::ExitBehavior(const ELRGuardBehaviorState behavior)
 {
 	if (behavior == ELRGuardBehaviorState::Investigate)
@@ -109,9 +120,12 @@ void ALRGuardAIController::ExitBehavior(const ELRGuardBehaviorState behavior)
 	StopMovement();
 	ClearFocus(EAIFocusPriority::Gameplay);
 }
-void ALRGuardAIController::OnMoveCompleted(const FAIRequestID requestId, const FPathFollowingResult& result)
+
+void ALRGuardAIController::OnMoveCompleted(const FAIRequestID requestId,
+	const FPathFollowingResult& result)
 {
 	Super::OnMoveCompleted(requestId, result);
+
 	const bool bIsCurrentInvestigationRequest = ActiveBehavior == ELRGuardBehaviorState::Investigate
 		&& InvestigationMoveRequestId.IsValid()
 		&& requestId.GetID() == InvestigationMoveRequestId.GetID();
@@ -119,18 +133,8 @@ void ALRGuardAIController::OnMoveCompleted(const FAIRequestID requestId, const F
 	{
 		if (result.IsSuccess())
 		{
-			if (AActor* visualCandidate = GetActiveVisualCandidate())
-			{
-				ClearInvestigationMoveRequest();
-				SetFocus(visualCandidate);
-				return;
-			}
-			MarkInvestigationReached();
-			return;
-		}
-		if (result.Code == EPathFollowingResult::Blocked || result.Code == EPathFollowingResult::OffPath)
-		{
-			MarkInvestigationUnreachable();
+			SetInvestigationAtLocation();
+			ProcessAwarenessTransaction(LRGameplayTags::InvestigationReached, true);
 			return;
 		}
 		if (result.Code == EPathFollowingResult::Aborted
@@ -138,155 +142,202 @@ void ALRGuardAIController::OnMoveCompleted(const FAIRequestID requestId, const F
 		{
 			return;
 		}
-		MarkInvestigationUnreachable();
+
+		SetInvestigationAtLocation();
+		ProcessAwarenessTransaction(LRGameplayTags::InvestigationUnreachable, true);
 		return;
 	}
+
 	if (ActiveBehavior == ELRGuardBehaviorState::Chase && result.IsSuccess())
 	{
-		const FLRGuardAwarenessSnapshot awareness = BuildCurrentAwarenessSnapshot();
-		AActor* threat = awareness.Knowledge.ConfirmedThreat.Get();
-		ALRGuardCharacter* guard = Cast<ALRGuardCharacter>(GetPawn());
-		if (guard && IsValid(threat)
-			&& FVector::Dist2D(guard->GetActorLocation(), threat->GetActorLocation())
-			<= GetEffectiveTuning().CaptureRadius)
-		{
-			guard->CaptureTarget(threat);
-		}
+		HandleCaptureCheck();
 		return;
 	}
-	if (!result.IsSuccess())
-	{
-		return;
-	}
-	if (ActiveBehavior == ELRGuardBehaviorState::IdlePatrol)
+
+	if (result.IsSuccess() && ActiveBehavior == ELRGuardBehaviorState::IdlePatrol)
 	{
 		++PatrolIndex;
 		StartPatrolMove();
 	}
 }
+
 void ALRGuardAIController::RefreshBehaviorContext(const FLRGuardAwarenessSnapshot& current)
 {
-	if (current.ResolvedBehavior == ELRGuardBehaviorState::Investigate)
+	if (current.ResolvedBehavior == ELRGuardBehaviorState::Suspicious)
 	{
-		if (AActor* visualCandidate = GetActiveVisualCandidate())
+		StopMovement();
+		if (bHasSuspiciousFocusLocation
+			&& CurrentSuspiciousFocusLocation.Equals(current.InvestigationLocation))
+		{
+			return;
+		}
+		if (current.Knowledge.bHasLatestInvestigationLocation)
+		{
+			SetFocalPoint(current.InvestigationLocation);
+			CurrentSuspiciousFocusLocation = current.InvestigationLocation;
+			bHasSuspiciousFocusLocation = true;
+		}
+		return;
+	}
+
+	if (current.ResolvedBehavior != ELRGuardBehaviorState::Investigate
+		|| !current.Knowledge.bHasLatestInvestigationLocation)
+	{
+		return;
+	}
+
+	if (bSightToChaseGraceActive)
+	{
+		if (InvestigationMoveStatus != ELRGuardInvestigationMoveStatus::Moving)
 		{
 			StopMovement();
-			ClearInvestigationMoveRequest();
-			SetFocus(visualCandidate);
-			return;
+			SetFocalPoint(current.Knowledge.bHasLastKnownThreatLocation
+				? current.Knowledge.LastKnownThreatLocation
+				: current.InvestigationLocation);
 		}
-		if (!current.Knowledge.bHasLastKnownThreatLocation
-			&& !current.Knowledge.bHasLastDisturbanceLocation)
+		return;
+	}
+
+	if (bForceInvestigationRetarget)
+	{
+		bForceInvestigationRetarget = false;
+		const APawn* pawn = GetPawn();
+		if (pawn && FVector::Dist2D(pawn->GetActorLocation(), current.InvestigationLocation)
+			<= GetEffectiveTuning().MoveAcceptanceRadius)
 		{
+			SetInvestigationAtLocation();
 			return;
 		}
-		const bool bHasValidRequest = bHasInvestigationMoveTarget && InvestigationMoveRequestId.IsValid();
-		if (bHasValidRequest
-			&& FVector::DistSquared(CurrentInvestigationMoveTarget, current.InvestigationLocation)
-			< FMath::Square(GetEffectiveTuning().InvestigationRetargetDistance))
-		{
-			return;
-		}
+		RequestInvestigationMove(current.InvestigationLocation, true);
+		return;
+	}
+
+	if (InvestigationMoveStatus == ELRGuardInvestigationMoveStatus::AtLocation)
+	{
+		RequestInvestigationObservationIfReady();
+		return;
+	}
+
+	if (InvestigationMoveStatus == ELRGuardInvestigationMoveStatus::None)
+	{
 		RequestInvestigationMove(current.InvestigationLocation);
 		return;
 	}
-	if (current.ResolvedBehavior == ELRGuardBehaviorState::Suspicious)
+
+	if (FVector::DistSquared(CurrentInvestigationMoveTarget, current.InvestigationLocation)
+		>= FMath::Square(GetEffectiveTuning().InvestigateMoveRetargetDistanceCm))
 	{
-		if (bHasSuspiciousFocusLocation
-			&& FVector::DistSquared(CurrentSuspiciousFocusLocation, current.InvestigationLocation)
-			< FMath::Square(GetEffectiveTuning().InvestigationRetargetDistance))
-		{
-			return;
-		}
-		SetFocalPoint(current.InvestigationLocation);
-		CurrentSuspiciousFocusLocation = current.InvestigationLocation;
-		bHasSuspiciousFocusLocation = true;
+		RequestInvestigationMove(current.InvestigationLocation);
 	}
 }
 
 AActor* ALRGuardAIController::GetActiveVisualCandidate() const
 {
-	const FLRGuardAwarenessSnapshot awareness = BuildCurrentAwarenessSnapshot();
-	return awareness.Knowledge.CurrentVisibility.IsActive()
-		? awareness.Knowledge.VisualCandidate.Get() : nullptr;
+	if (!Knowledge.IsValid())
+	{
+		return nullptr;
+	}
+	const FLRGuardKnowledgeSnapshot knowledge = Knowledge->GetSnapshot();
+	return knowledge.bCurrentlyVisible ? knowledge.VisualCandidate.Get() : nullptr;
 }
 
-FPathFollowingRequestResult ALRGuardAIController::RequestInvestigationMove(const FVector& location)
+void ALRGuardAIController::ClearInvestigationMoveRequest()
+{
+	InvestigationMoveRequestId = FAIRequestID::InvalidRequest;
+	CurrentInvestigationMoveTarget = FVector::ZeroVector;
+	InvestigationMoveStatus = ELRGuardInvestigationMoveStatus::None;
+}
+
+void ALRGuardAIController::SetInvestigationAtLocation()
+{
+	StopMovement();
+	InvestigationMoveRequestId = FAIRequestID::InvalidRequest;
+	InvestigationMoveStatus = ELRGuardInvestigationMoveStatus::AtLocation;
+	RequestInvestigationObservationIfReady();
+}
+
+void ALRGuardAIController::RequestInvestigationObservationIfReady()
+{
+	if (!Alert.IsValid() || bSightToChaseGraceActive)
+	{
+		return;
+	}
+
+	const int32 alertLevel = Alert->GetAlertLevel();
+	if (alertLevel >= LRAlertRules::InvestigateMinLevel
+		&& alertLevel <= LRAlertRules::InvestigateMaxLevel)
+	{
+		Alert->StartRedObservation();
+		if (Knowledge.IsValid())
+		{
+			const FLRGuardKnowledgeSnapshot knowledge = Knowledge->GetSnapshot();
+			if (knowledge.bHasLatestInvestigationLocation)
+			{
+				SetFocalPoint(knowledge.LatestInvestigationLocation);
+			}
+		}
+	}
+}
+
+FPathFollowingRequestResult ALRGuardAIController::RequestInvestigationMove(
+	const FVector& location, const bool bForceRetarget)
 {
 	FPathFollowingRequestResult result;
-	if (!GetPawn())
-	{
-		if (Alert.IsValid() && Knowledge.IsValid())
-		{
-			ApplyInvestigationUnreachable();
-		}
-		return result;
-	}
-	if (!Alert.IsValid() || !Knowledge.IsValid())
+	if (!GetPawn() || !Alert.IsValid() || !Knowledge.IsValid())
 	{
 		return result;
 	}
-	if (bHasInvestigationMoveTarget && InvestigationMoveRequestId.IsValid()
-		&& CurrentInvestigationMoveTarget.Equals(location))
+
+	if (!bForceRetarget
+		&& InvestigationMoveStatus == ELRGuardInvestigationMoveStatus::Moving
+		&& FVector::DistSquared(CurrentInvestigationMoveTarget, location)
+			< FMath::Square(GetEffectiveTuning().InvestigateMoveRetargetDistanceCm))
 	{
 		result.Code = EPathFollowingRequestResult::RequestSuccessful;
 		result.MoveId = InvestigationMoveRequestId;
 		return result;
 	}
-	if (!ShouldRetryInvestigationAt(location))
+
+	if (!bForceRetarget
+		&& InvestigationMoveStatus == ELRGuardInvestigationMoveStatus::AtLocation
+		&& FVector::Dist2D(GetPawn()->GetActorLocation(), location)
+			<= GetEffectiveTuning().MoveAcceptanceRadius)
 	{
-		ApplyInvestigationUnreachable();
+		result.Code = EPathFollowingRequestResult::AlreadyAtGoal;
+		SetInvestigationAtLocation();
 		return result;
 	}
-	ClearInvestigationRetrySuppression();
+
 	ClearInvestigationMoveRequest();
 	FAIMoveRequest moveRequest(location);
 	moveRequest.SetAcceptanceRadius(GetEffectiveTuning().MoveAcceptanceRadius);
 	result = MoveTo(moveRequest);
 	++InvestigationMoveRequestCount;
-	if (result.Code == EPathFollowingRequestResult::RequestSuccessful && result.MoveId.IsValid())
+	CurrentInvestigationMoveTarget = location;
+
+	if (result.Code == EPathFollowingRequestResult::RequestSuccessful)
 	{
-		CurrentInvestigationMoveTarget = location;
-		bHasInvestigationMoveTarget = true;
+		InvestigationMoveStatus = ELRGuardInvestigationMoveStatus::Moving;
 		InvestigationMoveRequestId = result.MoveId;
-		Knowledge->AdvanceInvestigationContextRevision();
 		return result;
 	}
-	ClearInvestigationMoveRequest();
+
+	InvestigationMoveRequestId = FAIRequestID::InvalidRequest;
+	InvestigationMoveStatus = ELRGuardInvestigationMoveStatus::AtLocation;
 	if (result.Code == EPathFollowingRequestResult::AlreadyAtGoal)
 	{
-		ApplyInvestigationReached();
+		RequestInvestigationObservationIfReady();
 	}
 	else
 	{
-		ApplyInvestigationUnreachable();
+		UE_LOG(LogLostRunicAI, Warning,
+			TEXT("Controller=%s investigation navigation failed; observing target=%s"),
+			*GetNameSafe(this), *location.ToCompactString());
+		RequestInvestigationObservationIfReady();
 	}
 	return result;
 }
-void ALRGuardAIController::HandleKnockback(const FVector direction)
-{
-	if (bStunned)
-	{
-		return;
-	}
-	bStunned = true;
-	ClearInvestigationMoveRequest();
-	StopMovement();
-	ClearFocus(EAIFocusPriority::Gameplay);
-	UE_LOG(LogLostRunicAI, Display, TEXT("Guard=%s stunned for %.2fs direction=%s"), *GetNameSafe(GetPawn()),
-		StateTuning ? StateTuning->CourageKnockbackDurationSeconds : 0.6f, *direction.ToCompactString());
-	ProcessAwarenessTransaction(LRGameplayTags::TargetGuardCourageVulnerable, true);
-	if (GetWorld())
-	{
-		GetWorld()->GetTimerManager().SetTimer(StunTimer, this, &ALRGuardAIController::HandleStunEnd,
-			StateTuning ? StateTuning->CourageKnockbackDurationSeconds : 0.6f, false);
-	}
-}
-void ALRGuardAIController::HandleStunEnd()
-{
-	bStunned = false;
-	ProcessAwarenessTransaction(LRGameplayTags::TargetGuardCourageVulnerable, true);
-}
+
 void ALRGuardAIController::StartPatrolMove()
 {
 	ALRGuardCharacter* guard = Cast<ALRGuardCharacter>(GetPawn());
@@ -295,17 +346,22 @@ void ALRGuardAIController::StartPatrolMove()
 		StopMovement();
 		return;
 	}
+
 	PatrolIndex %= guard->GetPatrolPointCount();
 	AActor* patrolPoint = guard->GetPatrolPoint(PatrolIndex);
+	if (!patrolPoint)
+	{
+		StopMovement();
+		return;
+	}
+
 	const EPathFollowingRequestResult::Type result = MoveToActor(
 		patrolPoint, GetEffectiveTuning().MoveAcceptanceRadius);
 	if (result == EPathFollowingRequestResult::Failed)
 	{
 		UE_LOG(LogLostRunicAI, Warning,
-			TEXT("Controller=%s Pawn=%s patrol MoveTo failed target=%s pawnLocation=%s targetLocation=%s"),
-			*GetNameSafe(this), *GetNameSafe(guard), *GetNameSafe(patrolPoint),
-			*guard->GetActorLocation().ToCompactString(),
-			patrolPoint ? *patrolPoint->GetActorLocation().ToCompactString() : TEXT("None"));
+			TEXT("Controller=%s Pawn=%s patrol MoveTo failed target=%s"),
+			*GetNameSafe(this), *GetNameSafe(guard), *GetNameSafe(patrolPoint));
 	}
 }
 
@@ -316,17 +372,21 @@ void ALRGuardAIController::LogAndDrawDiagnostics() const
 	{
 		return;
 	}
+
 	const FLRGuardAwarenessSnapshot awareness = BuildCurrentAwarenessSnapshot();
-	const FLRGuardTuningSettings& tuning = GetEffectiveTuning();
 	UE_LOG(LogLostRunicAI, Display,
-		TEXT("Guard=%s Alert=%d Behavior=%d Stage=%d Visible=%d Threat=%s Reason=%s Location=%s"),
+		TEXT("Guard=%s Alert=%d Behavior=%d Visible=%d ConfirmedThreat=%s Reason=%s Location=%s"),
 		*GetNameSafe(guard), awareness.Alert.Level, static_cast<int32>(awareness.ResolvedBehavior),
-		static_cast<int32>(awareness.Knowledge.Stage), awareness.Knowledge.CurrentVisibility.IsActive() ? 1 : 0,
+		awareness.Knowledge.bCurrentlyVisible ? 1 : 0,
 		*GetNameSafe(awareness.Knowledge.ConfirmedThreat.Get()),
-		*Alert->GetLastReason().GetTagName().ToString(), *awareness.InvestigationLocation.ToCompactString());
+		*Alert->GetLastReason().GetTagName().ToString(),
+		*awareness.InvestigationLocation.ToCompactString());
+
 	const FVector origin = guard->GetActorLocation();
-	const UAISenseConfig_Sight* sight = AIPerception->GetSenseConfig<UAISenseConfig_Sight>();
-	const UAISenseConfig_Hearing* hearing = AIPerception->GetSenseConfig<UAISenseConfig_Hearing>();
+	const UAISenseConfig_Sight* sight = AIPerception
+		? AIPerception->GetSenseConfig<UAISenseConfig_Sight>() : nullptr;
+	const UAISenseConfig_Hearing* hearing = AIPerception
+		? AIPerception->GetSenseConfig<UAISenseConfig_Hearing>() : nullptr;
 	if (sight)
 	{
 		const float halfAngleRadians = FMath::DegreesToRadians(sight->PeripheralVisionAngleDegrees);
@@ -337,5 +397,5 @@ void ALRGuardAIController::LogAndDrawDiagnostics() const
 	{
 		DrawDebugSphere(GetWorld(), origin, hearing->HearingRange, 32, FColor::Cyan, false, 5.0f);
 	}
-	DrawDebugSphere(GetWorld(), origin, tuning.CaptureRadius, 16, FColor::Red, false, 5.0f);
+	DrawDebugSphere(GetWorld(), origin, GetEffectiveTuning().CaptureRadius, 16, FColor::Red, false, 5.0f);
 }

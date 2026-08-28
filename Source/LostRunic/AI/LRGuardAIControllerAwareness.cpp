@@ -1,6 +1,6 @@
 /**
  * @file LRGuardAIControllerAwareness.cpp
- * @brief Commits final Guard Awareness snapshots and coordinates transactional behavior transitions.
+ * @brief 发布 Awareness 快照并驱动 StateTree 重新选择五个 Guard 行为。
  */
 #include "AI/LRGuardAIController.h"
 
@@ -9,7 +9,29 @@
 #include "AI/LRGuardKnowledgeComponent.h"
 #include "Components/StateTreeAIComponent.h"
 #include "Core/LRGameplayTags.h"
-#include "Data/LRGuardTuning.h"
+
+namespace
+{
+	bool HasKnowledgeChanged(const FLRGuardKnowledgeSnapshot& previous,
+		const FLRGuardKnowledgeSnapshot& current)
+	{
+		return previous.VisualCandidate != current.VisualCandidate
+			|| previous.bHasVisualCandidate != current.bHasVisualCandidate
+			|| previous.ConfirmedThreat != current.ConfirmedThreat
+			|| previous.bHasConfirmedThreat != current.bHasConfirmedThreat
+			|| previous.bCurrentlyVisible != current.bCurrentlyVisible
+			|| previous.bHasLastKnownThreatLocation != current.bHasLastKnownThreatLocation
+			|| !previous.LastKnownThreatLocation.Equals(current.LastKnownThreatLocation)
+			|| previous.bHasLastDisturbanceLocation != current.bHasLastDisturbanceLocation
+			|| !previous.LastDisturbanceLocation.Equals(current.LastDisturbanceLocation)
+			|| previous.bHasLatestInvestigationLocation != current.bHasLatestInvestigationLocation
+			|| !previous.LatestInvestigationLocation.Equals(current.LatestInvestigationLocation)
+			|| previous.LastAcceptedStimulusSource != current.LastAcceptedStimulusSource
+			|| previous.LastAcceptedStimulusReason != current.LastAcceptedStimulusReason
+			|| !FMath::IsNearlyEqual(previous.LastAcceptedStimulusTimeSeconds,
+				current.LastAcceptedStimulusTimeSeconds);
+	}
+}
 
 void ALRGuardAIController::CommitAwareness(const FGameplayTag reason, const bool bForcePublish)
 {
@@ -17,19 +39,34 @@ void ALRGuardAIController::CommitAwareness(const FGameplayTag reason, const bool
 	{
 		return;
 	}
+
 	const FLRGuardAwarenessSnapshot previous = CachedAwareness;
 	const FLRGuardAwarenessSnapshot current = BuildCurrentAwarenessSnapshot();
-	const bool bThreatChanged = previous.Knowledge.ConfirmedThreat != current.Knowledge.ConfirmedThreat
-		|| previous.Knowledge.bHasConfirmedThreat != current.Knowledge.bHasConfirmedThreat;
-	const bool bVisualContactChanged = previous.Knowledge.VisualCandidate != current.Knowledge.VisualCandidate
-		|| previous.Knowledge.bHasVisualCandidate != current.Knowledge.bHasVisualCandidate
-		|| previous.Knowledge.CurrentVisibility.IsActive() != current.Knowledge.CurrentVisibility.IsActive();
-	const bool bSignificant = bForcePublish || previous.Alert.Level != current.Alert.Level
+
+	if (current.Alert.Level == LRAlertRules::MinAlertLevel)
+	{
+		bSightToChaseGraceConsumed = false;
+	}
+	else if (current.Alert.Level >= LRAlertRules::SuspiciousMinLevel
+		&& current.Alert.Level <= LRAlertRules::SuspiciousMaxLevel
+		&& (previous.Alert.Level == LRAlertRules::MinAlertLevel
+			|| previous.Alert.Level >= LRAlertRules::InvestigateMinLevel))
+	{
+		// 6 -> 5 是衰减退回白色，下一次 5 -> Sight -> 6 要重新获得一次 Grace。
+		bSightToChaseGraceConsumed = false;
+	}
+	else if (current.Alert.Level >= LRAlertRules::InvestigateMinLevel
+		&& previous.Alert.Level <= LRAlertRules::SuspiciousMaxLevel
+		&& !bSightToChaseGraceActive)
+	{
+		// 非视觉事件跨入红色时，本轮红色周期没有 Sight Grace。
+		bSightToChaseGraceConsumed = true;
+	}
+
+	const bool bSignificant = bForcePublish
+		|| previous.Alert.Level != current.Alert.Level
 		|| previous.ResolvedBehavior != current.ResolvedBehavior
-		|| previous.Knowledge.Stage != current.Knowledge.Stage
-		|| previous.Knowledge.bPendingThreatInvestigation != current.Knowledge.bPendingThreatInvestigation
-		|| previous.Knowledge.InvestigationContextRevision != current.Knowledge.InvestigationContextRevision
-		|| bThreatChanged || bVisualContactChanged;
+		|| HasKnowledgeChanged(previous.Knowledge, current.Knowledge);
 
 	CachedAwareness = current;
 	Knowledge->PublishIfChanged(previous.Knowledge);
@@ -41,7 +78,8 @@ void ALRGuardAIController::CommitAwareness(const FGameplayTag reason, const bool
 	}
 }
 
-void ALRGuardAIController::ProcessAwarenessTransaction(const FGameplayTag reason, const bool bForcePublish)
+void ALRGuardAIController::ProcessAwarenessTransaction(const FGameplayTag reason,
+	const bool bForcePublish)
 {
 	if (!Alert.IsValid() || !Knowledge.IsValid())
 	{
@@ -60,7 +98,8 @@ void ALRGuardAIController::ProcessAwarenessTransaction(const FGameplayTag reason
 		if (StateTreeAI && StateTreeAI->IsRunning())
 		{
 			DeferAwarenessCommit(reason, bForcePublish);
-			StateTreeAI->SendStateTreeEvent(LRGameplayTags::AIEventBehaviorChanged, FConstStructView(), FName());
+			StateTreeAI->SendStateTreeEvent(LRGameplayTags::AIEventBehaviorChanged,
+				FConstStructView(), FName());
 			return;
 		}
 
@@ -68,26 +107,8 @@ void ALRGuardAIController::ProcessAwarenessTransaction(const FGameplayTag reason
 		{
 			ExitBehavior(ActiveBehavior);
 		}
-		const ELRGuardBehaviorEntryResult entryResult = EnterBehavior(current.ResolvedBehavior);
-		FGameplayTag finalReason = reason;
-		bool bFinalForcePublish = bForcePublish;
-		if (entryResult == ELRGuardBehaviorEntryResult::AlreadyAtGoal)
-		{
-			finalReason = LRGameplayTags::SearchReached;
-			bFinalForcePublish = true;
-		}
-		else if (entryResult == ELRGuardBehaviorEntryResult::Failed)
-		{
-			finalReason = LRGameplayTags::SearchUnreachable;
-			bFinalForcePublish = true;
-		}
-		const FLRGuardAwarenessSnapshot afterEntry = BuildCurrentAwarenessSnapshot();
-		if (afterEntry.ResolvedBehavior != current.ResolvedBehavior)
-		{
-			ExitBehavior(current.ResolvedBehavior);
-			EnterBehavior(afterEntry.ResolvedBehavior);
-		}
-		CommitAwareness(finalReason, bFinalForcePublish);
+		EnterBehavior(current.ResolvedBehavior);
+		CommitAwareness(reason, bForcePublish);
 		return;
 	}
 
@@ -98,7 +119,8 @@ void ALRGuardAIController::ProcessAwarenessTransaction(const FGameplayTag reason
 		if (StateTreeAI && StateTreeAI->IsRunning())
 		{
 			DeferAwarenessCommit(reason, bForcePublish);
-			StateTreeAI->SendStateTreeEvent(LRGameplayTags::AIEventBehaviorChanged, FConstStructView(), FName());
+			StateTreeAI->SendStateTreeEvent(LRGameplayTags::AIEventBehaviorChanged,
+				FConstStructView(), FName());
 			return;
 		}
 		ExitBehavior(ActiveBehavior);
@@ -110,83 +132,26 @@ void ALRGuardAIController::ProcessAwarenessTransaction(const FGameplayTag reason
 void ALRGuardAIController::FinalizeStateTreeBehaviorEntry(const ELRGuardBehaviorState behavior,
 	const ELRGuardBehaviorEntryResult result)
 {
+	(void)behavior;
+	(void)result;
 	if (!bAwarenessCommitDeferred)
 	{
-		if (result != ELRGuardBehaviorEntryResult::Running && Alert.IsValid() && Knowledge.IsValid())
-		{
-			CommitAwareness(result == ELRGuardBehaviorEntryResult::AlreadyAtGoal
-				? LRGameplayTags::SearchReached : LRGameplayTags::SearchUnreachable, true);
-		}
 		return;
 	}
 
-	FGameplayTag reason = DeferredAwarenessReason;
+	const FGameplayTag reason = DeferredAwarenessReason;
 	const bool bForcePublish = bDeferredForcePublish;
 	bAwarenessCommitDeferred = false;
 	DeferredAwarenessReason = FGameplayTag();
 	bDeferredForcePublish = false;
-	if (result == ELRGuardBehaviorEntryResult::AlreadyAtGoal)
-	{
-		reason = LRGameplayTags::SearchReached;
-	}
-	else if (result == ELRGuardBehaviorEntryResult::Failed)
-	{
-		reason = LRGameplayTags::SearchUnreachable;
-	}
+	RefreshBehaviorContext(BuildCurrentAwarenessSnapshot());
 	CommitAwareness(reason, bForcePublish);
 }
 
-void ALRGuardAIController::DeferAwarenessCommit(const FGameplayTag reason, const bool bForcePublish)
+void ALRGuardAIController::DeferAwarenessCommit(const FGameplayTag reason,
+	const bool bForcePublish)
 {
 	bAwarenessCommitDeferred = true;
 	DeferredAwarenessReason = reason;
 	bDeferredForcePublish = bForcePublish;
-}
-
-void ALRGuardAIController::ApplyInvestigationReached()
-{
-	ClearInvestigationRetrySuppression();
-	ClearInvestigationMoveRequest();
-	Knowledge->MarkInvestigationReached();
-	Alert->MarkInvestigationReached();
-}
-
-void ALRGuardAIController::ApplyInvestigationUnreachable()
-{
-	const FLRGuardAwarenessSnapshot awareness = BuildCurrentAwarenessSnapshot();
-	const bool bHadMoveTarget = bHasInvestigationMoveTarget;
-	const FVector unreachableLocation = bHadMoveTarget
-		? CurrentInvestigationMoveTarget : awareness.InvestigationLocation;
-	bHasUnreachableInvestigationLocation = bHadMoveTarget
-		|| awareness.Knowledge.bHasLastKnownThreatLocation
-		|| awareness.Knowledge.bHasLastDisturbanceLocation;
-	LastUnreachableInvestigationLocation = unreachableLocation;
-	bInvestigationRetrySuppressed = true;
-	ClearInvestigationMoveRequest();
-	Knowledge->MarkInvestigationUnreachable();
-	Alert->MarkInvestigationUnreachable();
-}
-
-void ALRGuardAIController::ClearInvestigationRetrySuppression()
-{
-	bInvestigationRetrySuppressed = false;
-	bHasUnreachableInvestigationLocation = false;
-	LastUnreachableInvestigationLocation = FVector::ZeroVector;
-}
-
-bool ALRGuardAIController::ShouldRetryInvestigationAt(const FVector& location) const
-{
-	if (!bInvestigationRetrySuppressed || !bHasUnreachableInvestigationLocation)
-	{
-		return true;
-	}
-	return FVector::DistSquared(LastUnreachableInvestigationLocation, location)
-		>= FMath::Square(GetEffectiveTuning().InvestigationRetargetDistance);
-}
-
-void ALRGuardAIController::ClearInvestigationMoveRequest()
-{
-	InvestigationMoveRequestId = FAIRequestID::InvalidRequest;
-	bHasInvestigationMoveTarget = false;
-	CurrentInvestigationMoveTarget = FVector::ZeroVector;
 }

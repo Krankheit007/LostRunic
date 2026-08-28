@@ -1,21 +1,21 @@
 /**
  * @file LRGuardSightContactLifecycleTests.cpp
- * @brief Regression coverage for raw UE Sight contact versus project Visibility gates.
+ * @brief Raw UE Sight Contact、Hard Hidden、Grace 和确认记忆的回归测试。
  */
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
 
+#include "AI/LRAlertComponent.h"
 #include "AI/LRGuardAIController.h"
 #include "AI/LRGuardCharacter.h"
 #include "AI/LRGuardKnowledgeComponent.h"
-#include "AI/LRGuardPerceptionRules.h"
-#include "Data/LRGuardTuning.h"
+#include "Core/LRGameplayTags.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
 #include "Framework/LRCharacter.h"
-#include "Perception/AIPerceptionComponent.h"
-#include "Perception/AISenseConfig_Sight.h"
+#include "Stealth/LRHideComponent.h"
+#include "Stealth/LRHidePoint.h"
 #include "TimerManager.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLRGuardSightContactLifecycleRuntimeTest,
@@ -24,10 +24,12 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLRGuardSightContactLifecycleRuntimeTest,
 
 bool FLRGuardSightContactLifecycleRuntimeTest::RunTest(const FString& parameters)
 {
+	(void)parameters;
 	if (!TestNotNull(TEXT("Engine exists"), GEngine))
 	{
 		return false;
 	}
+
 	const FName worldName = MakeUniqueObjectName(GetTransientPackage(), UWorld::StaticClass(),
 		TEXT("GuardSightContactLifecycleWorld"));
 	UWorld* world = UWorld::CreateWorld(EWorldType::Game, false, worldName, GetTransientPackage());
@@ -37,66 +39,92 @@ bool FLRGuardSightContactLifecycleRuntimeTest::RunTest(const FString& parameters
 	}
 	FWorldContext& worldContext = GEngine->CreateNewWorldContext(EWorldType::Game);
 	worldContext.SetCurrentWorld(world);
+
 	FActorSpawnParameters spawnParameters;
 	spawnParameters.ObjectFlags = RF_Transient;
 	ALRGuardCharacter* guard = world->SpawnActor<ALRGuardCharacter>(spawnParameters);
 	ALRGuardAIController* controller = world->SpawnActor<ALRGuardAIController>(spawnParameters);
 	ALRCharacter* player = world->SpawnActor<ALRCharacter>(spawnParameters);
+	ALRHidePoint* hidePoint = world->SpawnActor<ALRHidePoint>(spawnParameters);
 	bool bPassed = TestNotNull(TEXT("Guard spawns"), guard)
 		&& TestNotNull(TEXT("Controller spawns"), controller)
-		&& TestNotNull(TEXT("Player spawns"), player);
+		&& TestNotNull(TEXT("Player spawns"), player)
+		&& TestNotNull(TEXT("Hide point spawns"), hidePoint);
 	if (bPassed)
 	{
-		UAISenseConfig_Sight* sight = NewObject<UAISenseConfig_Sight>(controller);
-		sight->SightRadius = 500.0f;
-		sight->PeripheralVisionAngleDegrees = 22.5f;
-		controller->AIPerception->ConfigureSense(*sight);
-		controller->Possess(guard);
-		ULRGuardKnowledgeComponent* knowledge = guard->GetKnowledgeComponent();
-		const FLRGuardTuningSettings& tuning = controller->Tuning;
 		guard->SetActorLocation(FVector::ZeroVector);
-		guard->SetActorRotation(FRotator::ZeroRotator);
 		player->SetActorLocation(FVector(450.0f, 0.0f, 0.0f));
-		const FLRGuardVisibilityResult activeSample = LRGuardPerceptionRules::EvaluateVisibility(
-			450.0f, 1.0f, sight->SightRadius, sight->PeripheralVisionAngleDegrees,
-			true, true, true, 1.0f, 1.0f, 1.0f, 1.0f, tuning);
+		hidePoint->SetActorLocation(player->GetActorLocation());
+		controller->Possess(guard);
+
+		ULRGuardKnowledgeComponent* knowledge = guard->GetKnowledgeComponent();
+		ULRAlertComponent* alert = guard->GetAlertComponent();
+		controller->RawSightContact = player;
+		controller->bHasRawSightContact = true;
 		knowledge->SetVisualCandidate(player);
-		knowledge->ApplyVisibilitySample(activeSample, 0.5f, tuning);
-		controller->PerceivedSightContact = player;
-		controller->LastDetectionSampleTime = 0.0;
-		controller->StartDetectionSampling();
+		controller->StartSightTracking();
+		controller->HandleSightAcquiredOrTracked(player);
 
-		player->SetActorLocation(FVector(550.0f, 0.0f, 0.0f));
-		controller->HandleDetectionSample();
-		const FLRGuardKnowledgeSnapshot hiddenSnapshot = knowledge->GetSnapshot();
-		bPassed &= TestEqual(TEXT("Custom inactive visibility keeps the visual candidate"),
-			hiddenSnapshot.VisualCandidate.Get(), static_cast<AActor*>(player));
-		bPassed &= TestEqual(TEXT("Custom inactive visibility keeps the raw perception contact"),
-			controller->PerceivedSightContact.Get(), static_cast<AActor*>(player));
-		bPassed &= TestTrue(TEXT("Custom inactive visibility decays exposure"),
-			hiddenSnapshot.EffectiveExposureSeconds < 0.5f);
+		bPassed &= TestEqual(TEXT("Low-alert Sight enters red level six"), alert->GetAlertLevel(), 6);
+		bPassed &= TestTrue(TEXT("Initial Sight starts Grace"), controller->IsSightToChaseGraceActive());
+		bPassed &= TestTrue(TEXT("Raw contact starts Sight tracking timer"),
+			world->GetTimerManager().IsTimerActive(controller->SightTrackingTimer));
 
-		player->SetActorLocation(FVector(450.0f, 0.0f, 0.0f));
-		controller->HandleDetectionSample();
-		const FLRGuardKnowledgeSnapshot reacquiredSnapshot = knowledge->GetSnapshot();
-		bPassed &= TestTrue(TEXT("The same raw contact reacquires after custom visibility recovers"),
-			reacquiredSnapshot.CurrentVisibility.IsActive());
-		bPassed &= TestTrue(TEXT("Reacquisition integrates exposure again"),
-			reacquiredSnapshot.EffectiveExposureSeconds > hiddenSnapshot.EffectiveExposureSeconds);
+		FLRGuardNoiseStimulus noise;
+		noise.Source = player;
+		noise.Location = FVector(350.0f, 100.0f, 0.0f);
+		noise.Reason = LRGameplayTags::NoiseInteraction;
+		noise.TimeSeconds = world->GetTimeSeconds();
+		controller->ReceiveNoiseStimulus(noise);
+		FLRGuardKnowledgeSnapshot duringGrace = knowledge->GetSnapshot();
+		bPassed &= TestEqual(TEXT("Noise during Sight Grace cannot raise Alert"), alert->GetAlertLevel(), 6);
+		bPassed &= TestTrue(TEXT("Noise during Sight Grace is remembered"),
+			duringGrace.LastDisturbanceLocation.Equals(noise.Location));
+		bPassed &= TestTrue(TEXT("Sight target keeps investigation priority during Grace"),
+			duringGrace.LatestInvestigationLocation.Equals(player->GetActorLocation()));
+		bPassed &= TestFalse(TEXT("Grace does not start RedObserve"), alert->IsObserving());
+
+		controller->MarkInvestigationReached();
+		bPassed &= TestFalse(TEXT("Arrival during Grace does not start RedObserve"), alert->IsObserving());
+		controller->HandleSightGraceExpired();
+		FLRGuardKnowledgeSnapshot confirmed = knowledge->GetSnapshot();
+		bPassed &= TestEqual(TEXT("Grace expiry while visible confirms eleven"), alert->GetAlertLevel(), 11);
+		bPassed &= TestTrue(TEXT("Grace expiry records ConfirmedThreat"), confirmed.bHasConfirmedThreat);
+		bPassed &= TestFalse(TEXT("Grace is no longer active after confirmation"),
+			controller->IsSightToChaseGraceActive());
+
+		ULRHideComponent* hide = player->GetHideComponent();
+		if (hide)
+		{
+			hide->BeginPlay();
+			bPassed &= TestTrue(TEXT("Player can enter Hard Hidden for the lifecycle test"),
+				hide->EnterHidePoint(hidePoint));
+			controller->HandleSightTracking();
+			const FLRGuardKnowledgeSnapshot hidden = knowledge->GetSnapshot();
+			bPassed &= TestTrue(TEXT("Hard Hidden keeps raw UE Sight contact"), controller->HasRawSightContact());
+			bPassed &= TestTrue(TEXT("Hard Hidden keeps Sight tracking timer active"),
+			world->GetTimerManager().IsTimerActive(controller->SightTrackingTimer));
+			bPassed &= TestFalse(TEXT("Hard Hidden clears effective visibility"), hidden.bCurrentlyVisible);
+			bPassed &= TestEqual(TEXT("Hard Hidden lowers confirmed alert to ten"), alert->GetAlertLevel(), 10);
+			bPassed &= TestTrue(TEXT("Hard Hidden keeps confirmed threat memory"), hidden.bHasConfirmedThreat);
+
+			hide->ExitHidePoint();
+			controller->HandleSightTracking();
+			bPassed &= TestEqual(TEXT("Leaving Hard Hidden reacquires confirmed sight immediately"),
+				alert->GetAlertLevel(), 11);
+		}
 
 		controller->HandleSightLost(player, player->GetActorLocation());
-		bPassed &= TestFalse(TEXT("True UE Sight Lost clears the visual candidate"), knowledge->HasVisualCandidate());
-		bPassed &= TestTrue(TEXT("True UE Sight Lost keeps residual exposure for decay"),
-			knowledge->GetEffectiveExposureSeconds() > 0.0f);
-		for (int32 sampleIndex = 0; sampleIndex < 16; ++sampleIndex)
-		{
-			controller->HandleDetectionSample();
-		}
-		bPassed &= TestEqual(TEXT("Residual exposure decays to zero after true Sight Lost"),
-			knowledge->GetEffectiveExposureSeconds(), 0.0f, 0.001f);
-		bPassed &= TestFalse(TEXT("Detection timer stops after contact and exposure end"),
-			world->GetTimerManager().IsTimerActive(controller->DetectionSampleTimer));
+		const FLRGuardKnowledgeSnapshot lost = knowledge->GetSnapshot();
+		bPassed &= TestFalse(TEXT("Raw UE Sight Lost clears raw contact"), controller->HasRawSightContact());
+		bPassed &= TestFalse(TEXT("Raw UE Sight Lost stops tracking timer"),
+			world->GetTimerManager().IsTimerActive(controller->SightTrackingTimer));
+		bPassed &= TestFalse(TEXT("Raw UE Sight Lost clears current visibility"), lost.bCurrentlyVisible);
+		bPassed &= TestTrue(TEXT("Raw UE Sight Lost clears visual candidate"), !lost.bHasVisualCandidate);
+	bPassed &= TestTrue(TEXT("Raw UE Sight Lost retains confirmed threat memory"), lost.bHasConfirmedThreat);
+		bPassed &= TestEqual(TEXT("Raw UE Sight Lost returns to investigate level ten"), alert->GetAlertLevel(), 10);
 	}
+
 	if (controller)
 	{
 		controller->UnPossess();

@@ -276,21 +276,16 @@ namespace LRGameplayTags
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(SightPlayerLost);
 	/**
 	 * @brief 创建对象并设置默认子对象、能力开关和安全初值；需要 World、资产或玩家的依赖延迟到初始化阶段解析。
-	 * @param SearchReached 调用方提供的 `SearchReached`，只在本次操作范围内使用。
+	 * @param InvestigationReached 调用方提供的 `InvestigationReached`，只在本次操作范围内使用。
 	 */
-	UE_DECLARE_GAMEPLAY_TAG_EXTERN(SearchReached);
-	/** Investigation target was accepted as unreachable and the guard entered search. */
-	UE_DECLARE_GAMEPLAY_TAG_EXTERN(SearchUnreachable);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(InvestigationReached);
+	/** Investigation target was accepted as unreachable and the guard observes the target location. */
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(InvestigationUnreachable);
 	/**
 	 * @brief 创建对象并设置默认子对象、能力开关和安全初值；需要 World、资产或玩家的依赖延迟到初始化阶段解析。
-	 * @param SearchAlertDecay 调用方提供的 `SearchAlertDecay`，只在本次操作范围内使用。
+	 * @param AlertDecay 调用方提供的 `AlertDecay`，只在本次操作范围内使用。
 	 */
-	UE_DECLARE_GAMEPLAY_TAG_EXTERN(SearchAlertDecay);
-	/**
-	 * @brief 创建对象并设置默认子对象、能力开关和安全初值；需要 World、资产或玩家的依赖延迟到初始化阶段解析。
-	 * @param SearchTimeout 调用方提供的 `SearchTimeout`，只在本次操作范围内使用。
-	 */
-	UE_DECLARE_GAMEPLAY_TAG_EXTERN(SearchTimeout);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(AlertDecay);
 	/**
 	 * @brief 创建对象并设置默认子对象、能力开关和安全初值；需要 World、资产或玩家的依赖延迟到初始化阶段解析。
 	 * @param AIEventAlertChanged 调用方提供的 `AIEventAlertChanged`，只在本次操作范围内使用。

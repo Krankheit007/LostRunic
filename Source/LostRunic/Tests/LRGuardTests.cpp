@@ -1,10 +1,6 @@
 /**
  * @file LRGuardTests.cpp
- * @brief 提供 LostRunic Runtime 自动化测试，覆盖调优边界、状态矩阵、交互筛选、物品双入口、守卫警戒、叙事分支和存档事务顺序。仅在 WITH_DEV_AUTOMATION_TESTS 下编译。
- *
- * 关联文件：Tests 目录内调用该公共契约的实现文件；所属领域：Tests。
- * 设计依据：Docs/Technical/08_ArchitectureBoundaries.md。
- * 除带 EditDefaultsOnly、EditAnywhere 或 EditInstanceOnly 的字段外，其余成员均为运行时状态，不应由蓝图直接改写。
+ * @brief Guard 0-11 警戒、噪声 Floor/CD、行为档位和组件 Tick 契约测试。
  */
 #if WITH_DEV_AUTOMATION_TESTS
 
@@ -25,21 +21,19 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLRAlertRulesTest, "LostRunic.AI.AlertLevelsAnd
 
 bool FLRAlertRulesTest::RunTest(const FString& parameters)
 {
+	(void)parameters;
 	TestEqual(TEXT("Alert clamps below zero"), LRAlertRules::ApplyDelta(2, -8), 0);
 	TestEqual(TEXT("Alert clamps at eleven"), LRAlertRules::ApplyDelta(9, 8), 11);
-	TestEqual(TEXT("Zero alert patrols"), LRAlertRules::ResolveState(0, false, false), ELRGuardBehaviorState::IdlePatrol);
-	TestEqual(TEXT("Low alert is suspicious"), LRAlertRules::ResolveState(5, false, false), ELRGuardBehaviorState::Suspicious);
-	TestEqual(TEXT("Mid alert investigates"), LRAlertRules::ResolveState(6, false, false), ELRGuardBehaviorState::Investigate);
-	TestEqual(TEXT("Max alert without sight searches"), LRAlertRules::ResolveState(11, false, false), ELRGuardBehaviorState::Search);
-	TestEqual(TEXT("Confirmed max alert chases"), LRAlertRules::ResolveState(11, true, false), ELRGuardBehaviorState::Chase);
-	TestEqual(TEXT("Searching in red band searches"), LRAlertRules::ResolveState(6, false, true), ELRGuardBehaviorState::Search);
-	TestEqual(TEXT("Searching below red band is suspicious"), LRAlertRules::ResolveState(5, false, true), ELRGuardBehaviorState::Suspicious);
-	TestFalse(TEXT("Observation suppresses decay"), LRAlertRules::ShouldDecay(true, false, ELRGuardBehaviorState::Suspicious));
-	TestFalse(TEXT("Sight suppresses decay"), LRAlertRules::ShouldDecay(false, true, ELRGuardBehaviorState::Search));
-	TestFalse(TEXT("Investigate holds alert while traveling"), LRAlertRules::ShouldDecay(false, false, ELRGuardBehaviorState::Investigate));
-	TestFalse(TEXT("Chase holds alert"), LRAlertRules::ShouldDecay(false, false, ELRGuardBehaviorState::Chase));
-	TestTrue(TEXT("Suspicious decays after observation"), LRAlertRules::ShouldDecay(false, false, ELRGuardBehaviorState::Suspicious));
-	TestTrue(TEXT("Search decays after observation"), LRAlertRules::ShouldDecay(false, false, ELRGuardBehaviorState::Search));
+	TestEqual(TEXT("Zero resolves IdlePatrol"), LRAlertRules::ResolveState(0), ELRGuardBehaviorState::IdlePatrol);
+	TestEqual(TEXT("One to five resolves Suspicious"), LRAlertRules::ResolveState(5), ELRGuardBehaviorState::Suspicious);
+	TestEqual(TEXT("Six to ten resolves Investigate"), LRAlertRules::ResolveState(6), ELRGuardBehaviorState::Investigate);
+	TestEqual(TEXT("Ten remains Investigate"), LRAlertRules::ResolveState(10), ELRGuardBehaviorState::Investigate);
+	TestEqual(TEXT("Eleven resolves Chase"), LRAlertRules::ResolveState(11), ELRGuardBehaviorState::Chase);
+	TestEqual(TEXT("Stun overrides every alert band"), LRAlertRules::ResolveTargetBehavior(true, 0),
+		ELRGuardBehaviorState::Stunned);
+	TestNotEqual(TEXT("Runtime resolver never returns deprecated Search slot"),
+		static_cast<uint8>(LRAlertRules::ResolveState(6)),
+		static_cast<uint8>(ELRGuardBehaviorState::Search_DEPRECATED));
 	return true;
 }
 
@@ -48,40 +42,64 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLRNoiseAlertDeltaTest, "LostRunic.AI.NoiseAler
 
 bool FLRNoiseAlertDeltaTest::RunTest(const FString& parameters)
 {
+	(void)parameters;
 	const FLRGuardTuningSettings tuning;
 
-	// 室内奔跑：Set 语义，警戒至少提升到 RoomRunAlertLevel，不走吸引 CD。
-	FLRNoiseResponse indoorRun = LRGuardPerceptionRules::ResolveNoiseAlertDelta(
-		LRGameplayTags::NoiseFootstepRunIndoor, 3, tuning);
-	TestTrue(TEXT("Indoor run responds"), indoorRun.bRespond);
-	TestEqual(TEXT("Indoor run raises to floor"), indoorRun.Delta, 2);
-	TestFalse(TEXT("Indoor run is not attract"), indoorRun.bIsAttract);
-	indoorRun = LRGuardPerceptionRules::ResolveNoiseAlertDelta(LRGameplayTags::NoiseFootstepRunIndoor, 6, tuning);
-	TestEqual(TEXT("Indoor run above floor is ignored"), indoorRun.Delta, 0);
+	const FLRNoiseResponse indoorRun = LRGuardPerceptionRules::ResolveNoiseAlertDelta(
+		LRGameplayTags::NoiseFootstepRunIndoor, ELRGuardNoisePropagationMode::CurrentRoom, 0, tuning);
+	TestTrue(TEXT("Current-room run responds"), indoorRun.bRespond);
+	TestTrue(TEXT("Current-room run uses a Floor"), indoorRun.bUseCurrentRoomRunFloor);
+	TestEqual(TEXT("Current-room run uses normal increase after Floor"), indoorRun.Delta,
+		tuning.AttractAlertAmount);
 
-	// Faint：仅警戒 >=6 的守卫响应，且为吸引语义。
-	FLRNoiseResponse faintLow = LRGuardPerceptionRules::ResolveNoiseAlertDelta(
-		LRGameplayTags::NoiseFootstepWalkFaint, 5, tuning);
-	TestFalse(TEXT("Faint ignored below six"), faintLow.bRespond);
-	TestTrue(TEXT("Faint is attract"), faintLow.bIsAttract);
-	FLRNoiseResponse faintHigh = LRGuardPerceptionRules::ResolveNoiseAlertDelta(
-		LRGameplayTags::NoiseFootstepWalkFaint, 6, tuning);
-	TestTrue(TEXT("Faint responds at six"), faintHigh.bRespond);
-	TestEqual(TEXT("Faint attracts one"), faintHigh.Delta, 1);
+	const FLRNoiseResponse adjacentRun = LRGuardPerceptionRules::ResolveNoiseAlertDelta(
+		LRGameplayTags::NoiseFootstepRunIndoor, ELRGuardNoisePropagationMode::AdjacentRoom, 0, tuning);
+	TestTrue(TEXT("Adjacent-room run responds"), adjacentRun.bRespond);
+	TestEqual(TEXT("Adjacent-room run uses configured increase"), adjacentRun.Delta,
+		tuning.AdjacentRoomRunAlertAmount);
 
-	// 普通噪声：一律吸引 +1。
-	const FGameplayTag plainReasons[] = {
-		LRGameplayTags::NoiseFootstepWalk.GetTag(),
-		LRGameplayTags::NoiseFootstepRun.GetTag(),
-		LRGameplayTags::NoiseInteraction.GetTag()
-	};
-	for (const FGameplayTag reason : plainReasons)
-	{
-		const FLRNoiseResponse response = LRGuardPerceptionRules::ResolveNoiseAlertDelta(reason, 4, tuning);
-		TestTrue(TEXT("Plain noise responds"), response.bRespond);
-		TestEqual(TEXT("Plain noise attracts one"), response.Delta, tuning.AttractAlertAmount);
-		TestTrue(TEXT("Plain noise is attract"), response.bIsAttract);
-	}
+	const FLRNoiseResponse faintLow = LRGuardPerceptionRules::ResolveNoiseAlertDelta(
+		LRGameplayTags::NoiseFootstepWalkFaint, ELRGuardNoisePropagationMode::Hearing, 5, tuning);
+	TestFalse(TEXT("Faint walk is ignored below investigate band"), faintLow.bRespond);
+	const FLRNoiseResponse faintHigh = LRGuardPerceptionRules::ResolveNoiseAlertDelta(
+		LRGameplayTags::NoiseFootstepWalkFaint, ELRGuardNoisePropagationMode::Hearing, 6, tuning);
+	TestTrue(TEXT("Faint walk responds in investigate band"), faintHigh.bRespond);
+
+	const FLRNoiseResponse ordinary = LRGuardPerceptionRules::ResolveNoiseAlertDelta(
+		LRGameplayTags::NoiseInteraction, ELRGuardNoisePropagationMode::Hearing, 4, tuning);
+	TestTrue(TEXT("Ordinary noise responds"), ordinary.bRespond);
+	TestEqual(TEXT("Ordinary noise uses attract amount"), ordinary.Delta, tuning.AttractAlertAmount);
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLRRoomRunAlertSequenceTest, "LostRunic.AI.RoomRunAlertFloorSequence",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FLRRoomRunAlertSequenceTest::RunTest(const FString& parameters)
+{
+	(void)parameters;
+	const FLRGuardTuningSettings tuning;
+	int32 alert = 0;
+	const FLRNoiseResponse run = LRGuardPerceptionRules::ResolveNoiseAlertDelta(
+		LRGameplayTags::NoiseFootstepRunIndoor, ELRGuardNoisePropagationMode::CurrentRoom, alert, tuning);
+
+	alert = LRGuardPerceptionRules::ResolveNoiseResultLevel(alert, run, tuning);
+	TestEqual(TEXT("Run starts at RoomRunAlertLevel"), alert, 5);
+	alert = LRGuardPerceptionRules::ResolveNoiseResultLevel(alert, run, tuning);
+	TestEqual(TEXT("Run at Floor becomes six"), alert, 6);
+	alert = LRGuardPerceptionRules::ResolveNoiseResultLevel(alert, run, tuning);
+	TestEqual(TEXT("Run continues to seven"), alert, 7);
+	alert = LRGuardPerceptionRules::ResolveNoiseResultLevel(9, run, tuning);
+	TestEqual(TEXT("Run reaches red cap ten"), alert, 10);
+	alert = LRGuardPerceptionRules::ResolveNoiseResultLevel(10, run, tuning);
+	TestEqual(TEXT("Noise cannot enter eleven"), alert, 10);
+
+	const FLRNoiseResponse ordinary = LRGuardPerceptionRules::ResolveNoiseAlertDelta(
+		LRGameplayTags::NoiseInteraction, ELRGuardNoisePropagationMode::Hearing, 0, tuning);
+	TestEqual(TEXT("Ordinary noise starts at one"),
+		LRGuardPerceptionRules::ResolveNoiseResultLevel(0, ordinary, tuning), 1);
+	TestEqual(TEXT("Ordinary noise crosses five to six"),
+		LRGuardPerceptionRules::ResolveNoiseResultLevel(5, ordinary, tuning), 6);
 	return true;
 }
 
@@ -90,45 +108,19 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLRAlertIncreaseCooldownTest, "LostRunic.AI.Ale
 
 bool FLRAlertIncreaseCooldownTest::RunTest(const FString& parameters)
 {
+	(void)parameters;
 	const FLRGuardTuningSettings tuning;
-
-	// 1-5 档与首次进入 6-10 档使用 0.5s，6-10 档后续使用 0.2s。
-	TestEqual(TEXT("Low band uses long cooldown"),
-		LRAlertRules::ResolveAttractIncreaseCooldown(3, false, tuning), tuning.AlertIncreaseCooldownSeconds);
-	TestEqual(TEXT("First increase in red band uses long cooldown"),
-		LRAlertRules::ResolveAttractIncreaseCooldown(6, true, tuning), tuning.AlertIncreaseCooldownSeconds);
-	TestEqual(TEXT("Later increases in red band use short cooldown"),
-		LRAlertRules::ResolveAttractIncreaseCooldown(6, false, tuning), tuning.InvestigateIncreaseCooldownSeconds);
-
-	// 冷却边界：等于冷却时长时允许；冷却被拒绝的刺激完全忽略。
-	TestTrue(TEXT("Cooldown elapsed allows increase"), LRAlertRules::IsIncreaseAllowed(10.0, 9.5, 0.5f));
-	TestFalse(TEXT("Cooldown active rejects increase"), LRAlertRules::IsIncreaseAllowed(10.0, 9.6, 0.5f));
-	TestTrue(TEXT("Zero cooldown always allows"), LRAlertRules::IsIncreaseAllowed(10.0, 0.0, 0.0f));
-	return true;
-}
-
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLRResolveTargetBehaviorTest, "LostRunic.AI.ResolveTargetBehavior",
-	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
-
-bool FLRResolveTargetBehaviorTest::RunTest(const FString& parameters)
-{
-	// 眩晕覆盖一切：感知与警戒继续运行，但行为被钉在 Stunned。
-	TestEqual(TEXT("Stun overrides chase"), LRAlertRules::ResolveTargetBehavior(true, 11, true, false),
-		ELRGuardBehaviorState::Stunned);
-	TestEqual(TEXT("Stun overrides idle"), LRAlertRules::ResolveTargetBehavior(true, 0, false, false),
-		ELRGuardBehaviorState::Stunned);
-	// 未眩晕时按警戒推导。
-	TestEqual(TEXT("Resolved idle"), LRAlertRules::ResolveTargetBehavior(false, 0, false, false),
-		ELRGuardBehaviorState::IdlePatrol);
-	TestEqual(TEXT("Resolved suspicious"), LRAlertRules::ResolveTargetBehavior(false, 5, false, false),
-		ELRGuardBehaviorState::Suspicious);
-	TestEqual(TEXT("Resolved investigate"), LRAlertRules::ResolveTargetBehavior(false, 6, false, false),
-		ELRGuardBehaviorState::Investigate);
-	TestEqual(TEXT("Resolved chase"), LRAlertRules::ResolveTargetBehavior(false, 11, true, false),
-		ELRGuardBehaviorState::Chase);
-	// 眩晕结束后按当前警戒与视线恢复。
-	TestEqual(TEXT("Stun recovery resumes chase"), LRAlertRules::ResolveTargetBehavior(false, 11, true, false),
-		ELRGuardBehaviorState::Chase);
+	TestEqual(TEXT("First white run uses pace multiplier"),
+		LRAlertRules::ResolveAttractCooldown(5, true, ELRMovementPace::Run, tuning), 0.3f, 0.001f);
+	TestEqual(TEXT("First red run uses red base and pace multiplier"),
+		LRAlertRules::ResolveAttractCooldown(6, true, ELRMovementPace::Run, tuning), 0.12f, 0.001f);
+	TestEqual(TEXT("First white sneak uses configured multiplier"),
+		LRAlertRules::ResolveAttractCooldown(1, true, ELRMovementPace::Sneak, tuning), 0.8f, 0.001f);
+	TestEqual(TEXT("Later red noise uses fixed red cooldown"),
+		LRAlertRules::ResolveAttractCooldown(7, false, ELRMovementPace::Run, tuning), 0.2f, 0.001f);
+	TestTrue(TEXT("Cooldown boundary allows increase"), LRAlertRules::IsIncreaseAllowed(10.0, 9.5, 0.5f));
+	TestFalse(TEXT("Active cooldown rejects increase"), LRAlertRules::IsIncreaseAllowed(10.0, 9.6, 0.5f));
+	TestTrue(TEXT("Zero cooldown always allows increase"), LRAlertRules::IsIncreaseAllowed(10.0, 0.0, 0.0f));
 	return true;
 }
 
@@ -137,12 +129,13 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLRAlertTierTest, "LostRunic.AI.AlertTierMappin
 
 bool FLRAlertTierTest::RunTest(const FString& parameters)
 {
+	(void)parameters;
 	TestEqual(TEXT("Zero alert is hidden"), LRAlertRules::ResolveAlertTier(0), ELRGuardAlertTier::Hidden);
-	TestEqual(TEXT("Low alert is white"), LRAlertRules::ResolveAlertTier(1), ELRGuardAlertTier::White);
+	TestEqual(TEXT("One is white"), LRAlertRules::ResolveAlertTier(1), ELRGuardAlertTier::White);
 	TestEqual(TEXT("Five is white boundary"), LRAlertRules::ResolveAlertTier(5), ELRGuardAlertTier::White);
 	TestEqual(TEXT("Six is red"), LRAlertRules::ResolveAlertTier(6), ELRGuardAlertTier::Red);
 	TestEqual(TEXT("Ten is red boundary"), LRAlertRules::ResolveAlertTier(10), ELRGuardAlertTier::Red);
-	TestEqual(TEXT("Eleven is full"), LRAlertRules::ResolveAlertTier(11), ELRGuardAlertTier::Full);
+	TestEqual(TEXT("Eleven is full red"), LRAlertRules::ResolveAlertTier(11), ELRGuardAlertTier::Full);
 	return true;
 }
 
@@ -151,6 +144,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLRAlertComponentSnapshotTest, "LostRunic.AI.Al
 
 bool FLRAlertComponentSnapshotTest::RunTest(const FString& parameters)
 {
+	(void)parameters;
 	const ULRAlertComponent* alert = NewObject<ULRAlertComponent>(GetTransientPackage());
 	if (!TestNotNull(TEXT("Alert component created"), alert))
 	{
@@ -159,41 +153,42 @@ bool FLRAlertComponentSnapshotTest::RunTest(const FString& parameters)
 	const FLRAlertSnapshot snapshot = alert->GetAlertSnapshot();
 	TestEqual(TEXT("New alert starts at zero"), snapshot.Level, 0);
 	TestEqual(TEXT("New alert tier is hidden"), snapshot.Tier, ELRGuardAlertTier::Hidden);
-	TestEqual(TEXT("Pure Alert snapshot does not resolve behavior"), snapshot.Behavior,
-		ELRGuardBehaviorState::IdlePatrol);
+	TestFalse(TEXT("New alert is not full"), snapshot.bFullAlert);
 	return true;
 }
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLRGuardPerceptionRulesTest, "LostRunic.AI.PerceptionConeAndOcclusion",
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLRAlertSnapshotPresentationTest, "LostRunic.AI.AlertSnapshotPresentation",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
-bool FLRGuardPerceptionRulesTest::RunTest(const FString& parameters)
+bool FLRAlertSnapshotPresentationTest::RunTest(const FString& parameters)
 {
-	const FLRGuardTuningSettings tuning;
-	constexpr float sightRadius = 500.0f;
-	constexpr float halfAngleDegrees = 22.5f;
-	const float boundaryDot = FMath::Cos(FMath::DegreesToRadians(halfAngleDegrees));
-	TestTrue(TEXT("Sight accepts 500 cm forward target"),
-		LRGuardPerceptionRules::CanConfirmSight(500.0f, 1.0f, sightRadius, halfAngleDegrees, false, false, tuning));
-	TestTrue(TEXT("Sight accepts cone boundary"),
-		LRGuardPerceptionRules::CanConfirmSight(sightRadius, boundaryDot, sightRadius, halfAngleDegrees, false, false, tuning));
-	TestFalse(TEXT("Sight rejects beyond radius"),
-		LRGuardPerceptionRules::CanConfirmSight(sightRadius + 0.1f, 1.0f, sightRadius, halfAngleDegrees, false, false, tuning));
-	TestFalse(TEXT("Sight rejects outside cone"),
-		LRGuardPerceptionRules::CanConfirmSight(sightRadius, boundaryDot - 0.01f, sightRadius, halfAngleDegrees, false, false, tuning));
-	TestFalse(TEXT("Sight rejects occluded target"),
-		LRGuardPerceptionRules::CanConfirmSight(100.0f, 1.0f, sightRadius, halfAngleDegrees, true, false, tuning));
-	TestFalse(TEXT("Sight rejects hidden target"),
-		LRGuardPerceptionRules::CanConfirmSight(100.0f, 1.0f, sightRadius, halfAngleDegrees, false, true, tuning));
+	(void)parameters;
+	ULRAlertComponent* alert = NewObject<ULRAlertComponent>(GetTransientPackage());
+	if (!TestNotNull(TEXT("Alert component created for presentation snapshot"), alert))
+	{
+		return false;
+	}
+
+	const int32 levels[] = { 0, 1, 5, 6, 10, 11 };
+	const float expectedFractions[] = { 0.0f, 0.2f, 1.0f, 0.2f, 1.0f, 1.0f };
+	for (int32 index = 0; index < UE_ARRAY_COUNT(levels); ++index)
+	{
+		alert->AlertLevel = levels[index];
+		const FLRAlertSnapshot snapshot = alert->GetAlertSnapshot();
+		TestEqual(*FString::Printf(TEXT("Alert %d snapshot fraction"), levels[index]),
+			snapshot.Fraction, expectedFractions[index], 0.001f);
+	}
 	return true;
 }
-
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLRGuardCompositionTest, "LostRunic.AI.GuardCompositionDisablesTick",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLRGuardCompositionTest, "LostRunic.AI.GuardCompositionTickPolicy",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FLRGuardCompositionTest::RunTest(const FString& parameters)
 {
+	(void)parameters;
 	TestFalse(TEXT("Guard actor Tick is disabled"), GetDefault<ALRGuardCharacter>()->PrimaryActorTick.bCanEverTick);
-	TestFalse(TEXT("Guard controller Tick is disabled"), GetDefault<ALRGuardAIController>()->PrimaryActorTick.bCanEverTick);
+	TestTrue(TEXT("AI controller Tick remains enabled for Focus maintenance"),
+		GetDefault<ALRGuardAIController>()->PrimaryActorTick.bCanEverTick);
 	TestFalse(TEXT("Alert component Tick is disabled"), GetDefault<ULRAlertComponent>()->PrimaryComponentTick.bCanEverTick);
 	TestFalse(TEXT("Hide component Tick is disabled"), GetDefault<ULRHideComponent>()->PrimaryComponentTick.bCanEverTick);
 	TestFalse(TEXT("Noise emitter Tick is disabled"), GetDefault<ULRNoiseEmitterComponent>()->PrimaryComponentTick.bCanEverTick);

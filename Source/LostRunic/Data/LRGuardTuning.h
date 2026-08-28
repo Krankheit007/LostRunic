@@ -1,10 +1,9 @@
 /**
  * @file LRGuardTuning.h
- * @brief 集中配置守卫总视野角、视野/听觉距离、调查/追逐速度、警戒衰减、搜索和捕获参数，是 AI 行为数值的权威来源。
+ * @brief Guard 0-11 警戒、视觉确认、调查移动和捕获的唯一调优来源。
  *
- * 关联文件：LRGuardTuning.cpp；所属领域：Data。
- * 设计依据：Docs/Technical/08_ArchitectureBoundaries.md。
- * 除带 EditDefaultsOnly、EditAnywhere 或 EditInstanceOnly 的字段外，其余成员均为运行时状态，不应由蓝图直接改写。
+ * UE Sight 的半径、LoseSightRadius 和 PeripheralVisionAngleDegrees 由 Guard Controller
+ * Blueprint 的 inherited AIPerception 配置；本结构体只保存玩法节奏参数。
  */
 #pragma once
 
@@ -12,122 +11,72 @@
 
 #include "LRGuardTuning.generated.h"
 
-/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
-USTRUCT(BlueprintType, meta = (DisplayName = "Lost Runic Guard Tuning Settings"))
+/** 可在 BP_LRGuardController Class Defaults 中调整的 Guard 玩法参数。 */
+USTRUCT(BlueprintType, meta = (DisplayName = "守卫调优设置"))
 struct LOSTRUNIC_API FLRGuardTuningSettings
 {
 	GENERATED_BODY()
 
-public:
-	/** Continuous sight sample interval; the controller owns the timer and the knowledge component remains event-driven. */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|Detection", meta = (ClampMin = "0.01", ClampMax = "1.0", Units = "s"))
-	float DetectionSampleIntervalSeconds = 0.1f;
-
-	/** Maximum delta integrated by one visibility sample, preventing large frame gaps from skipping exposure stages. */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|Detection", meta = (ClampMin = "0.01", ClampMax = "1.0", Units = "s"))
-	float MaxDetectionIntegrationDeltaSeconds = 0.2f;
-
-	/** Effective exposure thresholds for the continuous sight stage resolver. */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|Detection", meta = (ClampMin = "0.0", ClampMax = "60.0", Units = "s"))
-	float SuspiciousExposureThresholdSeconds = 0.2f;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|Detection", meta = (ClampMin = "0.0", ClampMax = "60.0", Units = "s"))
-	float InvestigateExposureThresholdSeconds = 0.6f;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|Detection", meta = (ClampMin = "0.0", ClampMax = "60.0", Units = "s"))
-	float ConfirmedExposureThresholdSeconds = 1.5f;
-
-	/** Effective exposure seconds removed per real second while visual exposure is inactive. */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|Detection", meta = (ClampMin = "0.0", ClampMax = "10.0"))
-	float DetectionExposureDecayRate = 1.0f;
-
-	/** Alert floor for the first active detection stage. */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|Detection", meta = (ClampMin = "1", ClampMax = "11"))
-	int32 DetectionSuspiciousAlertFloor = 1;
-
-	/** Alert floor for the investigation detection stage. */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|Detection", meta = (ClampMin = "1", ClampMax = "11"))
-	int32 DetectionInvestigateAlertFloor = 6;
-
-	/** Alert floor for the confirmed detection stage and chase. */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|Detection", meta = (ClampMin = "1", ClampMax = "11"))
-	int32 DetectionConfirmedAlertFloor = 11;
-
-	/** Score at the edge of the configured sight radius; distance uses a linear interpolation from 1.0 to this value. */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|Visibility", meta = (ClampMin = "0.0", ClampMax = "1.0"))
-	float SightEdgeDetectionMultiplier = 0.5f;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|Visibility", meta = (ClampMin = "0.0", ClampMax = "1.0"))
-	float SneakVisibilityMultiplier = 0.5f;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|Visibility", meta = (ClampMin = "0.0", ClampMax = "1.0"))
-	float WalkVisibilityMultiplier = 0.75f;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|Visibility", meta = (ClampMin = "0.0", ClampMax = "1.0"))
-	float RunVisibilityMultiplier = 1.0f;
-
-	/** 吸引注意噪声每次增加的警戒量；设计基线 1（0→1、档内 +1）。 C++ 安全默认值为 `1`。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。编辑器约束：最小值 `1`，最大值 `11`。 */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|Alert", meta = (ClampMin = "1", ClampMax = "11"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|警戒", meta = (DisplayName = "警戒增加量", ToolTip = "普通吸引注意事件增加的警戒值；有效范围为0到10，警戒不会超过10。", ClampMin = "1", ClampMax = "10"))
 	int32 AttractAlertAmount = 1;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|警戒", meta = (DisplayName = "可疑观察时间", ToolTip = "0变为1，或白色档位中的新异常被接受后，警戒保持不变的时间。", ClampMin = "0.1", ClampMax = "30.0", Units = "s"))
+	float SuspiciousObserveSeconds = 3.0f;
 
-	/** 1-5 档吸引注意增加的冷却时间；默认 0.5 秒；从 0 首次进入 6-10 档的首个增量也使用该值。 C++ 安全默认值为 `0.5f`。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。编辑器约束：单位 `s`，最小值 `0.0`，最大值 `10.0`。 */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|Alert", meta = (ClampMin = "0.0", ClampMax = "10.0", Units = "s"))
-	float AlertIncreaseCooldownSeconds = 0.5f;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|警戒", meta = (DisplayName = "调查观察时间", ToolTip = "Guard 抵达红色调查点后保持警戒不变的观察时间。", ClampMin = "0.1", ClampMax = "30.0", Units = "s"))
+	float InvestigateObserveSeconds = 3.0f;
 
-	/** 6-10 档前往/观察中吸引注意增加的冷却时间；默认 0.2 秒。 C++ 安全默认值为 `0.2f`。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。编辑器约束：单位 `s`，最小值 `0.0`，最大值 `10.0`。 */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|Alert", meta = (ClampMin = "0.0", ClampMax = "10.0", Units = "s"))
-	float InvestigateIncreaseCooldownSeconds = 0.2f;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|警戒", meta = (DisplayName = "视觉追逐确认宽限", ToolTip = "低警戒首次看到敌对角色后，从6确认到11前的短暂宽限；期间警戒冻结。", ClampMin = "0.0", ClampMax = "10.0", Units = "s"))
+	float SightToChaseGraceSeconds = 0.5f;
 
-	/** 室内奔跑对当前房间守卫的警戒下限；默认 5。 C++ 安全默认值为 `5`。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。编辑器约束：最小值 `0`，最大值 `11`。 */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|Alert", meta = (ClampMin = "0", ClampMax = "11"))
-	int32 RoomRunAlertLevel = 5;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|警戒", meta = (DisplayName = "白色刺激冷却", ToolTip = "白色1到5档接受噪声刺激后，下一次噪声增加警戒前的基础冷却。", ClampMin = "0.0", ClampMax = "10.0", Units = "s"))
+	float SuspiciousStimulusCooldownSeconds = 0.5f;
 
-	/** 室内奔跑对相邻房间守卫的警戒增量；默认 1。 C++ 安全默认值为 `1`。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。编辑器约束：最小值 `1`，最大值 `11`。 */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|Alert", meta = (ClampMin = "1", ClampMax = "11"))
-	int32 AdjacentRoomRunAlertAmount = 1;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|警戒", meta = (DisplayName = "红色刺激冷却", ToolTip = "红色6到10档接受噪声刺激后，下一次噪声增加警戒前的基础冷却。", ClampMin = "0.0", ClampMax = "10.0", Units = "s"))
+	float InvestigateStimulusCooldownSeconds = 0.2f;
 
-	/** 每个衰减周期降低的警戒值；默认 1。 C++ 安全默认值为 `1`。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。编辑器约束：最小值 `1`，最大值 `11`。 */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|Alert", meta = (ClampMin = "1", ClampMax = "11"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|警戒", meta = (DisplayName = "警戒衰减量", ToolTip = "每个衰减周期降低的警戒值。", ClampMin = "1", ClampMax = "10"))
 	int32 AlertDecayAmount = 1;
 
-	/** 守卫调查异常位置时的速度；默认 170 cm/s。 C++ 安全默认值为 `170.0f`。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。编辑器约束：单位 `cm/s`，最小值 `1.0`，最大值 `1000.0`。 */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|Movement", meta = (ClampMin = "1.0", ClampMax = "1000.0", Units = "cm/s"))
-	float InvestigateSpeed = 170.0f;
-
-	/** 守卫追逐玩家时的速度；默认 300 cm/s。 C++ 安全默认值为 `300.0f`。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。编辑器约束：单位 `cm/s`，最小值 `1.0`，最大值 `1000.0`。 */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|Movement", meta = (ClampMin = "1.0", ClampMax = "1000.0", Units = "cm/s"))
-	float ChaseSpeed = 300.0f;
-
-	/** 警戒从 0 提升后的初始观察时长；默认 3 秒。 C++ 安全默认值为 `3.0f`。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。编辑器约束：单位 `s`，最小值 `0.1`，最大值 `30.0`。 */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|Alert", meta = (ClampMin = "0.1", ClampMax = "30.0", Units = "s"))
-	float InitialObserveSeconds = 3.0f;
-
-	/** 低警戒自然下降的间隔；默认 0.5 秒。 C++ 安全默认值为 `0.5f`。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。编辑器约束：单位 `s`，最小值 `0.05`，最大值 `10.0`。 */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|Alert", meta = (ClampMin = "0.05", ClampMax = "10.0", Units = "s"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|警戒", meta = (DisplayName = "警戒衰减间隔", ToolTip = "观察结束后，警戒自然衰减的周期。", ClampMin = "0.05", ClampMax = "10.0", Units = "s"))
 	float AlertDecayIntervalSeconds = 0.5f;
 
-	/** 已废弃：旧固定搜索时长；搜索改为「抵达观察 3s → 自然衰减 → 归零清理」，保留字段仅用于资产序列化兼容，不再参与运行与校验。 */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|Alert|Deprecated", meta = (DeprecatedProperty, ClampMin = "0.1", ClampMax = "60.0", Units = "s"))
-	float SearchDurationSeconds = 5.0f;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|警戒", meta = (DisplayName = "当前房奔跑警戒下限", ToolTip = "当前房间首次接受玩家奔跑时，警戒至少提升到该白色档位；达到下限后后续奔跑按普通增加量累积。", ClampMin = "1", ClampMax = "5"))
+	int32 RoomRunAlertLevel = 5;
 
-	/** 追逐中判定捕获玩家的距离；默认 75 cm。 C++ 安全默认值为 `75.0f`。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。编辑器约束：单位 `cm`，最小值 `10.0`，最大值 `500.0`。 */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|Capture", meta = (ClampMin = "10.0", ClampMax = "500.0", Units = "cm"))
-	float CaptureRadius = 75.0f;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|警戒", meta = (DisplayName = "相邻房奔跑警戒增加量", ToolTip = "相邻房间收到玩家奔跑传播时增加的警戒值，最高到10。", ClampMin = "1", ClampMax = "10"))
+	int32 AdjacentRoomRunAlertAmount = 1;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|视觉", meta = (DisplayName = "视觉跟踪间隔", ToolTip = "Raw UE Sight Contact 存在时检查有效视觉的定时器间隔；Hard Hidden 不会停止该定时器。", ClampMin = "0.01", ClampMax = "1.0", Units = "s"))
+	float SightTrackingIntervalSeconds = 0.1f;
 
-	/** 守卫导航到调查点时允许的到达误差；默认 50 cm。 C++ 安全默认值为 `50.0f`。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。编辑器约束：单位 `cm`，最小值 `1.0`，最大值 `500.0`。 */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|Movement", meta = (ClampMin = "1.0", ClampMax = "500.0", Units = "cm"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|视觉", meta = (DisplayName = "奔跑首次刺激冷却倍率", ToolTip = "玩家奔跑发出的噪声首次进入当前警戒档位时使用的冷却倍率。", ClampMin = "0.0", ClampMax = "4.0"))
+	float FirstAttractRunCooldownMultiplier = 0.6f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|视觉", meta = (DisplayName = "走路首次刺激冷却倍率", ToolTip = "玩家走路发出的噪声首次进入当前警戒档位时使用的冷却倍率。", ClampMin = "0.0", ClampMax = "4.0"))
+	float FirstAttractWalkCooldownMultiplier = 1.0f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|视觉", meta = (DisplayName = "潜行首次刺激冷却倍率", ToolTip = "玩家潜行发出的噪声首次进入当前警戒档位时使用的冷却倍率。", ClampMin = "0.0", ClampMax = "4.0"))
+	float FirstAttractSneakCooldownMultiplier = 1.6f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|移动", meta = (DisplayName = "巡逻速度", ToolTip = "Guard Idle/Patrol 时的移动速度。", ClampMin = "1.0", ClampMax = "1000.0", Units = "cm/s"))
+	float PatrolSpeed = 120.0f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|移动", meta = (DisplayName = "调查速度", ToolTip = "Guard 前往最新异常位置时的移动速度。", ClampMin = "1.0", ClampMax = "1000.0", Units = "cm/s"))
+	float InvestigateSpeed = 170.0f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|移动", meta = (DisplayName = "追逐速度", ToolTip = "Guard Chase 时的移动速度。", ClampMin = "1.0", ClampMax = "1000.0", Units = "cm/s"))
+	float ChaseSpeed = 300.0f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|移动", meta = (DisplayName = "调查到达误差", ToolTip = "调查导航请求的接受半径。", ClampMin = "1.0", ClampMax = "500.0", Units = "cm"))
 	float MoveAcceptanceRadius = 50.0f;
 
-	/** Distance below which a new accepted disturbance may retarget investigation. */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|Movement", meta = (ClampMin = "1.0", ClampMax = "1000.0", Units = "cm"))
-	float InvestigationRetargetDistance = 75.0f;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|移动", meta = (DisplayName = "调查重定向距离", ToolTip = "连续视觉跟踪期间，最新可见位置移动超过该距离后才重新发送调查导航请求；离散噪声会直接重定向。", ClampMin = "1.0", ClampMax = "1000.0", Units = "cm"))
+	float InvestigateMoveRetargetDistanceCm = 75.0f;
 
-	/**
-	 * @brief 校验当前资产的必填引用、数值边界及跨字段关系，并输出可诊断错误。
-	 * @param outError 输出校验失败原因；成功时保持为空。
-	 * @return 返回查询值、结构化结果或操作是否成功；失败语义由返回类型定义。
-	 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|捕获", meta = (DisplayName = "捕获半径", ToolTip = "Guard 追上已确认敌对角色后触发死亡占位的距离。", ClampMin = "10.0", ClampMax = "500.0", Units = "cm"))
+	float CaptureRadius = 75.0f;
+
+	/** 校验调优值和速度/档位关系；失败原因供编辑器和运行时日志使用。 */
 	bool Validate(FString& outError) const;
 };

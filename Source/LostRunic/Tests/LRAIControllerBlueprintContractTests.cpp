@@ -163,7 +163,10 @@ bool FLRGuardControllerBlueprintContractTest::RunTest(const FString& parameters)
 		{
 			TestEqual(TEXT("Guard Sight Radius"), sight->SightRadius, 500.0f);
 			TestEqual(TEXT("Guard Lose Sight Radius"), sight->LoseSightRadius, 600.0f);
-			TestEqual(TEXT("Guard Sight Half Angle"), sight->PeripheralVisionAngleDegrees, 22.5f);
+			TestTrue(*FString::Printf(TEXT("Guard Sight Half Angle is Blueprint-configured; actual=%.2f"),
+				sight->PeripheralVisionAngleDegrees),
+				sight->PeripheralVisionAngleDegrees > 0.0f
+				&& sight->PeripheralVisionAngleDegrees <= 180.0f);
 			TestEqual(TEXT("Guard Sight MaxAge is Never"), sight->GetMaxAge(),
 				FAIStimulus::NeverHappenedAge);
 			TestEqual(TEXT("Guard Auto Success range remains disabled"),

@@ -64,10 +64,9 @@ namespace LRGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(NoiseFootstepRunIndoor, "Noise.Footstep.Run.Indoor", "Indoor run; propagated through room volumes with alert floor semantics.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(SightPlayer, "Sight.Player", "A guard saw the player.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(SightPlayerLost, "Sight.Player.Lost", "A guard lost confirmed sight of the player.");
-	UE_DEFINE_GAMEPLAY_TAG_COMMENT(SearchReached, "Search.Reached", "A guard reached the latest disturbance location.");
-	UE_DEFINE_GAMEPLAY_TAG_COMMENT(SearchUnreachable, "Search.Unreachable", "A guard could not reach the latest investigation target.");
-	UE_DEFINE_GAMEPLAY_TAG_COMMENT(SearchAlertDecay, "Search.AlertDecay", "Alert decayed after its observation delay.");
-	UE_DEFINE_GAMEPLAY_TAG_COMMENT(SearchTimeout, "Search.Timeout", "A guard search timed out.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(InvestigationReached, "Investigation.Reached", "A guard reached the latest disturbance location.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(InvestigationUnreachable, "Investigation.Unreachable", "A guard could not reach the latest investigation target.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(AlertDecay, "Alert.Decay", "Alert decayed after its observation delay.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(AIEventAlertChanged, "AI.Event.AlertChanged", "Alert or perception data changed; data-level event, does not drive StateTree selection.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(AIEventBehaviorChanged, "AI.Event.BehaviorChanged", "The resolved guard behavior changed; StateTree should reselect.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(AIEventNPCNoiseHeard, "AI.Event.NPCNoiseHeard", "An NPC heard a noise and StateTree should react.");

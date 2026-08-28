@@ -1,6 +1,6 @@
 /**
  * @file LRGuardAIController.h
- * @brief Adapts UE perception/world queries into transactional Guard Awareness and executes resolved StateTree behavior.
+ * @brief 将 UE Perception、Alert、Knowledge、Navigation 和 Guard StateTree 接在一起。
  */
 #pragma once
 
@@ -31,7 +31,14 @@ enum class ELRGuardBehaviorEntryResult : uint8
 	Failed
 };
 
-/** Controller-owned perception adapter and coordinator for sibling Alert/Knowledge components. */
+enum class ELRGuardInvestigationMoveStatus : uint8
+{
+	None,
+	Moving,
+	AtLocation
+};
+
+/** Guard 感知入口和行为执行协调器。 */
 UCLASS(BlueprintType, meta = (DisplayName = "Lost Runic Guard AI Controller"))
 class LOSTRUNIC_API ALRGuardAIController : public AAIController
 {
@@ -44,7 +51,6 @@ public:
 	virtual void OnPossess(APawn* inPawn) override;
 	virtual void OnUnPossess() override;
 
-	/** Validates Blueprint-authored senses and inline tuning. Runtime mode also requires the possessed Guard context. */
 	bool ValidateControllerConfiguration(FString& outError, bool bRequirePossessionContext) const;
 
 #if WITH_EDITOR
@@ -63,18 +69,27 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Lost Runic|AI")
 	ELRGuardBehaviorState GetResolvedBehavior() const;
 
-	/** Number of actual investigation MoveTo requests issued since the current possession. */
+	UFUNCTION(BlueprintPure, Category = "Lost Runic|AI|Perception")
+	bool HasRawSightContact() const { return bHasRawSightContact; }
+
+	UFUNCTION(BlueprintPure, Category = "Lost Runic|AI|Perception")
+	bool IsSightToChaseGraceActive() const { return bSightToChaseGraceActive; }
+
+	/** 当前持有的调查导航请求数量，用于诊断和回归测试。 */
 	int32 GetInvestigationMoveRequestCount() const { return InvestigationMoveRequestCount; }
 
-	/** Unified accepted/rejected noise domain entry for hearing and room propagation. */
+	/** UE Hearing、当前房和相邻房噪声统一进入这里。 */
 	void ReceiveNoiseStimulus(const FLRGuardNoiseStimulus& stimulus);
+
+	/** 导航完成/失败回调的行为入口；Grace 活跃时只记录抵达，不启动红色观察。 */
 	void MarkInvestigationReached();
 	void MarkInvestigationUnreachable();
-	void ResetSearch();
+
 	bool IsRelevantSightTarget(const AActor* actor) const;
 
 	ELRGuardBehaviorEntryResult EnterBehavior(ELRGuardBehaviorState behavior);
-	void FinalizeStateTreeBehaviorEntry(ELRGuardBehaviorState behavior, ELRGuardBehaviorEntryResult result);
+	void FinalizeStateTreeBehaviorEntry(ELRGuardBehaviorState behavior,
+		ELRGuardBehaviorEntryResult result);
 	void ExitBehavior(ELRGuardBehaviorState behavior);
 	void LogAndDrawDiagnostics() const;
 
@@ -82,12 +97,14 @@ public:
 	FLRGuardAwarenessChanged OnGuardAwarenessChanged;
 
 protected:
-	virtual void OnMoveCompleted(FAIRequestID requestId, const FPathFollowingResult& result) override;
+	virtual void OnMoveCompleted(FAIRequestID requestId,
+		const FPathFollowingResult& result) override;
 
 private:
 #if WITH_DEV_AUTOMATION_TESTS
 	friend class FLRGuardSightContactLifecycleRuntimeTest;
 #endif
+
 	UFUNCTION()
 	void HandlePerception(AActor* actor, FAIStimulus stimulus);
 
@@ -96,38 +113,51 @@ private:
 
 	void TryInitializeRuntime();
 	void ShutdownRuntime();
+
 	void HandleCaptureCheck();
-	void HandleDetectionSample();
+	void HandleSightTracking();
+	void HandleSightGraceExpired();
 	void HandleAlertDecayRequested();
 	void HandleStunEnd();
 	void StartPatrolMove();
+
+	void HandleSightAcquiredOrTracked(AActor* actor);
+	void HandleSightLost(AActor* actor, const FVector& lastKnownLocation);
+	void HandleAttractStimulus(const FLRGuardNoiseStimulus& stimulus);
+
+	bool CanCurrentlySeeTarget() const;
+	bool IsHiddenFromGuard(AActor* actor) const;
 	AActor* GetActiveVisualCandidate() const;
+
+	void StartSightTracking();
+	void StopSightTracking();
+	void StartSightToChaseGrace();
+	void StopSightToChaseGrace();
+
 	FLRGuardAwarenessSnapshot BuildCurrentAwarenessSnapshot() const;
 	void ProcessAwarenessTransaction(FGameplayTag reason, bool bForcePublish = false);
 	void RefreshBehaviorContext(const FLRGuardAwarenessSnapshot& current);
 	void CommitAwareness(FGameplayTag reason, bool bForcePublish = false);
 	void DeferAwarenessCommit(FGameplayTag reason, bool bForcePublish);
+
 	void ClearInvestigationMoveRequest();
-	void ClearInvestigationRetrySuppression();
-	bool ShouldRetryInvestigationAt(const FVector& location) const;
-	void ApplyInvestigationReached();
-	void ApplyInvestigationUnreachable();
-	void StartDetectionSampling();
-	void StopDetectionSampling();
-	FPathFollowingRequestResult RequestInvestigationMove(const FVector& location);
-	void HandleSightLost(AActor* actor, const FVector& lastKnownLocation);
-	FLRGuardVisibilityResult EvaluateVisibility(AActor* actor) const;
-	float ResolveMovementVisibilityFactor(const AActor* actor) const;
-	bool IsHiddenFromGuard(AActor* actor) const;
+	void SetInvestigationAtLocation();
+	void RequestInvestigationObservationIfReady();
+	FPathFollowingRequestResult RequestInvestigationMove(const FVector& location,
+		bool bForceRetarget = false);
+
 	const FLRGuardTuningSettings& GetEffectiveTuning() const;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components",
+		meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UStateTreeAIComponent> StateTreeAI;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components",
+		meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UAIPerceptionComponent> AIPerception;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|Tuning", meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Guard|调优",
+		meta = (AllowPrivateAccess = "true"))
 	FLRGuardTuningSettings Tuning;
 
 	UPROPERTY(Transient)
@@ -140,25 +170,29 @@ private:
 	TWeakObjectPtr<ULRGuardKnowledgeComponent> Knowledge;
 
 	FLRGuardAwarenessSnapshot CachedAwareness;
-	TWeakObjectPtr<AActor> PerceivedSightContact;
-	double LastDetectionSampleTime = 0.0;
+	TWeakObjectPtr<AActor> RawSightContact;
 	ELRGuardBehaviorState ActiveBehavior = ELRGuardBehaviorState::IdlePatrol;
+
 	int32 PatrolIndex = 0;
+	int32 InvestigationMoveRequestCount = 0;
+	FAIRequestID InvestigationMoveRequestId = FAIRequestID::InvalidRequest;
+	FVector CurrentInvestigationMoveTarget = FVector::ZeroVector;
+	ELRGuardInvestigationMoveStatus InvestigationMoveStatus = ELRGuardInvestigationMoveStatus::None;
+
 	bool bStunned = false;
 	bool bRuntimeInitialized = false;
-	FTimerHandle DetectionSampleTimer;
-
-	bool bHasInvestigationMoveTarget = false;
-	FVector CurrentInvestigationMoveTarget = FVector::ZeroVector;
-	bool bInvestigationRetrySuppressed = false;
-	bool bHasUnreachableInvestigationLocation = false;
-	FVector LastUnreachableInvestigationLocation = FVector::ZeroVector;
-	FAIRequestID InvestigationMoveRequestId = FAIRequestID::InvalidRequest;
-	int32 InvestigationMoveRequestCount = 0;
+	bool bHasRawSightContact = false;
+	bool bSightToChaseGraceActive = false;
+	bool bSightToChaseGraceConsumed = false;
+	bool bForceInvestigationRetarget = false;
 	bool bHasSuspiciousFocusLocation = false;
-	FVector CurrentSuspiciousFocusLocation = FVector::ZeroVector;
 	bool bAwarenessCommitDeferred = false;
-	FGameplayTag DeferredAwarenessReason;
 	bool bDeferredForcePublish = false;
+
+	FTimerHandle SightTrackingTimer;
+	FTimerHandle SightToChaseGraceTimer;
 	FTimerHandle StunTimer;
+
+	FGameplayTag DeferredAwarenessReason;
+	FVector CurrentSuspiciousFocusLocation = FVector::ZeroVector;
 };

@@ -1,6 +1,6 @@
 /**
  * @file LRGuardKnowledgeComponent.h
- * @brief Owns controller-fed guard knowledge without world, perception, LOS or navigation queries.
+ * @brief 保存 Guard 感知记忆，不访问 World、Perception、LOS 或 Navigation。
  */
 #pragma once
 
@@ -10,11 +10,11 @@
 #include "LRGuardKnowledgeComponent.generated.h"
 
 class ALRGuardAIController;
-struct FLRGuardTuningSettings;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FLRGuardKnowledgeChanged,
 	const FLRGuardKnowledgeSnapshot&, snapshot);
 
+/** Guard 感知事实的唯一运行时所有者。 */
 UCLASS(ClassGroup = "Lost Runic", BlueprintType, meta = (BlueprintSpawnableComponent, DisplayName = "Lost Runic Guard Knowledge"))
 class LOSTRUNIC_API ULRGuardKnowledgeComponent : public UActorComponent
 {
@@ -27,13 +27,7 @@ public:
 	FLRGuardKnowledgeSnapshot GetSnapshot() const { return Snapshot; }
 
 	UFUNCTION(BlueprintPure, Category = "Lost Runic|AI|Knowledge")
-	FLRGuardVisibilityResult GetCurrentVisibility() const { return Snapshot.CurrentVisibility; }
-
-	UFUNCTION(BlueprintPure, Category = "Lost Runic|AI|Knowledge")
-	ELRGuardDetectionStage GetDetectionStage() const { return Snapshot.Stage; }
-
-	UFUNCTION(BlueprintPure, Category = "Lost Runic|AI|Knowledge")
-	float GetEffectiveExposureSeconds() const { return Snapshot.EffectiveExposureSeconds; }
+	bool IsCurrentlyVisible() const { return Snapshot.bCurrentlyVisible; }
 
 	UFUNCTION(BlueprintPure, Category = "Lost Runic|AI|Knowledge")
 	bool HasVisualCandidate() const { return Snapshot.bHasVisualCandidate; }
@@ -41,14 +35,10 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Lost Runic|AI|Knowledge")
 	bool HasConfirmedThreat() const { return Snapshot.bHasConfirmedThreat; }
 
-	/** Returns true only when the remembered confirmed threat is this actor. */
 	bool HasConfirmedThreatActor(const AActor* actor) const
 	{
 		return actor && Snapshot.bHasConfirmedThreat && Snapshot.ConfirmedThreat.Get() == actor;
 	}
-
-	UFUNCTION(BlueprintPure, Category = "Lost Runic|AI|Knowledge")
-	bool HasPendingThreatInvestigation() const { return Snapshot.bPendingThreatInvestigation; }
 
 	UFUNCTION(BlueprintPure, Category = "Lost Runic|AI|Knowledge")
 	FVector GetLastKnownThreatLocation() const { return Snapshot.LastKnownThreatLocation; }
@@ -57,7 +47,7 @@ public:
 	FVector GetLastDisturbanceLocation() const { return Snapshot.LastDisturbanceLocation; }
 
 	UFUNCTION(BlueprintPure, Category = "Lost Runic|AI|Knowledge")
-	int32 GetInvestigationContextRevision() const { return Snapshot.InvestigationContextRevision; }
+	FVector GetLatestInvestigationLocation() const { return Snapshot.LatestInvestigationLocation; }
 
 	UPROPERTY(BlueprintAssignable, Category = "Lost Runic|AI|Knowledge")
 	FLRGuardKnowledgeChanged OnKnowledgeChanged;
@@ -66,27 +56,21 @@ private:
 	friend class ALRGuardAIController;
 #if WITH_DEV_AUTOMATION_TESTS
 	friend class FLRGuardSightContactLifecycleRuntimeTest;
+	friend class FLRGuardKnowledgeMemoryTest;
 #endif
 
 	void SetVisualCandidate(AActor* candidate);
-	void ClearVisualCandidate();
-	void ApplyVisibilitySample(const FLRGuardVisibilityResult& sample, float deltaSeconds,
-		const FLRGuardTuningSettings& tuning);
-	void RecordVisualEvidence(AActor* actor, const FVector& location, bool bPendingInvestigation);
-	void SetConfirmedThreat(AActor* threat, const FVector& lastKnownLocation, bool bLatch = true);
-	void RecordSightLoss(const FVector& lastKnownLocation);
-	void CommitAcceptedNoise(const FLRGuardNoiseStimulus& stimulus, bool bConfirmedThreatSource);
-	void MarkInvestigationReached();
-	void MarkInvestigationUnreachable();
-	void AdvanceInvestigationContextRevision();
+	void RecordVisibleThreat(AActor* actor, const FVector& location);
+	void RecordSightLost(const FVector& lastKnownLocation);
+	void RecordDisturbance(const FLRGuardNoiseStimulus& stimulus, bool bAllowInvestigationRetarget);
+	void SetConfirmedThreat(AActor* threat, const FVector& lastKnownLocation);
 	void SuspendVisualContact();
 	void ResetAwareness();
+
 	void PublishIfChanged(const FLRGuardKnowledgeSnapshot& previousSnapshot);
 	static bool AreSnapshotsEqual(const FLRGuardKnowledgeSnapshot& left,
 		const FLRGuardKnowledgeSnapshot& right);
 
 	UPROPERTY(Transient)
 	FLRGuardKnowledgeSnapshot Snapshot;
-
-	bool bThreatLatched = false;
 };

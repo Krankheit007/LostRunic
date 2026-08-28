@@ -140,50 +140,75 @@ Content/TopDown was not deleted wholesale. Asset Registry found current BP_LRPla
 - .agents/ue-project-context.md is an agent context summary and should link here; it is not the source of architecture truth.
 ## Guard awareness boundary
 
-### Controller component and configuration ownership
+### Controller、组件与配置所有权
 
-- `ALRGuardAIController` and `ALRNPCController` create the only `UAIPerceptionComponent` and `UStateTreeAIComponent` native default subobjects. Derived Controller Blueprints configure those inherited components; neither Controller SCS nor Pawn Blueprints may add duplicate AI components.
-- Perception auto activation and StateTree automatic startup are disabled. `TryInitializeRuntime()` is the only facility startup path after a valid possession; `UnPossess()` symmetrically unbinds, forgets perception cache, deactivates perception, stops StateTree and clears controller-owned timers/navigation/focus.
-- Guard and NPC balance values live in `FLRGuardTuningSettings` / `FLRNPCTuningSettings` inside the derived Controller Blueprint Class Defaults. Guard/NPC Definition and Tuning DataAssets are not part of the runtime dependency graph.
-- Runtime reads Blueprint-authored senses through `GetSenseConfig<T>()` and starts the already-configured StateTree. It does not call `ConfigureSense()`, `SetStateTree()`, or reflect `StateTreeRef`. Exact StateTree asset reflection is restricted to Editor validation and contract tests.
-- `AlertComponent::InitializeRuntime/ShutdownRuntime` owns infrastructure only. It copies/clears runtime tuning and resumes/stops valid timers without resetting Alert, Search, ConfirmedThreat, LastKnown, or Pending gameplay state.
+- `ALRGuardAIController` 是 Guard 感知事件的唯一协调入口；它只消费派生 Controller Blueprint 已配置的 AIPerception 和 StateTreeAI，不在 C++ 重复配置 Sight 的距离、角度、LOS 或 StateTree 资产。
+- `ALRGuardAIController`、`ULRGuardKnowledgeComponent`、`ULRAlertComponent` 的职责严格分开：Controller 负责感知适配、导航、朝向和执行阶段；Knowledge 只保存感知事实与位置记忆；AlertComponent 只维护 0-11 警戒条及观察/衰减/刺激 CD 计时。
+- Guard 的所有手感参数来自派生 Controller Blueprint 的 Inline `FLRGuardTuningSettings`。C++ 默认值只是安全回退；编辑器展示名和 ToolTip 使用中文。
+- Alert/Knowledge 的运行时 mutation 只由 Controller 调用；Blueprint、StateTree、UI 只能读取快照或消费事件。StateTree 只执行 Controller 已解析出的行为，不维护第二套警戒状态机。
 
-Guard runtime state follows this one-way ownership flow:
+运行时数据流：
 
-    UE AI Perception / Room Noise
-                 |
-                 v
-    ALRGuardAIController (adapter + coordinator)
-          |                         |
-          v                         v
-    GuardKnowledge             AlertComponent
-          \_________________________/
-                       |
-                       v
-          FLRGuardAwarenessSnapshot
-                       |
-                       v
-       LRAlertRules::ResolveTargetBehavior
-                       |
-                       v
-                  StateTree
+    UE AIPerception Sight/Hearing + Room Noise
+                         |
+                         v
+              ALRGuardAIController
+                 |             |
+                 v             v
+          GuardKnowledge    AlertComponent
+                 \             /
+                  \           /
+                   v         v
+               FLRGuardAwarenessSnapshot
+                         |
+                         v
+           ResolveTargetBehavior / StateTree
 
-- ALRGuardAIController is the sole mutation entry. AI Hearing and room propagation both call ReceiveNoiseStimulus. Blueprint and external gameplay code may read snapshots and delegates but may not mutate Alert or Knowledge directly.
-- GuardKnowledge owns visual candidate, confirmed threat, last-known threat location, last disturbance, effective exposure seconds, detection stage, pending investigation, and stimulus diagnostics. It performs no world, LOS, navigation, perception, or controller queries.
-- AlertComponent owns only the 0-11 meter, tier/fraction, observing/decay, search flag, alert reason, and noise cooldown acceptance. It does not own target identity, sight state, or behavior resolution.
-- A controller mutation is synchronous: evaluate raw stimulus, reject or accept it, update both peer components, resolve behavior from their snapshots, then publish one FLRGuardAwarenessSnapshot. Component delegates remain diagnostics; they do not drive controller control flow and UI/StateTree do not consume partial state.
-- Raw noise metadata is not authoritative evidence. bRespond=false or cooldown rejection commits neither LastDisturbanceLocation nor LastKnownThreatLocation. Accepted threat-source noise may update LastKnownThreatLocation; other accepted noise may update LastDisturbanceLocation.
-- Continuous visibility is sampled by the controller with actual elapsed time capped by tuning. Guard visibility rules are pure calculations. Hard target visibility, UE contact, range, cone and LOS are gates; distance and movement are multipliers. Knowledge integrates effective exposure and emits stage edges only.
-- Alert decay asks the controller for permission. Active visual exposure prevents decay without copying a sight boolean back into Alert. Alert reaching zero and search reset are coordinated resets, so Alert and Knowledge remain peer components with no cyclic dependency.
-- Behavior priority is Stunned; visible confirmed threat at chase threshold; zero alert patrol; pending reliable location at investigate floor; explicit red-band Search; max-alert Search; white-band Suspicious; remaining red-band Investigate.
-- Invariant: AlertLevel == 11 does not imply ConfirmedThreat. Chase requires Knowledge to contain a confirmed, currently visible threat. PendingThreatInvestigation takes precedence over Search until its location is reached.
-- BehaviorChanged is emitted only when the enum changes. Investigation location/revision changes use RefreshBehaviorContext and a retarget-distance gate, preserving StateTree state while updating navigation context.
-- FLRAlertSnapshot.Behavior is presentation compatibility only and is filled by the controller when composing legacy UI data. FLRGuardAwarenessSnapshot.ResolvedBehavior is authoritative.
+### Alert 与行为语义
 
-### Guard Awareness execution transactions (2026-08-25)
+Guard 行为只由警戒值和眩晕覆盖解析：
 
-- **StateTree/Controller 执行权**：行为枚举变化时 Controller 只发送 `AI.Event.BehaviorChanged`，由 `FLRGuardBehaviorTask::EnterState` 首次调用 `EnterBehavior`；行为不变且 Investigate 上下文达到 retarget 阈值时，Controller 直接调用导航 Helper。两条路径共享幂等请求，不会对同一目标双发 Move。
-- **事务提交**：`CommitAwareness` 是最终提交器，不执行 Move、Enter、Knowledge/Alert mutation 或递归提交。同步 `AlreadyAtGoal`/失败在当前事务中先收敛到 Search 再广播；已成功运行后的异步 Move completion/failure 是新的独立事务。
-- **导航失败分类**：当前 RequestId 才能改变领域状态；`Blocked`/`OffPath`/当前请求的非 `NewRequest` Abort 调用 `MarkInvestigationUnreachable`，清 Pending、设置 Search flag 并清理目标，禁止 Detection sample 自动重试。不同 RequestId 的 stale callback 忽略；Retarget 产生的 `NewRequest` Abort 忽略；行为退出前清 ID，因此 Controller 主动 Abort 不污染 Knowledge。
-- **瞬时视觉与历史记忆**：Sight Lost 清 Candidate/CurrentVisibility 但保留 Exposure、Stage 和 sample 时间，由单一 DetectionSampleTimer 做 inactive decay；Exposure 归零后 Stage=None 并停 Timer。UnPossess 额外立即清 Exposure/Stage，保留 ConfirmedThreat、位置记忆、Pending、Revision 和 Alert。
-- **版本与广播**：`InvestigationContextRevision` 只描述已被导航接受的 Investigate 执行上下文；Suspicious SetFocalPoint 不递增。Knowledge 每个 sample 可更新，但 Awareness delegate 忽略单独 Exposure float 变化，只在 Alert/Stage/contact/threat/pending/revision/behavior 变化时广播。
+```text
+Stunned      -> Stunned
+Alert 0      -> IdlePatrol
+Alert 1..5   -> Suspicious
+Alert 6..10  -> Investigate
+Alert 11     -> Chase
+```
+
+| 警戒值 | UI | 行为与计时 |
+|---:|---|---|
+| `0` | 隐藏 | 原地或巡逻；异常刺激到 `1`，有效 Sight 到 `6` |
+| `1-5` | 白色，`Level / 5` | 面向异常；从 `0` 进入时观察 `SuspiciousObserveSeconds`；接受异常 +1、最高 5、刷新白色观察；自然衰减每 `AlertDecayIntervalSeconds` 减 `AlertDecayAmount` |
+| `6-10` | 红色，`(Level - 5) / 5` | 以 `InvestigateSpeed` 前往唯一的 `LatestInvestigationLocation`；抵达后才开始 `InvestigateObserveSeconds`，然后自然衰减；异常 +1、最高 10，发现敌对角色直接到 11 |
+| `11` | 红色 100% + `Alert_Full_Red` | `ConfirmedThreat` 有效时以 `ChaseSpeed` 持续追逐；捕获进入占位死亡流程；真实 Sight Lost 后变为 10 并调查最后可见位置 |
+
+AlertComponent 的内部枚举若存在，只表示计时模式：`None`、`WhiteObservation`、`RedObservation`、`Decay`。它不表示移动、导航成功/失败或 StateTree 行为。
+
+- 白色接受异常使用 `SuspiciousStimulusCooldownSeconds`；红色接受异常使用 `InvestigateStimulusCooldownSeconds`。
+- 首次刺激 CD（若启用动态步态倍率）按事件修改后的结果档位决定：`0→1/5` 使用白色基准，`5→6` 使用红色基准；事件的步态必须在声音产生时快照。Sight 不受刺激 CD 阻挡，也不走 `HandleAttractStimulus`。
+- `6→5` 是衰减跨档，不启动白色观察、不启动 CD；下一次异常 `5→6` 直接按红色结果档处理。
+- Room Run 的当前房间规则是：当前值低于 `RoomRunAlertLevel` 时设为该 Floor（默认 5），否则按 `AttractAlertAmount` 继续增加；相邻房间按 `AdjacentRoomRunAlertAmount` 增加；噪声不能超过 10。只有有效视觉确认能进入 11。
+
+### Sight、Grace 与 Hard Hidden
+
+- Sight 的距离、Lose Sight 距离、半角、Affiliation 和遮挡由 `BP_LRGuardController` 的 `UAISenseConfig_Sight` 唯一配置。`PeripheralVisionAngleDegrees` 是半角；C++ 不复制距离/扇形/LOS 计算。
+- Controller 区分 **Raw Sight Contact** 与 **Effective Sight**。Hard Hidden 只会令 Effective Sight 暂时无效，保留 Raw Contact、VisualCandidate、LastKnownThreatLocation，并继续运行 `SightTrackingTimer`；只有真正收到 UE Sight Lost 才停止该 Timer 并清 Raw Contact。
+- `Alert<=5` 的有效首次 Sight 直接 `→6`，启动一次 `SightToChaseGraceSeconds`。Grace 是最高优先级的警戒冻结：Noise 只记录 `LastDisturbanceLocation`，不改 Alert、不启动刺激 CD、不刷新观察、不抢 `LatestInvestigationLocation`。
+- Grace 期间若导航已抵达或失败：停止移动，面向最后可见位置，但不启动 RedObserve；Grace 结束后仍可见才 `→11`，否则只有已抵达调查点才开始 RedObserve，未抵达则继续 Investigate。
+- Grace 消费标记只对当前连续红色周期有效；进入白色（包括 `6→5`）或回到 `0` 时清除。Grace 已消费后，`Alert 6-10` 再次有效 Sight 立即 `→11`，不重新等待。
+- `11` 丢失视线先 `→10`，保留 ConfirmedThreat 和 LastKnownThreatLocation，随后调查该位置。只有 Alert 回到 `0` 才执行本轮 Awareness Memory reset：清除候选目标、确认目标和全部调查位置。
+
+### Noise、记忆与导航边界
+
+- 固定入口只有三个：`HandleSightAcquiredOrTracked`、`HandleSightLost`、`HandleAttractStimulus`。Sight 入口负责 `6`、Grace、`11`、LastKnown 和追逐；Sight Lost 负责 `11→10`；Attract 入口负责 0-10 的异常增长、Room Run Floor、刺激 CD 与 Disturbance 记忆。
+- Knowledge 对外保留 `VisualCandidate`、`ConfirmedThreat`、`LastKnownThreatLocation`、`LastDisturbanceLocation`、`LatestInvestigationLocation` 和 `bCurrentlyVisible`。可见目标与异常位置的更新集中在 `RecordVisibleThreat`、`RecordSightLost`、`RecordDisturbance`；当前有效视觉优先于 Noise，不允许旁侧 Noise 抢走调查目标。
+- `LatestInvestigationLocation` 是 Controller 唯一的实际 MoveTo 目标。连续 Sight 用 `InvestigateMoveRetargetDistanceCm` 限制重复导航请求；离散 Noise 被接受后直接重定向，若已在接受半径内则重新开始 RedObserve。
+- Controller 保存 `CurrentInvestigationMoveTarget`、请求 ID、移动状态和 Grace/追踪 Timer；Knowledge 不保存 Pending/Revision，AlertComponent 不知道导航阶段。导航失败只结束当前移动执行，不改变 Grace 的优先级规则。
+
+### StateTree、UI 与验收边界
+
+- `ST_Guard` 只保留 `IdlePatrol / Suspicious / Investigate / Chase / Stunned` 五个行为状态。`ELRGuardBehaviorState::Search_DEPRECATED` 仅保留原序列化槽位，运行时 Resolver 永远不返回 Search；编辑器资产不得再存在 Search 子状态。
+- Controller Tick 保持启用以支持 Focus/ControlRotation；移动阶段使用 Orient Rotation to Movement，观察/追逐阶段使用 Controller Desired Rotation 和 Focus。移动动画消费 `Velocity.Size2D`，不把动画状态再写入 StateTree。
+- `ULRWorldAlertBarWidgetBase::HandleAlertSnapshotChanged` 是 Blueprint 表现契约。现有 `WBP_GuardAlertBar` 使用 `Alert_Bar_White`、`Alert_Bar_Red` 和 `Alert_Full_Red`；C++ 只发布 `FLRAlertSnapshot`，不通过 `BindWidget` 接管具体样式。
+- 关键回归测试必须覆盖：Grace 内 Noise 冻结、Grace 内抵达/失败、Hard Hidden 不等同 Sight Lost、`6→5` 后 Sight 重新获得 Grace、Room Run `0→5→6→7→10`、红白 UI 百分比和 `11→10` 记忆保留。

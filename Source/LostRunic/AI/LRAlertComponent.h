@@ -1,6 +1,6 @@
 /**
  * @file LRAlertComponent.h
- * @brief Owns the guard's 0-11 alert meter, observation/decay timing and search flag.
+ * @brief 拥有 Guard 0-11 警戒值和白色/红色观察、自然衰减、噪声冷却计时。
  */
 #pragma once
 
@@ -18,7 +18,16 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_FiveParams(FLRAlertChanged, int32, previousLe
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FLRAlertSnapshotChanged, const FLRAlertSnapshot&, snapshot);
 DECLARE_MULTICAST_DELEGATE(FLRAlertDecayRequested);
 
-/** Alert meter state. Threat identity and evidence live in ULRGuardKnowledgeComponent. */
+/** Alert 计时模式只描述警戒条为什么暂时不衰减，不代表 StateTree Gameplay 状态。 */
+enum class ELRGuardAlertTimerMode : uint8
+{
+	None,
+	WhiteObservation,
+	RedObservation,
+	Decay
+};
+
+/** Alert 数值和计时的唯一所有者；导航和 Investigate Moving 由 Controller 管理。 */
 UCLASS(ClassGroup = "Lost Runic", BlueprintType, meta = (BlueprintSpawnableComponent, DisplayName = "Lost Runic Alert"))
 class LOSTRUNIC_API ULRAlertComponent : public UActorComponent
 {
@@ -33,19 +42,21 @@ public:
 	int32 GetAlertLevel() const { return AlertLevel; }
 
 	UFUNCTION(BlueprintPure, Category = "Lost Runic|AI|Alert")
-	bool IsSearching() const { return bSearching; }
+	bool IsObserving() const { return TimerMode == ELRGuardAlertTimerMode::WhiteObservation
+		|| TimerMode == ELRGuardAlertTimerMode::RedObservation; }
 
 	UFUNCTION(BlueprintPure, Category = "Lost Runic|AI|Alert")
-	bool IsObserving() const { return bObserving; }
+	bool IsDecaying() const { return TimerMode == ELRGuardAlertTimerMode::Decay; }
+
+	UFUNCTION(BlueprintPure, Category = "Lost Runic|AI|Alert")
+	bool IsAttractCooldownActive() const;
 
 	UFUNCTION(BlueprintPure, Category = "Lost Runic|AI|Alert")
 	FGameplayTag GetLastReason() const { return LastReason; }
 
-	/** Pure alert presentation data. Behavior is filled only by the controller's awareness snapshot. */
 	UFUNCTION(BlueprintPure, Category = "Lost Runic|AI|Alert")
 	FLRAlertSnapshot GetAlertSnapshot() const;
 
-	/** Compatibility/diagnostic delegates; controller publishes after an awareness transaction commits. */
 	UPROPERTY(BlueprintAssignable, Category = "Lost Runic|AI|Alert")
 	FLRAlertChanged OnAlertChanged;
 
@@ -54,19 +65,29 @@ public:
 
 private:
 	friend class ALRGuardAIController;
+#if WITH_DEV_AUTOMATION_TESTS
+	friend class FLRAlertSnapshotPresentationTest;
+#endif
 
 	bool ApplyDelta(int32 delta);
-	bool RaiseToMinimum(int32 minimumLevel);
-	bool LowerToMaximum(int32 maximumLevel);
-	bool TryApplyAttract(double nowSeconds);
-	void MarkInvestigationReached();
-	void MarkInvestigationUnreachable();
-	void ResetAfterSearch();
+	void ApplySightAlertLevel();
+	bool CanAcceptAttract(double nowSeconds) const;
+	bool IsFirstAttractInResultBand(int32 resultAlertLevel) const;
+	bool ApplyAcceptedAttract(int32 resultAlertLevel, double nowSeconds, float cooldownSeconds,
+		bool bStartWhiteObservation);
+	void StartWhiteObservation();
+	void StartRedObservation();
+	void StopObservationAndDecay();
+	void ResetToZero();
 	void PublishCommittedChange(int32 previousLevel, ELRGuardBehaviorState resolvedBehavior,
 		FGameplayTag reason, const FVector& location);
+
 	void HandleDecayTimer();
 	void HandleObservationEnd();
-	void StartObservation();
+	void HandleAttractCooldownEnd();
+	void StartObservation(ELRGuardAlertTimerMode mode);
+	void StartDecay();
+	void StartAttractCooldown(double nowSeconds, float cooldownSeconds);
 	void ClearWhenAlertZero();
 	void InitializeRuntime(const FLRGuardTuningSettings& tuning);
 	void ShutdownRuntime();
@@ -76,15 +97,16 @@ private:
 	int32 AlertLevel = 0;
 
 	FLRGuardTuningSettings RuntimeTuning;
-
 	FGameplayTag LastReason;
-	double LastIncreaseTimeSeconds = 0.0;
-	bool bSearching = false;
-	bool bObserving = false;
-	bool bFirstIncreaseInBand = false;
-	bool bRuntimeInitialized = false;
+	double AttractCooldownEndTimeSeconds = 0.0;
 	double ObservationEndTimeSeconds = 0.0;
+	bool bWhiteAttractAccepted = false;
+	bool bRedAttractAccepted = false;
+	bool bRuntimeInitialized = false;
+	ELRGuardAlertTimerMode TimerMode = ELRGuardAlertTimerMode::None;
+
 	FTimerHandle DecayTimer;
 	FTimerHandle ObservationTimer;
+	FTimerHandle AttractCooldownTimer;
 	FLRAlertDecayRequested OnDecayRequested;
 };

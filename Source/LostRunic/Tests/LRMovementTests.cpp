@@ -121,14 +121,14 @@ bool FLRRoomRunAlertTargetTest::RunTest(const FString& parameters)
 {
 	const FLRGuardTuningSettings tuning;
 
-	// 当前房间：至少提升到 RoomRunAlertLevel(5)。
+	// 当前房间：低于 RoomRunAlertLevel(5) 时落到 5，之后每次强刺激继续 +1。
 	TestEqual(TEXT("Current room raises to floor"), LRMovementRules::ResolveRoomRunTargetLevel(true, 3, tuning), 5);
-	TestEqual(TEXT("Current room at floor stays"), LRMovementRules::ResolveRoomRunTargetLevel(true, 5, tuning), 5);
-	TestEqual(TEXT("Current room above floor keeps level"), LRMovementRules::ResolveRoomRunTargetLevel(true, 7, tuning), 7);
-	// 相邻房间：max(当前, 当前+1)。
+	TestEqual(TEXT("Current room at floor becomes six"), LRMovementRules::ResolveRoomRunTargetLevel(true, 5, tuning), 6);
+	TestEqual(TEXT("Current room continues to seven"), LRMovementRules::ResolveRoomRunTargetLevel(true, 6, tuning), 7);
+	// 相邻房间：每次 +AdjacentRoomRunAlertAmount，噪声最高到 10。
 	TestEqual(TEXT("Adjacent room raises by amount"), LRMovementRules::ResolveRoomRunTargetLevel(false, 0, tuning), 1);
 	TestEqual(TEXT("Adjacent room at eight becomes nine"), LRMovementRules::ResolveRoomRunTargetLevel(false, 8, tuning), 9);
-	TestEqual(TEXT("Adjacent room at ten caps at eleven"), LRMovementRules::ResolveRoomRunTargetLevel(false, 10, tuning), 11);
+	TestEqual(TEXT("Adjacent room at ten caps at ten"), LRMovementRules::ResolveRoomRunTargetLevel(false, 10, tuning), 10);
 	return true;
 }
 

@@ -1,6 +1,6 @@
 /**
  * @file LRGuardAIController.cpp
- * @brief Guard controller lifecycle and transactional Awareness coordination.
+ * @brief Guard Controller 生命周期、Alert/Knowledge 绑定和三类感知入口的公共实现。
  */
 #include "AI/LRGuardAIController.h"
 
@@ -8,7 +8,7 @@
 #include "AI/LRAlertRules.h"
 #include "AI/LRGuardCharacter.h"
 #include "AI/LRGuardKnowledgeComponent.h"
-#include "AI/LRGuardPerceptionRules.h"
+#include "AI/LRGuardPerceptionTarget.h"
 #include "Components/StateTreeAIComponent.h"
 #include "Core/LRGameplayTags.h"
 #include "Core/LRLog.h"
@@ -18,12 +18,12 @@
 #include "Engine/World.h"
 #include "Framework/LRGameInstanceSubsystem.h"
 #include "Items/LRCourageResponseComponent.h"
+#include "Navigation/PathFollowingComponent.h"
 #include "Perception/AIPerceptionComponent.h"
 #include "Perception/AISense_Hearing.h"
 #include "Perception/AISense_Sight.h"
 #include "Perception/AISenseConfig_Hearing.h"
 #include "Perception/AISenseConfig_Sight.h"
-#include "Navigation/PathFollowingComponent.h"
 #include "TimerManager.h"
 #if WITH_EDITOR
 #include "Misc/DataValidation.h"
@@ -31,12 +31,12 @@
 
 ALRGuardAIController::ALRGuardAIController()
 {
-	PrimaryActorTick.bCanEverTick = false;
-	// StateTree depends on guard-owned Alert/Knowledge context. Start it explicitly
-	// at the end of OnPossess, after those dependencies have been resolved.
+	// AAIController 的 Tick 负责维持 Focus/ControlRotation；玩法逻辑仍由事件和定时器驱动。
+	PrimaryActorTick.bCanEverTick = true;
 	bStartAILogicOnPossess = false;
 	bStopAILogicOnUnposses = true;
 	bAttachToPawn = true;
+
 	StateTreeAI = CreateDefaultSubobject<UStateTreeAIComponent>(TEXT("StateTreeAI"));
 	StateTreeAI->SetStartLogicAutomatically(false);
 	AIPerception = CreateDefaultSubobject<UAIPerceptionComponent>(TEXT("AIPerception"));
@@ -47,6 +47,7 @@ ALRGuardAIController::ALRGuardAIController()
 void ALRGuardAIController::BeginPlay()
 {
 	Super::BeginPlay();
+
 	const UGameInstance* gameInstance = GetWorld() ? GetWorld()->GetGameInstance() : nullptr;
 	const ULRGameInstanceSubsystem* subsystem = gameInstance
 		? gameInstance->GetSubsystem<ULRGameInstanceSubsystem>() : nullptr;
@@ -54,18 +55,20 @@ void ALRGuardAIController::BeginPlay()
 	{
 		StateTuning = subsystem->GetTuningSet()->State;
 	}
-	LastDetectionSampleTime = 0.0;
 	CachedAwareness = BuildCurrentAwarenessSnapshot();
 	TryInitializeRuntime();
 }
+
 void ALRGuardAIController::EndPlay(const EEndPlayReason::Type endPlayReason)
 {
 	ShutdownRuntime();
 	Super::EndPlay(endPlayReason);
 }
+
 void ALRGuardAIController::OnPossess(APawn* inPawn)
 {
 	Super::OnPossess(inPawn);
+
 	ALRGuardCharacter* guard = Cast<ALRGuardCharacter>(inPawn);
 	Alert = guard ? guard->GetAlertComponent() : nullptr;
 	Knowledge = guard ? guard->GetKnowledgeComponent() : nullptr;
@@ -76,10 +79,16 @@ void ALRGuardAIController::OnPossess(APawn* inPawn)
 			courage->OnKnockbackApplied.AddUniqueDynamic(this, &ALRGuardAIController::HandleKnockback);
 		}
 	}
-	CachedAwareness = BuildCurrentAwarenessSnapshot();
+
+	RawSightContact.Reset();
+	bHasRawSightContact = false;
+	bSightToChaseGraceActive = false;
+	bSightToChaseGraceConsumed = false;
+	bForceInvestigationRetarget = false;
 	InvestigationMoveRequestCount = 0;
-	ClearInvestigationRetrySuppression();
-	LastDetectionSampleTime = 0.0;
+	ClearInvestigationMoveRequest();
+	bHasSuspiciousFocusLocation = false;
+	CachedAwareness = BuildCurrentAwarenessSnapshot();
 	TryInitializeRuntime();
 }
 
@@ -109,9 +118,9 @@ bool ALRGuardAIController::ValidateControllerConfiguration(FString& outError,
 		return false;
 	}
 	if (bRequirePossessionContext
-		&& (!Cast<ALRGuardCharacter>(GetPawn()) || !Alert.IsValid() || !Knowledge.IsValid() || !StateTuning))
+		&& (!Cast<ALRGuardCharacter>(GetPawn()) || !Alert.IsValid() || !Knowledge.IsValid()))
 	{
-		outError = TEXT("Possessed Guard, Alert, Knowledge, and State tuning are required.");
+		outError = TEXT("Possessed Guard, Alert and Knowledge are required.");
 		return false;
 	}
 	return true;
@@ -146,15 +155,14 @@ void ALRGuardAIController::TryInitializeRuntime()
 		return;
 	}
 
+	bRuntimeInitialized = true;
 	StateTreeAI->StartLogic();
 	if (!StateTreeAI->IsRunning())
 	{
 		UE_LOG(LogLostRunicAI, Error, TEXT("Controller=%s Pawn=%s failed to start configured StateTree."),
 			*GetNameSafe(this), *GetNameSafe(GetPawn()));
 		ShutdownRuntime();
-		return;
 	}
-	bRuntimeInitialized = true;
 }
 
 void ALRGuardAIController::ShutdownRuntime()
@@ -169,7 +177,9 @@ void ALRGuardAIController::ShutdownRuntime()
 	{
 		StateTreeAI->StopLogic(TEXT("Guard runtime shutdown"));
 	}
-	StopDetectionSampling();
+
+	StopSightTracking();
+	StopSightToChaseGrace();
 	StopMovement();
 	ClearFocus(EAIFocusPriority::Gameplay);
 	if (GetWorld())
@@ -183,28 +193,34 @@ void ALRGuardAIController::ShutdownRuntime()
 	}
 	bRuntimeInitialized = false;
 }
+
 void ALRGuardAIController::OnUnPossess()
 {
+	ALRGuardCharacter* guard = Cast<ALRGuardCharacter>(GetPawn());
 	ShutdownRuntime();
-	if (ALRGuardCharacter* guard = Cast<ALRGuardCharacter>(GetPawn()))
+
+	if (guard)
 	{
 		if (ULRCourageResponseComponent* courage = guard->GetCourageResponseComponent())
 		{
 			courage->OnKnockbackApplied.RemoveDynamic(this, &ALRGuardAIController::HandleKnockback);
 		}
-		if (Knowledge.IsValid())
-		{
-			Knowledge->SuspendVisualContact();
-		}
 	}
-	PerceivedSightContact.Reset();
-	LastDetectionSampleTime = 0.0;
+	if (Knowledge.IsValid())
+	{
+		Knowledge->SuspendVisualContact();
+	}
+
+	RawSightContact.Reset();
+	bHasRawSightContact = false;
+	bSightToChaseGraceActive = false;
+	bSightToChaseGraceConsumed = false;
+	bForceInvestigationRetarget = false;
 	ClearInvestigationMoveRequest();
-	ClearInvestigationRetrySuppression();
-	bAwarenessCommitDeferred = false;
-	DeferredAwarenessReason = FGameplayTag();
-	bDeferredForcePublish = false;
 	bHasSuspiciousFocusLocation = false;
+	bAwarenessCommitDeferred = false;
+	bDeferredForcePublish = false;
+	DeferredAwarenessReason = FGameplayTag();
 	Alert.Reset();
 	Knowledge.Reset();
 	CachedAwareness = FLRGuardAwarenessSnapshot();
@@ -223,6 +239,7 @@ EDataValidationResult ALRGuardAIController::IsDataValid(FDataValidationContext& 
 	return Super::IsDataValid(context);
 }
 #endif
+
 FLRGuardAwarenessSnapshot ALRGuardAIController::BuildCurrentAwarenessSnapshot() const
 {
 	FLRGuardAwarenessSnapshot snapshot;
@@ -233,10 +250,9 @@ FLRGuardAwarenessSnapshot ALRGuardAIController::BuildCurrentAwarenessSnapshot() 
 	if (Knowledge.IsValid())
 	{
 		snapshot.Knowledge = Knowledge->GetSnapshot();
+		snapshot.InvestigationLocation = LRAlertRules::ResolveInvestigationLocation(snapshot.Knowledge);
 	}
-	snapshot.ResolvedBehavior = LRAlertRules::ResolveTargetBehavior(snapshot.Alert, snapshot.Knowledge,
-		bStunned, Alert.IsValid() && Alert->IsSearching(), GetEffectiveTuning());
-	snapshot.InvestigationLocation = LRAlertRules::ResolveInvestigationLocation(snapshot.Knowledge);
+	snapshot.ResolvedBehavior = LRAlertRules::ResolveTargetBehavior(bStunned, snapshot.Alert.Level);
 	snapshot.Alert.Behavior = snapshot.ResolvedBehavior;
 	return snapshot;
 }
@@ -253,55 +269,17 @@ ELRGuardBehaviorState ALRGuardAIController::GetResolvedBehavior() const
 
 void ALRGuardAIController::ReceiveNoiseStimulus(const FLRGuardNoiseStimulus& stimulus)
 {
-	if (!Alert.IsValid() || !Knowledge.IsValid() || !stimulus.Reason.IsValid())
-	{
-		return;
-	}
-	const FLRGuardAwarenessSnapshot previous = BuildCurrentAwarenessSnapshot();
-	const int32 previousLevel = Alert->GetAlertLevel();
-	FLRNoiseResponse response = LRGuardPerceptionRules::ResolveNoiseAlertDelta(
-		stimulus.Reason, previousLevel, GetEffectiveTuning());
-	if (stimulus.PropagationMode == ELRGuardNoisePropagationMode::CurrentRoom)
-	{
-		response.bRespond = true;
-		response.bIsAttract = false;
-		response.Delta = FMath::Max(GetEffectiveTuning().RoomRunAlertLevel - previousLevel, 0);
-	}
-	else if (stimulus.PropagationMode == ELRGuardNoisePropagationMode::AdjacentRoom)
-	{
-		response.bRespond = true;
-		response.bIsAttract = false;
-		response.Delta = GetEffectiveTuning().AdjacentRoomRunAlertAmount;
-	}
-	if (!response.bRespond)
-	{
-		return;
-	}
-
-	const double now = GetWorld() ? GetWorld()->GetTimeSeconds() : stimulus.TimeSeconds;
-	if (response.bIsAttract)
-	{
-		if (!Alert->TryApplyAttract(now))
-		{
-			return;
-		}
-	}
-	else
-	{
-		Alert->ApplyDelta(response.Delta);
-	}
-	const AActor* confirmed = previous.Knowledge.ConfirmedThreat.Get();
-	Knowledge->CommitAcceptedNoise(stimulus, confirmed && confirmed == stimulus.Source.Get());
-	ProcessAwarenessTransaction(stimulus.Reason);
+	HandleAttractStimulus(stimulus);
 }
+
 void ALRGuardAIController::MarkInvestigationReached()
 {
 	if (!Alert.IsValid() || !Knowledge.IsValid())
 	{
 		return;
 	}
-	ApplyInvestigationReached();
-	ProcessAwarenessTransaction(LRGameplayTags::SearchReached, true);
+	SetInvestigationAtLocation();
+	ProcessAwarenessTransaction(LRGameplayTags::InvestigationReached, true);
 }
 
 void ALRGuardAIController::MarkInvestigationUnreachable()
@@ -310,48 +288,76 @@ void ALRGuardAIController::MarkInvestigationUnreachable()
 	{
 		return;
 	}
-	ApplyInvestigationUnreachable();
-	ProcessAwarenessTransaction(LRGameplayTags::SearchUnreachable, true);
+	SetInvestigationAtLocation();
+	ProcessAwarenessTransaction(LRGameplayTags::InvestigationUnreachable, true);
 }
-void ALRGuardAIController::ResetSearch()
+
+bool ALRGuardAIController::IsRelevantSightTarget(const AActor* actor) const
 {
-	if (!Alert.IsValid() || !Knowledge.IsValid())
+	if (!IsValid(actor)
+		|| !actor->GetClass()->ImplementsInterface(ULRGuardPerceptionTarget::StaticClass()))
 	{
-		return;
+		return false;
 	}
-	Alert->ResetAfterSearch();
-	Knowledge->ResetAwareness();
-	PerceivedSightContact.Reset();
-	StopDetectionSampling();
-	LastDetectionSampleTime = 0.0;
-	ClearInvestigationMoveRequest();
-	ClearInvestigationRetrySuppression();
-	ProcessAwarenessTransaction(LRGameplayTags::SearchTimeout, true);
+
+	static const FName targetFunctionName =
+		GET_FUNCTION_NAME_CHECKED(ILRGuardPerceptionTarget, IsRelevantGuardSightTarget);
+	if (actor->GetClass()->IsFunctionImplementedInScript(targetFunctionName))
+	{
+		return ILRGuardPerceptionTarget::Execute_IsRelevantGuardSightTarget(actor);
+	}
+
+	const ILRGuardPerceptionTarget* target = Cast<ILRGuardPerceptionTarget>(actor);
+	return target && target->IsRelevantGuardSightTarget_Implementation();
 }
+
 void ALRGuardAIController::HandleAlertDecayRequested()
 {
-	if (!Alert.IsValid() || !Knowledge.IsValid())
+	if (!Alert.IsValid() || !Knowledge.IsValid() || Alert->GetAlertLevel() <= 0)
 	{
 		return;
 	}
+
 	const FLRGuardAwarenessSnapshot previous = BuildCurrentAwarenessSnapshot();
-	if (!LRAlertRules::ShouldDecay(previous.Alert, previous.Knowledge, Alert->IsObserving(),
-		previous.ResolvedBehavior))
-	{
-		return;
-	}
 	Alert->ApplyDelta(-GetEffectiveTuning().AlertDecayAmount);
-	if (Alert->GetAlertLevel() == 0)
+	if (Alert->GetAlertLevel() == LRAlertRules::MinAlertLevel)
 	{
 		Knowledge->ResetAwareness();
-		PerceivedSightContact.Reset();
-		StopDetectionSampling();
-		LastDetectionSampleTime = 0.0;
 		ClearInvestigationMoveRequest();
-		ClearInvestigationRetrySuppression();
+		bSightToChaseGraceConsumed = false;
 	}
-	ProcessAwarenessTransaction(LRGameplayTags::SearchAlertDecay);
+	ProcessAwarenessTransaction(LRGameplayTags::AlertDecay);
+	(void)previous;
 }
+
+void ALRGuardAIController::HandleStunEnd()
+{
+	bStunned = false;
+	ProcessAwarenessTransaction(LRGameplayTags::TargetGuardCourageVulnerable, true);
+}
+
+void ALRGuardAIController::HandleKnockback(const FVector direction)
+{
+	if (bStunned)
+	{
+		return;
+	}
+
+	bStunned = true;
+	ClearInvestigationMoveRequest();
+	StopMovement();
+	ClearFocus(EAIFocusPriority::Gameplay);
+	const float duration = StateTuning ? StateTuning->CourageKnockbackDurationSeconds : 0.6f;
+	UE_LOG(LogLostRunicAI, Display, TEXT("Guard=%s stunned for %.2fs direction=%s"),
+		*GetNameSafe(GetPawn()), duration, *direction.ToCompactString());
+	ProcessAwarenessTransaction(LRGameplayTags::TargetGuardCourageVulnerable, true);
+	if (GetWorld())
+	{
+		GetWorld()->GetTimerManager().SetTimer(StunTimer, this, &ALRGuardAIController::HandleStunEnd,
+			duration, false);
+	}
+}
+
 const FLRGuardTuningSettings& ALRGuardAIController::GetEffectiveTuning() const
 {
 	return Tuning;

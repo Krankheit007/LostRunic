@@ -1,33 +1,33 @@
 /**
  * @file LRGuardTypes.h
- * @brief 实现“家”垂直切片的守卫感知、0-11 警戒值、StateTree 行为切换、调查追逐与捕获死亡流程。规则层只计算状态，Controller 负责接入 UE 感知、导航和计时器。
+ * @brief Guard 感知事实、0-11 警戒快照和 StateTree 行为契约。
  *
- * 关联文件：AI 目录内调用该公共契约的实现文件；所属领域：AI。
- * 设计依据：Docs/Technical/08_ArchitectureBoundaries.md。
- * 除带 EditDefaultsOnly、EditAnywhere 或 EditInstanceOnly 的字段外，其余成员均为运行时状态，不应由蓝图直接改写。
+ * Alert 数值由 ULRAlertComponent 所有；Knowledge 只保存感知记忆；导航执行状态由
+ * ALRGuardAIController 所有。这里不保存 Exposure、VisibilityScore 或 Search 行为状态。
  */
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Core/LRTypes.h"
 #include "GameplayTagContainer.h"
 
 #include "LRGuardTypes.generated.h"
 
 class AActor;
 
-/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
+/** Guard 的稳定行为枚举。Search 槽位保留给已序列化 UE 资产，玩法代码永不返回该值。 */
 UENUM(BlueprintType, meta = (DisplayName = "Lost Runic Guard Behavior"))
 enum class ELRGuardBehaviorState : uint8
 {
-	IdlePatrol UMETA(DisplayName = "Idle / Patrol"),
-	Suspicious UMETA(DisplayName = "Suspicious"),
-	Investigate UMETA(DisplayName = "Investigate"),
-	Search UMETA(DisplayName = "Search"),
-	Chase UMETA(DisplayName = "Chase"),
-	Stunned UMETA(DisplayName = "Stunned")
+	IdlePatrol = 0 UMETA(DisplayName = "Idle / Patrol"),
+	Suspicious = 1 UMETA(DisplayName = "Suspicious"),
+	Investigate = 2 UMETA(DisplayName = "Investigate"),
+	Search_DEPRECATED = 3 UMETA(Hidden),
+	Chase = 4 UMETA(DisplayName = "Chase"),
+	Stunned = 5 UMETA(DisplayName = "Stunned")
 };
 
-/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
+/** 0 隐藏、1-5 白色、6-10 红色、11 满红。 */
 UENUM(BlueprintType, meta = (DisplayName = "Lost Runic Guard Alert Tier"))
 enum class ELRGuardAlertTier : uint8
 {
@@ -37,17 +37,7 @@ enum class ELRGuardAlertTier : uint8
 	Full UMETA(DisplayName = "Full")
 };
 
-/** Continuous sight exposure stage. Alert remains a separate controller-owned value. */
-UENUM(BlueprintType, meta = (DisplayName = "Lost Runic Guard Detection Stage"))
-enum class ELRGuardDetectionStage : uint8
-{
-	None UMETA(DisplayName = "None"),
-	Suspicious UMETA(DisplayName = "Suspicious"),
-	Investigate UMETA(DisplayName = "Investigate"),
-	Confirmed UMETA(DisplayName = "Confirmed")
-};
-
-/** Distinguishes direct hearing from room propagation without encoding it as a reason tag. */
+/** 区分 UE Hearing 和房间传播，避免把传播来源误当成普通 Hearing。 */
 UENUM(BlueprintType, meta = (DisplayName = "Lost Runic Guard Noise Propagation"))
 enum class ELRGuardNoisePropagationMode : uint8
 {
@@ -56,81 +46,30 @@ enum class ELRGuardNoisePropagationMode : uint8
 	AdjacentRoom UMETA(DisplayName = "Adjacent Room")
 };
 
-/** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
+/** Alert 组件对外发布的只读 UI/行为快照；Fraction 是当前白/红档位内的 0-1 进度。 */
 USTRUCT(BlueprintType, meta = (DisplayName = "Lost Runic Alert Snapshot"))
 struct LOSTRUNIC_API FLRAlertSnapshot
 {
 	GENERATED_BODY()
 
-	/** Level 的领域数据，由所属类型负责维护和校验。 C++ 安全默认值为 `0`。 蓝图可读取但不可写入。 */
-	UPROPERTY(BlueprintReadOnly, Category = "Alert")
+	UPROPERTY(BlueprintReadOnly, Category = "警戒")
 	int32 Level = 0;
 
-	/** Fraction 的领域数据，由所属类型负责维护和校验。 C++ 安全默认值为 `0.0f`。 蓝图可读取但不可写入。 */
-	UPROPERTY(BlueprintReadOnly, Category = "Alert")
+	UPROPERTY(BlueprintReadOnly, Category = "警戒")
 	float Fraction = 0.0f;
 
-	/** Tier 的领域数据，由所属类型负责维护和校验。 C++ 安全默认值为 `ELRGuardAlertTier::Hidden`。 蓝图可读取但不可写入。 */
-	UPROPERTY(BlueprintReadOnly, Category = "Alert")
+	UPROPERTY(BlueprintReadOnly, Category = "警戒")
 	ELRGuardAlertTier Tier = ELRGuardAlertTier::Hidden;
 
-	/** Behavior 的领域数据，由所属类型负责维护和校验。 C++ 安全默认值为 `ELRGuardBehaviorState::IdlePatrol`。 蓝图可读取但不可写入。 */
-	UPROPERTY(BlueprintReadOnly, Category = "Alert", meta = (DeprecatedProperty))
+	/** 旧 UI 字段，实际行为由 AwarenessSnapshot.ResolvedBehavior 提供。 */
+	UPROPERTY(BlueprintReadOnly, Category = "警戒", meta = (DeprecatedProperty))
 	ELRGuardBehaviorState Behavior = ELRGuardBehaviorState::IdlePatrol;
 
-	/** Full Alert 的开关；true 表示启用，false 表示禁用。 C++ 安全默认值为 `false`。 蓝图可读取但不可写入。 */
-	UPROPERTY(BlueprintReadOnly, Category = "Alert")
+	UPROPERTY(BlueprintReadOnly, Category = "警戒")
 	bool bFullAlert = false;
 };
 
-/** Pure continuous sight sample. Gate failures always force VisibilityScore to zero. */
-USTRUCT(BlueprintType, meta = (DisplayName = "Lost Runic Guard Visibility Result"))
-struct LOSTRUNIC_API FLRGuardVisibilityResult
-{
-	GENERATED_BODY()
-
-	UPROPERTY(BlueprintReadOnly, Category = "Guard|Visibility")
-	bool bRangeGate = false;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Guard|Visibility")
-	bool bConeGate = false;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Guard|Visibility")
-	bool bLOSGate = false;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Guard|Visibility")
-	bool bValidContactGate = false;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Guard|Visibility")
-	bool bHardVisibilityGate = false;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Guard|Visibility")
-	float DistanceFactor = 0.0f;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Guard|Visibility")
-	float MovementFactor = 0.0f;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Guard|Visibility")
-	float ExposureFactor = 0.0f;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Guard|Visibility")
-	float LightingFactor = 0.0f;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Guard|Visibility")
-	float PostureFactor = 0.0f;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Guard|Visibility")
-	float VisibilityScore = 0.0f;
-
-	/** Returns true only for a fully passing, positive-score sight sample. */
-	bool IsActive() const
-	{
-		return bRangeGate && bConeGate && bLOSGate && bValidContactGate && bHardVisibilityGate
-			&& VisibilityScore > 0.0f;
-	}
-};
-
-/** Read-only knowledge accumulated by the guard perception/controller boundary. */
+/** Controller 维护的 Guard 感知记忆；只保存事实，不复制 UE Sight 的几何判定。 */
 USTRUCT(BlueprintType, meta = (DisplayName = "Lost Runic Guard Knowledge Snapshot"))
 struct LOSTRUNIC_API FLRGuardKnowledgeSnapshot
 {
@@ -160,17 +99,16 @@ struct LOSTRUNIC_API FLRGuardKnowledgeSnapshot
 	UPROPERTY(BlueprintReadOnly, Category = "Guard|Knowledge")
 	bool bHasLastDisturbanceLocation = false;
 
+	/** Guard 当前真正要调查的唯一位置；历史事实仍分别保存在上面两个字段。 */
 	UPROPERTY(BlueprintReadOnly, Category = "Guard|Knowledge")
-	FLRGuardVisibilityResult CurrentVisibility;
+	FVector LatestInvestigationLocation = FVector::ZeroVector;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Guard|Knowledge")
-	bool bPendingThreatInvestigation = false;
+	bool bHasLatestInvestigationLocation = false;
 
-	UPROPERTY(BlueprintReadOnly, Category = "Guard|Knowledge", meta = (ClampMin = "0.0", Units = "s"))
-	float EffectiveExposureSeconds = 0.0f;
-
+	/** 经过 Raw Sight、Hard Hidden 和目标权限过滤后的有效视觉结果。 */
 	UPROPERTY(BlueprintReadOnly, Category = "Guard|Knowledge")
-	ELRGuardDetectionStage Stage = ELRGuardDetectionStage::None;
+	bool bCurrentlyVisible = false;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Guard|Knowledge")
 	TWeakObjectPtr<AActor> LastAcceptedStimulusSource;
@@ -180,12 +118,9 @@ struct LOSTRUNIC_API FLRGuardKnowledgeSnapshot
 
 	UPROPERTY(BlueprintReadOnly, Category = "Guard|Knowledge", meta = (Units = "s"))
 	float LastAcceptedStimulusTimeSeconds = 0.0f;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Guard|Knowledge", meta = (ClampMin = "0"))
-	int32 InvestigationContextRevision = 0;
 };
 
-/** Combined controller-facing awareness view; Alert remains independently owned by ULRAlertComponent. */
+/** Controller 对 StateTree、UI 和调试输出提供的合并快照。 */
 USTRUCT(BlueprintType, meta = (DisplayName = "Lost Runic Guard Awareness Snapshot"))
 struct LOSTRUNIC_API FLRGuardAwarenessSnapshot
 {
@@ -204,7 +139,7 @@ struct LOSTRUNIC_API FLRGuardAwarenessSnapshot
 	FVector InvestigationLocation = FVector::ZeroVector;
 };
 
-/** Accepted noise information; propagation mode prevents room events being mistaken for hearing events. */
+/** 已被 Controller 接受的噪声事件；SourcePace 是发声时刻的快照。 */
 USTRUCT(BlueprintType, meta = (DisplayName = "Lost Runic Guard Noise Stimulus"))
 struct LOSTRUNIC_API FLRGuardNoiseStimulus
 {
@@ -221,6 +156,12 @@ struct LOSTRUNIC_API FLRGuardNoiseStimulus
 
 	UPROPERTY(BlueprintReadOnly, Category = "Guard|Noise")
 	ELRGuardNoisePropagationMode PropagationMode = ELRGuardNoisePropagationMode::Hearing;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Guard|Noise")
+	ELRMovementPace SourcePace = ELRMovementPace::Walk;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Guard|Noise")
+	bool bHasSourcePace = false;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Guard|Noise", meta = (Units = "s"))
 	float TimeSeconds = 0.0f;
