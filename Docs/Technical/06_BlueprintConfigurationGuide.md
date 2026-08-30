@@ -168,10 +168,12 @@
 
 #### 描边与交互 Actor 配置步骤
 
-1. 打开材质 `/Game/LostRunic/Materials/M_PP_InteractionOutline`，在 **Material Details** 确认 `Material Domain = Post Process`、`Blendable Location = Before Tonemapping`、`Blend Mode = Opaque`、`Shading Model = Unlit`。
-2. 打开 `/Game/LostRunic/Levels/Home/L_Home` 和 `/Game/LostRunic/Levels/PIE_Test/L_PIE_Test`，选中 `PostProcessVolume_1`，在 **Details → Rendering Features → Post Process Materials → Weighted Blendables** 添加 `M_PP_InteractionOutline`，权重为 `1.0`。
-3. 交互 Actor 的可视网格必须开启 **Rendering → Render CustomDepth Pass**；材质图使用 `InteractionOutline` Component Tag 作为交互表现组件的筛选契约。不要把后处理材质改成普通 Surface 材质。
-4. `BP_LRHomePickup` 与 `BP_LRHomeDoor` 的可交互碰撞必须为 Query Only，并将 Object Type 设为项目 `Interaction` 通道；其余交互规则、距离和执行合法性由 C++ 处理。
+1. 打开材质 `/Game/LostRunic/Materials/M_PP_InteractionOutline`，在 **Material Details** 确认 `Material Domain = Post Process`、`Blendable Location = After DOF`、`Blendable Priority = 10`。当前 A–F 候选参数为 `InteractionOutlineWidthPx = 1.0`、`InteractionDiagonalScale = 0.70710678`、`InteractionDepthBiasCm = 1.0`、白色 `InteractionOutlineTint`。
+2. 在需要交互描边的关卡打开负责 Gameplay 画面的 Post Process Volume，在 **Details → Rendering Features → Post Process Materials → Weighted Blendables** 添加 `M_PP_InteractionOutline`，权重为 `1.0`。测试只使用 `/Game/LostRunic/Levels/PIE_Test/L_PIE_Test`；Benchmark 的 `ArtBench_PPV` 平时只保留艺术描边，交互材质仅在定向截图时临时加入并在退出 PIE 后恢复。
+3. 打开交互 Actor 蓝图，在 **Components** 选择需要描边的 `StaticMeshComponent` 或 `SkeletalMeshComponent`，于 **Details → Tags → Component Tags** 添加 `InteractionOutline`。不要把 Actor Tag 当成 Component Tag，也不要手工常开 Render CustomDepth。
+4. `ULRInteractionPresentationComponent` 在 BeginPlay 扫描上述组件，写入 `LRCustomStencil::InteractionSelected = 1`，并按 `NearOutline/Focused` 状态开启 Render CustomDepth；切到其他目标或 None 时自动清理。项目配置 `Config/DefaultEngine.ini` 必须保持 `r.CustomDepth=3`。
+5. `BP_LRHomePickup` 与 `BP_LRHomeDoor` 的可交互碰撞必须为 Query Only，并将 Object Type 设为项目 `Interaction` 通道；其余交互规则、距离和执行合法性由 C++ 处理。
+6. `MI_PP_LR_InteractionOutline_Diag100` 与 `MI_PP_LR_InteractionOutline_Diag0707` 位于 `/Game/LostRunic/Materials/Benchmark/Instances/`，只用于 A/B；正式默认使用 0.707，不按资产另建交互描边实例。
 
 #### NPC 对话配置步骤
 
@@ -186,6 +188,8 @@
 - 自动化：`LostRunic.Interaction` 定向测试通过（3/3）；`LostRunic.UI.InteractionWidgetBlueprintContract` 通过（1/1）。
 - PIE 地图：`/Game/LostRunic/Levels/PIE_Test/L_PIE_Test`；已确认有效焦点下提示出现在拾取物上方，按 E 成功拾取后提示消失。门与 `BP_NPC1` 的完整交互流程仍按同一地图继续验收。
 - 描边：靠近拾取物和门时确认 `CustomDepth` 与后处理轮廓同时可见；离开范围后提示、轮廓和焦点状态清除。
+- 描边自动化：运行 `LostRunic.Interaction.OutlineStencilClearsAcrossTargets`，确认 A 选中、A→B、B→None 均写入/清理 Stencil=1 且无残留。本次 2026-08-30 运行通过，0 Warning / 0 Error。
+- 描边 PIE：在 `/Game/LostRunic/Levels/PIE_Test/L_PIE_Test` 验证 1px 外轮廓覆盖艺术黑线、内部不漂白；用非 CustomDepth Primitive 部分遮挡目标时，遮挡部分不得透出白线。
 - Output Log：记录本次 PIE 中项目级 Warning/Error；引擎本机 Turnkey/缓存权限提示不作为项目交互失败判定。
 
 ## SUDS 对话与本地化生产链（2026-08-17）

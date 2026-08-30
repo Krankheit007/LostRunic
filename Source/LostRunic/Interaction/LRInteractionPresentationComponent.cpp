@@ -6,6 +6,7 @@
 
 #include "Components/PrimitiveComponent.h"
 #include "Components/SceneComponent.h"
+#include "Core/LRCustomStencil.h"
 #include "NiagaraComponent.h"
 
 /** Creates an event-driven presentation component. */
@@ -18,15 +19,23 @@ ULRInteractionPresentationComponent::ULRInteractionPresentationComponent()
 void ULRInteractionPresentationComponent::BeginPlay()
 {
 	Super::BeginPlay();
+	RefreshOutlineComponents();
+	ApplyVisualState();
+}
+
+/** Rebuilds the interaction outline cache and assigns the project-owned stencil value. */
+void ULRInteractionPresentationComponent::RefreshOutlineComponents()
+{
+	OutlineComponents.Reset();
 	TInlineComponentArray<UPrimitiveComponent*> primitives(GetOwner());
 	for (UPrimitiveComponent* primitive : primitives)
 	{
 		if (primitive && primitive->ComponentTags.Contains(TEXT("InteractionOutline")))
 		{
+			primitive->SetCustomDepthStencilValue(LRCustomStencil::InteractionSelected);
 			OutlineComponents.Add(primitive);
 		}
 	}
-	ApplyVisualState();
 }
 
 /** Changes presentation state and avoids repeating render-state work. */
