@@ -459,10 +459,13 @@ Hand-painted BaseColor
 `M_PP_LR_StyleOutline`：
 
 - Material Domain：Post Process。
-- Blendable Location：Before Tonemapping。
+- Blendable Location：After DOF。
+- Blendable Priority：0。
 - 输入：SceneDepth、WorldNormal、PostProcessInput0、InvViewSize。
 - 不依赖 CustomDepth 选择全场景对象。
 - 输出线色由章节 Ink Tint 主导，Local Scene Tint 只做弱影响。
+
+`After DOF / Priority 0` 是 Normal A–F Vertical Slice 当前权威配置。最低配置 GPU Profile 仍决定是否升级为 Production Baseline，但不使本阶段的 Blendable Location 保持未决。
 
 ### 11.2 分层算法基线
 
@@ -566,30 +569,30 @@ Composite:
 
 以上宽度、染色比例和覆盖关系是 Vertical Slice 起始值，不是未经实测即可推广到全项目的最终常量。
 
-### 12.2 Composite 与 Blendable Location A/B
+### 12.2 Composite 与 Blendable Location 基线
 
-交互描边的最终 Composite 和 Blendable Location 必须在 Mansion Benchmark 中完成 A/B，不在本版靠理论锁死：
+Normal A–F Benchmark 已将艺术描边与交互描边统一在 `After DOF`，以 Priority 明确覆盖顺序：
 
-| 方案 | 候选位置 | 重点检查 |
-| --- | --- | --- |
-| A | Before Tonemapping | HDR SceneColor、Depth/Stencil 边缘稳定、TSR 与曝光前合成表现 |
-| B | After Tonemapping 或经 Benchmark 证明更合适的 Scene Color 阶段 | 白色功能线在 Exposure、Color Grade 和章节 LUT 后的颜色一致性 |
+| Blendable | 当前权威位置 | Priority | 数据源与职责 |
+| --- | --- | ---: | --- |
+| `M_PP_LR_StyleOutline` | After DOF | 0 | SceneDepth + WorldNormal；输出艺术黑线 |
+| `M_PP_InteractionOutline` | After DOF | 10 | CustomDepth + CustomStencil；输出交互白色外轮廓并覆盖艺术线 |
 
-A/B 必须使用同一相机、同一交互对象、同一 1080p/目标分辨率和同一章节 Color Grade，对比：
+`Before Tonemapping` 仅保留为历史 A/B 备选，不是当前配置。后续若改变位置，必须使用同一相机、同一交互对象、同一分辨率和同一章节 Color Grade 重新验证：
 
 - 白色是否仍是明确功能提示，同时自然接受少量环境染色。
 - InteractionEdge 是否稳定覆盖 ArtEdge，且不穿透遮挡物或污染内部结构线。
 - 相机移动、TSR、动态分辨率、曝光和 Bloom 下是否闪烁、变色或线宽跳变。
 - GPU 成本和 Blendable 顺序是否满足候选预算。
 
-现有 `M_PP_InteractionOutline` 的 Blendable Location 只代表当前实现状态，不构成本规范的最终结论。只有 A/B 记录通过评审后，选定位置与参数才可升级为 Production Baseline。
+当前 `After DOF` 选型是 Vertical Slice 的 canonical truth；最低配置 GPU 的绝对成本验收仍是升级 Production Baseline 的独立前置项。
 
 ### 12.3 Normal Vertical Slice 实施值（2026-08-30）
 
 - `M_PP_InteractionOutline` 使用固定 8 taps（4 cardinal + 4 diagonal），最终 `InteractionDiagonalScale = 0.70710678`；`1.0` 版本保留为 `/Game/LostRunic/Materials/Benchmark/Instances/MI_PP_LR_InteractionOutline_Diag100` A/B 基准。
 - 当前候选线宽为 `InteractionOutlineWidthPx = 1.0`，线色为白色；只生成 `Saturate(Expanded - SelectedCenter)` 外轮廓，不读取选中模型 WorldNormal，不产生内部白线，不使用 Blur。
 - 可见性先用 Stencil 选择结果过滤对应的 CustomDepth tap，再与 SceneDepth 比较；未选中 tap 的远平面深度不得参与深度汇总。PIE 中以 Plaster 临时遮挡 Wallpaper Cube 下半部验证，遮挡区域不透线。
-- `M_PP_InteractionOutline` 与艺术描边同处 `After DOF` 候选阶段，`BlendablePriority = 10`，保证交互白线最后覆盖艺术黑线。本值只作为 A–F 候选基线；最低配置 GPU 与 Before/After Tonemapping 完整 Profile 未锁定前，不升级为 Production Baseline。
+- `M_PP_LR_StyleOutline` 与 `M_PP_InteractionOutline` 均固定在 `After DOF`；前者 `BlendablePriority = 0`，后者 `BlendablePriority = 10`，保证交互白线最后覆盖艺术黑线。这是 A–F 当前权威基线；最低配置 GPU Profile 未通过前仍不升级为 Production Baseline。
 - `LRCustomStencil::InteractionSelected = 1` 是交互选择唯一登记值；`ULRInteractionPresentationComponent` 只处理带 `InteractionOutline` Component Tag 的 Primitive，并按状态切换 Render CustomDepth。
 
 ## 13. 植被
@@ -822,9 +825,9 @@ Profile 必须保存：
 - Surface：五类代表材质与五个 MF、`M_LR_StylizedOpaque` 已编译；用户已通过 Surface Direction Gate。Wallpaper 的 `DetailTiling = 2`，方向性建筑纹理继续以 Mesh UV/Trim UV 为尺度权威。
 - Exposure：`BenchmarkCalibratedEV = -2.14`；Gray18 ROI 为 `(0.43, 0.68)–(0.57, 0.75)`，线性中位亮度 `0.1774`，满足 0.18 目标与 ±0.03 容差。
 - Lighting：固定 `ArtBench_LightingROI = (0.02, 0.02)–(0.98, 0.98)`；Isolation 对照通过。截图/Profile PIE 临时禁用项为 `DirectionalLight_1`、`SkyLight_1`、`RectLight_0`、`RectLight_3–11`、`PostProcessVolume_1`，停止 PIE 后恢复。
-- Art Outline：`M_PP_LR_StyleOutline` 的 Raw Depth、Relative Depth、Normal 与 FinalArtEdge 调试输出均已分别验证；材质编译无错误。
+- Art Outline：`M_PP_LR_StyleOutline` 使用 `After DOF / BlendablePriority = 0`；Raw Depth、Relative Depth、Normal 与 FinalArtEdge 调试输出均已分别验证，材质编译无错误。
 - Temporal：TSR（`r.AntiAliasingMethod=4`）下完成固定相机连续平移、动态分辨率以及 1080p、1440p、4K 检查，未观察到明显闪烁、爬线、线宽跳变或远景爆线。证据位于 `Saved/ArtBenchmark/`。
-- Interaction：`MF_LR_InteractionEdgeDetector`、8-tap `M_PP_InteractionOutline`、0.707/1.0 A/B 实例已编译；圆角/斜边方向选择 0.707。无遮挡、部分遮挡、艺术线叠加和内部线检查通过。
+- Interaction：`MF_LR_InteractionEdgeDetector`、8-tap `M_PP_InteractionOutline`、0.707/1.0 A/B 实例已编译；圆角/斜边方向选择 0.707。材质使用 `After DOF / BlendablePriority = 10`；无遮挡、部分遮挡、艺术线叠加和内部线检查通过。
 - 自动化：`LostRunic.Interaction.OutlineStencilClearsAcrossTargets` 通过，覆盖 A 选中、A→B、B→None 与无残留 CustomDepth；无 Warning/Error。
 - 构建：`LostRunicEditor Win64 Development` 完整构建通过。当前会话未发现 Shader/Material Error。
 - 性能：本轮只记录实现趋势；最低 GPU 未锁定，GPU Visualizer 的硬预算验收仍是 Production Baseline 升级前置项。
@@ -874,7 +877,7 @@ Profile 必须保存：
 
 - [ ] 主角、守卫、门、掩体和路线无需交互白边也能识别。
 - [ ] 艺术线与交互线数据源分离，线条语言一致。
-- [ ] 交互描边已完成 Composite/Blendable Location A/B，并保存选型依据。
+- [x] 艺术描边与交互描边统一使用 After DOF，并以 Priority 0/10 固定覆盖顺序；最低配置 GPU Profile 另列为 Production Baseline 前置项。
 - [ ] 所有规定 Debug View 可独立显示且语义正确。
 - [ ] 1080p、1440p/目标常用分辨率下线宽一致。
 - [ ] 相机移动时没有明显 Temporal 闪烁。

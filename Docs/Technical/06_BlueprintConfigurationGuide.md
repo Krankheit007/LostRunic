@@ -168,7 +168,7 @@
 
 #### 描边与交互 Actor 配置步骤
 
-1. 打开材质 `/Game/LostRunic/Materials/M_PP_InteractionOutline`，在 **Material Details** 确认 `Material Domain = Post Process`、`Blendable Location = After DOF`、`Blendable Priority = 10`。当前 A–F 候选参数为 `InteractionOutlineWidthPx = 1.0`、`InteractionDiagonalScale = 0.70710678`、`InteractionDepthBiasCm = 1.0`、白色 `InteractionOutlineTint`。
+1. 分别打开 `/Game/LostRunic/Materials/PostProcess/M_PP_LR_StyleOutline` 与 `/Game/LostRunic/Materials/M_PP_InteractionOutline`，在 **Material Details** 确认两者均为 `Material Domain = Post Process`、`Blendable Location = After DOF`；艺术描边 `Blendable Priority = 0`，交互描边 `Blendable Priority = 10`。当前 A–F 交互参数为 `InteractionOutlineWidthPx = 1.0`、`InteractionDiagonalScale = 0.70710678`、`InteractionDepthBiasCm = 1.0`、白色 `InteractionOutlineTint`。
 2. 在需要交互描边的关卡打开负责 Gameplay 画面的 Post Process Volume，在 **Details → Rendering Features → Post Process Materials → Weighted Blendables** 添加 `M_PP_InteractionOutline`，权重为 `1.0`。测试只使用 `/Game/LostRunic/Levels/PIE_Test/L_PIE_Test`；Benchmark 的 `ArtBench_PPV` 平时只保留艺术描边，交互材质仅在定向截图时临时加入并在退出 PIE 后恢复。
 3. 打开交互 Actor 蓝图，在 **Components** 选择需要描边的 `StaticMeshComponent` 或 `SkeletalMeshComponent`，于 **Details → Tags → Component Tags** 添加 `InteractionOutline`。不要把 Actor Tag 当成 Component Tag，也不要手工常开 Render CustomDepth。
 4. `ULRInteractionPresentationComponent` 在 BeginPlay 扫描上述组件，写入 `LRCustomStencil::InteractionSelected = 1`，并按 `NearOutline/Focused` 状态开启 Render CustomDepth；切到其他目标或 None 时自动清理。项目配置 `Config/DefaultEngine.ini` 必须保持 `r.CustomDepth=3`。
