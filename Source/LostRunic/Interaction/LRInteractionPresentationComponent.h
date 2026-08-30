@@ -27,9 +27,6 @@ public:
 	/** Resolves actor components tagged InteractionOutline after Blueprint construction completes. */
 	virtual void BeginPlay() override;
 
-	/** Rebuilds the tagged outline component cache after actor component composition changes. */
-	void RefreshOutlineComponents();
-
 	/** Applies the requested state only when it changes. */
 	UFUNCTION(BlueprintCallable, Category = "Lost Runic|Interaction")
 	void SetPresentationState(ELRInteractionPresentationState newState);

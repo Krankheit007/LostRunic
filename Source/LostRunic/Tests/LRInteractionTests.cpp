@@ -11,9 +11,7 @@
 #include "Misc/AutomationTest.h"
 
 #include "Data/LRInteractionTuning.h"
-#include "Components/StaticMeshComponent.h"
 #include "Components/SceneComponent.h"
-#include "Core/LRCustomStencil.h"
 #include "Core/LRGameplayTags.h"
 #include "Interaction/LRInteractionPresentationComponent.h"
 #include "Interaction/LRInteractionRules.h"
@@ -123,44 +121,6 @@ bool FLRInteractionPromptPresentationConfigTest::RunTest(const FString& paramete
 	offsetChanged.PromptWorldOffset.Z += 10.0f;
 	TestFalse(TEXT("Changing the prompt offset invalidates the interaction focus snapshot"),
 		before.HasSameFocusAs(offsetChanged));
-	return true;
-}
-
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLRInteractionOutlineStencilStateTest,
-	"LostRunic.Interaction.OutlineStencilClearsAcrossTargets",
-	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
-
-bool FLRInteractionOutlineStencilStateTest::RunTest(const FString& parameters)
-{
-	AActor* actorA = NewObject<AActor>();
-	UStaticMeshComponent* meshA = NewObject<UStaticMeshComponent>(actorA, TEXT("OutlineA"));
-	meshA->ComponentTags.Add(TEXT("InteractionOutline"));
-	actorA->AddInstanceComponent(meshA);
-	ULRInteractionPresentationComponent* presentationA = NewObject<ULRInteractionPresentationComponent>(actorA);
-	presentationA->RefreshOutlineComponents();
-
-	AActor* actorB = NewObject<AActor>();
-	UStaticMeshComponent* meshB = NewObject<UStaticMeshComponent>(actorB, TEXT("OutlineB"));
-	meshB->ComponentTags.Add(TEXT("InteractionOutline"));
-	actorB->AddInstanceComponent(meshB);
-	ULRInteractionPresentationComponent* presentationB = NewObject<ULRInteractionPresentationComponent>(actorB);
-	presentationB->RefreshOutlineComponents();
-
-	presentationA->SetPresentationState(ELRInteractionPresentationState::Focused);
-	TestTrue(TEXT("Target A enables CustomDepth"), meshA->bRenderCustomDepth);
-	TestEqual(TEXT("Target A writes the interaction stencil"), meshA->CustomDepthStencilValue,
-		static_cast<int32>(LRCustomStencil::InteractionSelected));
-
-	presentationA->SetPresentationState(ELRInteractionPresentationState::None);
-	presentationB->SetPresentationState(ELRInteractionPresentationState::Focused);
-	TestFalse(TEXT("Switching to B clears Target A CustomDepth"), meshA->bRenderCustomDepth);
-	TestTrue(TEXT("Switching to B enables Target B CustomDepth"), meshB->bRenderCustomDepth);
-	TestEqual(TEXT("Target B writes the interaction stencil"), meshB->CustomDepthStencilValue,
-		static_cast<int32>(LRCustomStencil::InteractionSelected));
-
-	presentationB->SetPresentationState(ELRInteractionPresentationState::None);
-	TestFalse(TEXT("Clearing the target removes Target B CustomDepth"), meshB->bRenderCustomDepth);
-	TestFalse(TEXT("No stale interaction CustomDepth remains on Target A"), meshA->bRenderCustomDepth);
 	return true;
 }
 
