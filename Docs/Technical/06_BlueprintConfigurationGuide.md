@@ -169,11 +169,31 @@
 #### 描边与交互 Actor 配置步骤
 
 1. 分别打开 `/Game/LostRunic/Materials/PostProcess/M_PP_LR_StyleOutline` 与 `/Game/LostRunic/Materials/M_PP_InteractionOutline`，在 **Material Details** 确认两者均为 `Material Domain = Post Process`、`Blendable Location = After DOF`；艺术描边 `Blendable Priority = 0`，交互描边 `Blendable Priority = 10`。当前 A–F 交互参数为 `InteractionOutlineWidthPx = 1.0`、`InteractionDiagonalScale = 0.70710678`、`InteractionDepthBiasCm = 1.0`、白色 `InteractionOutlineTint`。
-2. 在需要交互描边的关卡打开负责 Gameplay 画面的 Post Process Volume，在 **Details → Rendering Features → Post Process Materials → Weighted Blendables** 添加 `M_PP_InteractionOutline`，权重为 `1.0`。测试只使用 `/Game/LostRunic/Levels/PIE_Test/L_PIE_Test`；Benchmark 的 `ArtBench_PPV` 平时只保留艺术描边，交互材质仅在定向截图时临时加入并在退出 PIE 后恢复。
+2. 在需要交互描边的关卡打开负责 Gameplay 画面的 Post Process Volume，在 **Details → Rendering Features → Post Process Materials → Weighted Blendables** 添加 `M_PP_InteractionOutline`，权重为 `1.0`。测试只使用 `/Game/LostRunic/Levels/PIE_Test/L_PIE_Test`；Normal Material Coverage L Combined Gate 的 `ArtBench_PPV` 固定按艺术描边在前、`MI_PP_LR_InteractionOutline_Diag0707` 在后的顺序保留两项，权重均为 `1.0`。
 3. 打开交互 Actor 蓝图，在 **Components** 选择需要描边的 `StaticMeshComponent` 或 `SkeletalMeshComponent`，于 **Details → Tags → Component Tags** 添加 `InteractionOutline`。不要把 Actor Tag 当成 Component Tag，也不要手工常开 Render CustomDepth。
 4. `ULRInteractionPresentationComponent` 在 BeginPlay 扫描上述组件，写入 `LRCustomStencil::InteractionSelected = 1`，并按 `NearOutline/Focused` 状态开启 Render CustomDepth；切到其他目标或 None 时自动清理。项目配置 `Config/DefaultEngine.ini` 必须保持 `r.CustomDepth=3`。
 5. `BP_LRHomePickup` 与 `BP_LRHomeDoor` 的可交互碰撞必须为 Query Only，并将 Object Type 设为项目 `Interaction` 通道；其余交互规则、距离和执行合法性由 C++ 处理。
 6. `MI_PP_LR_InteractionOutline_Diag100` 与 `MI_PP_LR_InteractionOutline_Diag0707` 位于 `/Game/LostRunic/Materials/Benchmark/Instances/`，只用于 A/B；正式默认使用 0.707，不按资产另建交互描边实例。
+
+#### Normal Material Coverage G–L 资产配置
+
+1. 环境 Opaque 打开 `/Game/LostRunic/Materials/Master/M_LR_StylizedOpaque`。所有 MI 都能看到 `SurfaceUTiling` / `SurfaceVTiling`，但只有 Wood、Wallpaper、Tile 等方向性/可平铺环境家族可按批准规则修改；Plaster、Metal、Cloth 保持 `1.0`。墙体长度必须由 Mesh UV/Trim UV 维持物理尺度，不按墙长派生 MI。
+2. Foliage 使用 `/Game/LostRunic/Materials/Master/M_LR_StylizedFoliageMasked`；Benchmark 实例为 `/Game/LostRunic/Materials/Benchmark/Instances/MI_LR_Benchmark_Foliage`。正式 Alpha 先以大叶簇为单位，检查卡片正反面与 Quad Overdraw 后再扩展密集资产。
+3. Ruth 打开 `/Game/LostRunic/Blueprints/Character/BP_Ruth`，选择 `CharacterMesh0`，确认 Material Override 使用 `/Game/LostRunic/Materials/Instances/Characters/MI_LR_Ruth_Child`，并关闭 **Rendering → Receives Decals**。Character MI 不提供 Surface U/V 调整；Painterly seam 问题先降低 `PainterlyStrength`。
+4. 单层玻璃使用 `/Game/LostRunic/Materials/Master/M_LR_StylizedGlass`；Benchmark 实例为 `/Game/LostRunic/Materials/Benchmark/Instances/MI_LR_Benchmark_Glass`。Material Details 必须保持 `Thin Translucent`、`Surface ForwardShading`、无 Refraction；不要让 Wash 驱动 Opacity。
+5. 纯颜色裂纹使用 `/Game/LostRunic/Materials/Decals/M_D_LR_StylizedColor`；Benchmark 实例为 `/Game/LostRunic/Materials/Benchmark/Instances/MI_D_LR_Benchmark_WallCrack`。只允许 Opaque Receiver 使用 `Decal Response = Color`；Foliage、Character、Glass 为 None。Decal Actor 的 Bounds 尊重源 Mask 比例，不用极端非均匀缩放覆盖整墙。
+6. 打开 `/Game/LostRunic/Levels/PIE_Test/L_PIE_Test`，在 Outliner 的 `ArtBenchmark/Normal` 检查 `ArtBench_FoliageCard_A/B`、`ArtBench_Ruth`、`ArtBench_Glass`、`ArtBench_WallCrackDecal` 与 `ArtBench_Door`。Combined Gate 中 Door 的目标网格必须写 Stencil 1；生产运行时仍由 `ULRInteractionPresentationComponent` 按状态开关 CustomDepth，不手工常开。
+
+#### M1 Cluster-Based Foliage Prototype 配置
+
+1. 树与草网格位于 `/Game/LostRunic/ArtBenchmark/M1Foliage/Meshes/`；共享纹理位于 `/Game/LostRunic/Materials/Benchmark/M1Foliage/Textures/`；材质实例位于 `/Game/LostRunic/Materials/Benchmark/M1Foliage/Instances/`。确定性源文件由 `Tools/ArtBenchmark/generate_m1_foliage_meshes.py` 与 `generate_m1_foliage_textures.py` 生成，禁止手工改导入资产后不回写源规则。
+2. 在 Static Mesh Editor 检查树资产 `SM_LR_M1_Tree_Medium_A`：Material Slot 0 为 Trunk、Slot 1 为 Canopy；Build/Import 必须保留 Imported Custom Normals，`Recompute Normals = Off`，Tangent 统一采用基于 Imported Normal 的 MikkTSpace 重算。打开 World Normal 可视化确认每个 Lobe 呈连续径向/椭球分布。树当前双 Section 只用于 M1；未来 LOD 必须复核槽位一致性、Section 数与实例批处理成本。
+3. DCC 中所有 Vertex Color RGB 在艺术涂色前显式初始化为 `0.5/0.5/0.5`。`M_LR_StylizedFoliageMasked` 的 `FoliageMassTintRange` 候选为 `0.2`，Master 的 `FoliageMassTintStrength` 保持 `0`，M1 Tree/Grass/Hero 实例设置为 `1`。A 通道仅保留为 `FutureBendWeight`，本材质不得读取。
+4. 打开 `T_LR_M1_Foliage_BC`，确认 **Texture → sRGB = On**、**Level of Detail → Texture Group = World**、生成 Mips、**Texture → Do Scale Mips for Alpha Coverage = On**，并只将 **Alpha Coverage Thresholds → A = 0.4**；R/G/B Threshold 保持 0。当前项目没有独立 Foliage Texture Group。SMK 使用 Linear/Masks，Normal 使用 Normalmap。
+5. 树冠使用 `MI_LR_M1_Foliage_Tree_Normal0` 与 `MI_LR_M1_Foliage_Tree_Normal025` 做 NormalStrength 0/0.25 A/B；草与 Hero 分别使用 `MI_LR_M1_Foliage_Grass`、`MI_LR_M1_Foliage_HeroTuft`。Cluster Alpha 以连续簇外轮廓为主，内部叶片身份来自 BaseColor/SMK，只保留少量大透空。
+6. 打开 `/Game/LostRunic/Levels/PIE_Test/L_PIE_Test`，在 Outliner 的 `ArtBenchmark/Normal/FoliageM1` 检查 Ground Base、两棵视觉 A/B Tree、Grass Band、Hero Tuft、Tree Density Cell 与 Dense Grass Cell；`ReviewLighting` 下的 Neutral Key/Fill/PPV 只用于固定植被评审。BaseColor Diagnostic 使用 Unlit/BaseColor 视图，不通过关闭主要灯光模拟。
+7. 当前 Density Cell 是固定屏幕覆盖与重叠压力 Proxy，由多个 StaticMeshActor 组成；它不证明 Static Mesh Foliage/HISM 的 Draw Submission、Cluster Culling 或实例化成本。正式性能检查须改用 Foliage Mode/ISM，并固定 Camera、1920×1080、SP100 与 ROI，记录 No Foliage、Single Tree、Tree Density、Grass、Dense Grass、Combined 的 Base Pass/VSM/Quad Overdraw 趋势。
+8. PIE 至少检查卡片正反面、Normal 0/0.25、Near/Mid/Far、1080p/1440p 与 SP70/100。Gameplay Camera 下不得出现占主导的单叶/草叶墨线；若失败，登记后续 Foliage Outline Policy，不在 M1 Master 增加 Stencil、特殊 Pass 或 Static Switch。
 
 #### NPC 对话配置步骤
 

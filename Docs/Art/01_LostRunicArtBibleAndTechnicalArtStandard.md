@@ -219,6 +219,21 @@ Nanite 不强制用于：
 
 对具有明确方向和图案尺度的建筑材质（Wallpaper、Wood Plank、Tiles 等），正式资产的纹理物理尺度由 Mesh UV/Trim UV 作为主要权威；Material Instance Tiling 用于材质家族调整和例外补偿，不按墙体长度创建材质实例。
 
+`M_LR_StylizedOpaque` 统一提供 `SurfaceUTiling` / `SurfaceVTiling`。Production 规则仅允许具有明确方向性或平铺尺度需求的环境材质修改；Wood、Wallpaper、Tile 可以按材质家族或经批准的特殊资产调整，Plaster、Metal、Cloth 默认保持 `1.0`。这些参数是 Benchmark 补偿与例外修正工具，不替代正式 Mesh 的 Physical UV / Texel Density，也不得按 2m、4m、6m 墙长分别创建 MI。
+
+Opaque 环境材质的数据流固定为：
+
+```text
+SurfaceUV   = UV0 × float2(SurfaceUTiling, SurfaceVTiling)
+BaseColor   → SurfaceUV
+SMK         → SurfaceUV
+Normal      → SurfaceUV
+DetailUV    = SurfaceUV × DetailTiling
+PainterlyUV = UV0 × PainterlyTiling
+```
+
+Surface Pattern、Detail 与 Painterly 是三个独立频率层；Painterly Wash 不随 Wallpaper Pattern 一起变密。Character 使用精确 Atlas `UV0`，Production Character MI 禁止调整 Surface U/V。
+
 大尺度无方向综合色变化允许使用 UV1 或 World Space。WorldAligned/Triplanar 仅用于大型静态无规则表面或经批准的特殊资产，不作为所有建筑材质默认路径。
 
 正式模块化建筑避免依靠显著 Non-uniform Actor Scale 改变尺寸。
@@ -369,10 +384,10 @@ Decal 负责局部故事信息，不负责挽救平庸 BaseColor。
 | Master | 用途 | 核心限制 |
 | --- | --- | --- |
 | `M_LR_StylizedOpaque` | 墙、木、石、家具和大多数环境 | 默认生产主材质 |
-| `M_LR_StylizedMasked` | 植被、纸片、部分布料 | 控制 Overdraw，不自动继承全部 Opaque 功能 |
-| `M_LR_StylizedCharacter` | 角色、衣物、Hair Clump | 允许角色专用颜色和边缘控制 |
-| `M_LR_StylizedGlass` | 少量玻璃 | 单独组件，限制透明层和屏幕覆盖 |
-| Decal 系列 | 污迹、裂纹、故事信息 | 每个系列只写必要 GBuffer 通道 |
+| `M_LR_StylizedFoliageMasked` | 双面植被卡片 | `Masked + Default Lit + Two Sided`；不冒充通用 Masked |
+| `M_LR_StylizedCharacter` | 角色、衣物、Hair Clump | 固定 Atlas UV0；常态路径不超过 5 samples |
+| `M_LR_StylizedGlass` | 少量单层玻璃 | `Thin Translucent + Surface ForwardShading`，无 Refraction |
+| `M_D_LR_StylizedColor` | 纯颜色污迹、裂纹和故事信息 | 只写 Color；Receiver 按类别收紧 |
 
 每个 Master 建议不超过 4 个经过批准的 Static Switch。Static Switch 用于真正改变 Shader 路径的功能，不用于普通强度为零即可关闭的调参项。
 
@@ -396,8 +411,8 @@ Decal 负责局部故事信息，不负责挽救平庸 BaseColor。
 | Master | 常态采样目标 | 说明 |
 | --- | ---: | --- |
 | Opaque | 3–5 | BaseColor、SMK、可选 Normal、Macro、Detail |
-| Masked | 3–5 | 包含 Opacity，优先降低 Overdraw |
-| Character | 4–7 | 允许角色专用颜色/Normal，但仍限制微细节 |
+| Foliage Masked | 3–5 | 包含 Opacity，优先降低 Overdraw |
+| Character | ≤5 | 先复用资源已有 packed map；不为凑接口拆贴图 |
 | Glass | 1–3 | 不叠加完整 Painterly 功能 |
 
 超过目标必须在 Material Stats 和目标 GPU Profile 中证明价值；不允许因为“节点已经存在”而默认启用。
@@ -418,6 +433,45 @@ Decal 负责局部故事信息，不负责挽救平庸 BaseColor。
 ```
 
 调优参数使用明确名称、Clamp 和 ToolTip。实例参数只控制资产表现，不保存玩法规则。
+
+### 9.5 Normal Material Coverage G–L
+
+**G Surface UV Contract**
+
+- `M_LR_StylizedOpaque` 统一暴露 `SurfaceUTiling` / `SurfaceVTiling`，默认均为 `1.0`；正式调整权限遵循 6.1 的 Texture Scale Authority。
+- Detail 必须由 `SurfaceUV × DetailTiling` 采样；Painterly Wash 必须由独立的 `UV0 × PainterlyTiling` 采样。
+- Character 的 BaseColor/packed maps/Normal 固定使用 UV0，禁止通过 Surface U/V 改动 Atlas。
+
+**H Masked / Foliage**
+
+- 当前专用 Master 为 `M_LR_StylizedFoliageMasked`，固定 `Masked / Default Lit / Two Sided On`；以后需要铁艺、破洞布或 Hair Card 时另建职责明确的通用 Masked 路径。
+- Prototype Alpha 必须使用大叶簇 Silhouette，不使用几十片独立小叶子制造高频 Art Edge；本阶段不宣称解决正式密集 foliage 的艺术描边策略。
+- 固定 Gameplay Camera 与叶簇屏幕覆盖率，对比 No Foliage / Foliage Prototype，并检查 Shader Complexity / Quad Overdraw 趋势。
+- 同一侧上方 Key Light 下绕卡片检查正反面；背面不得出现明显反转、发黑或异常高光。只有实际发现 Tangent-space Normal 问题后才处理 Two-Sided Normal 语义。
+
+**I Character**
+
+- Character 常态路径 `≤5 Texture Samples`，贴图组织以已有资源事实为准；可复用 ORM/RMA，不要求拆成独立 Roughness/Metallic。
+- Painterly Wash 只做低强度、低频综合色变化。Gameplay Camera 移动时检查脸、手臂、裙子、身体正背面和腿部 UV seam；不得表现成角色身上贴着不同相位的噪声块。出现问题优先降低 Painterly Strength。
+
+**J Glass**
+
+- `M_LR_StylizedGlass` 固定 `Translucent / Thin Translucent / Surface ForwardShading / Two Sided Off`，用于单层薄玻璃；不使用 Refraction、Scene Color、WPO 或完整 Opaque 功能。
+- `Opacity = Saturate(OpacityBase + Fresnel × EdgeOpacityStrength)`。Painterly Wash 只能轻微调 Tint / Transmittance Color，不得控制 Opacity。
+- Fresnel 只强化玻璃存在感，不得形成比 Art Outline 更醒目的第二圈轮廓。
+
+**K Decal**
+
+- `M_D_LR_StylizedColor` 只写 Color；`M_LR_StylizedOpaque` 的 Decal Response 为 Color，Foliage/Character/Glass 默认为 None。
+- Decal 的世界覆盖尺寸由 Projector Bounds 决定；Projector 尺寸必须尊重源 Mask 设计比例，不使用极端 Non-uniform Scale 将单张 Decal 拉伸覆盖任意墙长。覆盖不足时更换 Decal 或摆放第二个 Decal。
+- 验收重点是 Projection Bleeding：不得穿透至墙背面、相邻墙/地板、Ruth、Glass 或其他非目标 Receiver。
+
+**L Combined Material Gate**
+
+- 固定 Camera 按 `Opaque only → +Foliage → +Character → +Glass → +Decal` 留存隔离截图，再检查全部类别同时出现。
+- 至少包含一个 `InteractionSelected` Benchmark Actor；同时开启 Art Outline 与 Interaction Outline，验证新材质类别未改变后处理顺序或深度关系。
+- 至少覆盖 1080p、1440p 与 Screen Percentage 70%/100%；4K 为 Smoke Test。记录 Base Pass、Translucency、Post Processing、Art/Interaction Outline、Shader Complexity / Quad Overdraw 与可用的 DBuffer Decals 趋势。
+- 本阶段只形成 Candidate Baseline；最低 GPU 未锁定前不升级 Production Baseline。
 
 ## 10. Painterly Variation
 
@@ -607,6 +661,87 @@ Normal A–F Benchmark 已将艺术描边与交互描边统一在 `After DOF`，
 | 草 | 关闭 | 默认不强调 | Clump 而非单叶表达 |
 
 优先通过平滑/簇法线、较高 Normal Threshold 和资产形体降低噪声。只有确有需要时才用保留的 Custom Stencil 类别屏蔽特定大型簇；不得让每根草为排除描边额外进入 CustomDepth Pass。
+
+### 13.1 M1 块面化植被组织
+
+LostRunic 的正式植被方向为 **Cluster-Based Stylized Foliage**：树冠首先读成少量连续的综合色团块，草地首先读成大片地表色块与草丛轮廓，而不是很多片叶子和很多根草。
+
+- 中型树以树干/主枝真实 Geometry、少量 Canopy Lobes、每个 Lobe 内多张紧凑 Leaf-Cluster Card，以及少量外轮廓 Cluster 组成。
+- `3–6` 个 Lobe、小树 `20–40` 个 Cluster、中型树 `40–80` 个 Cluster 只作为 M1 的 DCC 组织起点，不是画面计数或正式资产预算。
+- 25% 缩略图下应读成少量清晰的大体积综合色块，而不是几十个独立叶簇；最终权威是 Gameplay Camera 下的 Silhouette、叶冠密度、Masked Overdraw、Shadow Cost 与 Temporal Stability。
+- 一张 Cluster Card 表达一个连续叶簇。内部叶片身份主要由 BaseColor、SMK 与综合色表达；Alpha 以簇外轮廓为主，只保留少量较大的透空、枝条负空间和外轮廓缺口，不制作数十个单叶 Alpha Island。
+- Card Geometry 应贴近 Cluster 外形；允许用少量额外 Triangle 换取更少的空透明区域，不以最少 Card 或最少 Triangle 作为单一优化目标。
+
+草地固定为三层：
+
+| 层级 | 表现职责 | 推荐实现 |
+| --- | --- | --- |
+| Ground Base | 大片综合色、泥土/草地冷暖变化 | Opaque Ground / Landscape Material |
+| Grass Mass | 主要草量和连续综合色丛 | 宽 Blade/Fan 构成的低模 Clump，Static Mesh Foliage |
+| Hero Tuft | 路边、石头边、窗下等少量突出草形 | 独立较大草簇、花或灌木 |
+
+Grass Clump 的整体 Silhouette 优先于单根草叶细节；草根颜色接近地面暗色，向草尖过渡到略暖或略亮的绿色。密度按浓密区、中密度、稀疏过渡和路线空地组织，不使用均匀随机白噪声铺满地面。
+
+### 13.2 Custom Vertex Normal 与导入契约
+
+Custom Vertex Normal 是树冠主要体积受光的权威数据。M1 使用 `normalize(VertexPosition - LobeCenter)` 作为基准球面法线；正式资产允许根据 Lobe 比例使用椭球 Normal Field，或在 DCC 中将原始 Cluster Normal 与 Lobe Volume Normal 做少量混合。不得把该混合变成 M1 Shader 参数。
+
+- Blender 导出必须包含 Custom Split Normals 与 Vertex Color。
+- UE Static Mesh 使用 `Normal Import Method = Import Normals`、`Normal Generation Method = MikkTSpace`。
+- Build 设置固定为 `Recompute Normals = Off`、`Recompute Tangents = On`、`Use MikkTSpace = On`；M1 不得在不同资产间混用 Tangent 策略。
+- Import/Reimport 后必须用 WorldNormal 可视化确认每个 Lobe 仍呈连续的径向或椭球分布。若重新变成单张 Card 的平面法线，导入失败，不得据此否定风格方向。
+
+### 13.3 Foliage Vertex Color 契约
+
+所有 Foliage 顶点 RGB 在艺术涂色前必须显式初始化为 `(0.5, 0.5, 0.5)`，不得依赖 DCC 默认白色或未初始化数据。M1 的 RGB 以 `0.5` 为中性，表示相对综合色变化：
+
+```text
+MassSigned = VertexColor.rgb × 2 - 1
+
+MassMultiplier =
+1 + MassSigned
+    × FoliageMassTintRange
+    × FoliageMassTintStrength
+
+FinalBaseColor =
+StylizedColor × MassMultiplier
+→ PainterlyVariation
+```
+
+`FoliageMassTintRange = 0.2` 为 Candidate；此时 RGB 0/0.5/1 分别对应 0.8/1.0/1.2 倍。Master 的 `FoliageMassTintStrength` 默认保持 `0` 以兼容现有 H 资产，M1 实例使用 `1`。
+
+Vertex Color A 保留为 `FutureBendWeight`。草地 M1 可以写入 Root 0 → Tip 1；树冠不将 A 定义为完整风层级语义，M1 材质不得读取 A，避免锁死未来 Pivot Painter 或分层树木风方案。
+
+### 13.4 Foliage Alpha / Atlas 契约
+
+- BaseColor Atlas 固定 `sRGB = On`、生成 Mips。当前项目未配置独立 Foliage Texture Group，M1 资产使用 `Texture Group = World`；若以后建立经验证的项目级 Foliage Group，再统一迁移，不得逐资产形成隐式配置分叉。
+- `Do Scale Mips for Alpha Coverage = On`；`Alpha Coverage Thresholds` 只启用 `A Threshold = 0.4 Candidate`，R/G/B 不启用。
+- Cluster 外轮廓必须有充分 Padding/Gutter；透明像素 RGB 必须做边缘 Dilation，不得用纯黑透明背景污染 Mip。
+- Atlas 岛之间必须保留足够 Mip Gutter。Near/Mid/Far 检查中不得出现 Cluster 突然变瘦、消失、亮/黑边或跨岛串色。
+- `Opacity Mask Clip Value = 0.4` 仅为 M1 Candidate，必须在真实 Mip、TSR 与 Screen Percentage 70%/100% 下验证。
+
+### 13.5 Foliage Master 边界
+
+`M_LR_StylizedFoliageMasked` 继续同时服务 Tree 与 Grass，并保持 `Masked / Default Lit / Two Sided / Decal Response None`、4 Texture Samples、0 Static Switch。M1 只增加 13.3 的综合色 Vertex Color 数据流，不增加 Detail、WPO、Wind、Subsurface、LOD Fade 或 Foliage Outline 分支。
+
+若后续 Tree 与 Grass 在 WPO、Two-Sided Normal、Opacity、Shading Model、LOD Fade 或 Shadow 语义上出现结构性差异，则建立独立 Master；不得为避免拆分而持续向共享 Master 添加 Static Switch。
+
+### 13.6 M1 视觉与时序门禁
+
+- `Neutral Foliage Review Lighting`：使用固定中性 Key/Fill、固定 Manual Exposure 与 Neutral Color Grade，检查 Lobe Custom Normal 连续性、卡片正反面受光、体积和异常高光。
+- `BaseColor Diagnostic`：使用 `Buffer Visualization > Base Color` 并关闭 Art Outline，独立检查 Vertex Color 大色块、Atlas、Cluster 内部综合色与草的 Root→Tip 色阶；不得用关闭主要灯光代替该诊断。
+- Gameplay Camera 下不得出现视觉上占主导的单叶/草叶墨线。若通用 Art Outline 无法满足，则记录为后续 Foliage Outline Policy 输入，不在 M1 增加 Stencil 或特殊 Pass。
+- 同一 Camera 下按 Tree 屏幕高度 Near 约 35%、Mid 约 15%、Far 约 7% 测试；覆盖 TSR、1080p/1440p 与 Screen Percentage 70%/100%。Near 读取 Cluster，Mid 读取 Lobe，Far 只读取整体 Silhouette 与综合色。
+
+### 13.7 M1 性能 Proxy 与已知 LOD 风险
+
+性能比较固定为 1920×1080、Screen Percentage 100%、同一 Camera 与同一归一化 ROI，依次记录 No Foliage、Single Tree、Tree Density Cell、Grass、Dense Grass、Combined 的 Base Pass、VSM、Shader Complexity、Quad Overdraw 和 GPU 趋势。
+
+- `Masked Screen Coverage Proxy`：对 No Foliage 与 Candidate 的同设置 Quad Overdraw 图，在 ROI 内计算逐像素 RGB 差；任一通道差异大于 `2/255` 记为 Foliage-Touched Pixel，Proxy 为该像素数除以 ROI 像素数。
+- `Overlap Layers Proxy`：使用同一 Quad Overdraw 截图的可见 Legend Palette，将 Foliage-Touched Pixel 按最近颜色分入固定 Severity Class；记录 Mean Class、P95 Class 和 Class 4+ 的 ROI 占比。
+- 两个值都只作为同一 Benchmark 内的趋势 Proxy，不解释为真实硬件 Fragment Coverage 或精确 Overdraw Layer Count；M1 不设正式硬预算。
+
+M1 Tree 保留 `Trunk + Canopy` 双 Material Section。该结构会增加 Section/Draw Submission，并要求未来 Foliage LOD 保持 Section 与材质槽一致；M1 只验证 LOD0，不通过合并 Section、拆分 Mesh 或重构 Master 解决。正式 Foliage LOD 阶段必须重新评估 Section 数、LOD 材质一致性、实例批处理与 Draw Call 趋势。
 
 ## 14. Lighting
 
@@ -831,6 +966,28 @@ Profile 必须保存：
 - 自动化：`LostRunic.Interaction.OutlineStencilClearsAcrossTargets` 通过，覆盖 A 选中、A→B、B→None 与无残留 CustomDepth；无 Warning/Error。
 - 构建：`LostRunicEditor Win64 Development` 完整构建通过。当前会话未发现 Shader/Material Error。
 - 性能：本轮只记录实现趋势；最低 GPU 未锁定，GPU Visualizer 的硬预算验收仍是 Production Baseline 升级前置项。
+
+### 19.2 Normal Material Coverage G–L 验证记录（2026-08-31）
+
+- G：`M_LR_StylizedOpaque` 已接入独立 `SurfaceUTiling` / `SurfaceVTiling`；BaseColor、SMK、Normal 使用 SurfaceUV，Detail 使用 `SurfaceUV × DetailTiling`，Painterly 保持独立 UV0。Opaque 固定 5 samples、0 Static Switch。
+- H：已创建 `M_LR_StylizedFoliageMasked`、`MI_LR_Benchmark_Foliage` 与确定性大叶簇 BC/SMK/Normal；Master 为 Masked、Default Lit、Two Sided、Decal Response None，4 samples、0 Static Switch。正反面基准观察未发现反转高光；密集正式 foliage 与最终 Overdraw 预算仍未宣称完成。
+- I：已检查 Ruth 当前为四张独立 BaseColor/Roughness/Metallic/Normal，而非 packed map；创建 `M_LR_StylizedCharacter` 与 `MI_LR_Ruth_Child`，固定 Atlas UV0、Decal Response None、5 samples、0 Static Switch，并应用到 `BP_Ruth.CharacterMesh0`。
+- J：已创建 `M_LR_StylizedGlass` 与基准实例；当前为 Thin Translucent、Surface ForwardShading、无 Refraction、Decal Response None，1 sample。Wash 只进入综合色，Opacity 只由常量与 Fresnel 控制。
+- K：已创建 Color-only `M_D_LR_StylizedColor`、确定性裂纹 Mask 与 Benchmark Decal。Opaque Receiver 为 Color；Foliage、Character、Glass 为 None。固定相机未观察到向地板、Ruth、Foliage 或 Glass 的投影穿透。
+- L：`ArtBench_PPV` 同时包含 Priority 0 Art Outline 与 0.707 Interaction Outline 实例；`ArtBench_Door` 以 Stencil 1 作为 Combined Gate 目标。固定相机 PIE 已同时显示 Opaque、Foliage、Ruth、Glass、Decal 与双描边；`LostRunic.Interaction.OutlineStencilClearsAcrossTargets` 通过（1/1，0 Warning / 0 Error）。
+- 编译：五个 Surface MF、Opaque/Foliage/Character/Glass/Decal 与两套 PP Material 已重新编译。当前结构统计为 Opaque 5、Foliage 4、Character 5、Glass 1、Decal 1 samples，均为 0 Static Switch；当前重新编译未产生新的 Material/Shader Error。构建阶段曾出现的 Thin Translucent output/Lighting Mode 与 Deferred Decal Blend Mode 警告属于节点尚未接完时的中间状态，最终状态已复编通过。
+- 待升级项：MCP 当前未提供 CVar 写入、GPU Visualizer 或持久截图导出接口，因此 1080p/1440p、70%/100%、4K Smoke、Shader Complexity/Quad Overdraw、DBuffer 与分项 GPU 增量仍列为 Candidate Baseline 的人工 Profile 门禁，不在本记录中伪造通过。
+
+### 19.3 M1 Cluster-Based Foliage Prototype 验证记录（2026-08-31）
+
+- 确定性源：`Tools/ArtBenchmark/generate_m1_foliage_textures.py` 生成共享 BC/SMK/Normal；`Tools/ArtBenchmark/generate_m1_foliage_meshes.py` 生成中型树、三种 Grass Clump 与 Hero Tuft FBX。树冠使用 4 个 Lobe、80 个 Cluster Card 的 M1 组织起点；该数量不是生产预算。
+- 导入：树冠自定义法线与 Vertex Color 由 DCC 写入；UE 重导入采用 Imported Normals、MikkTSpace Tangent，并关闭 Recompute Normals。树 LOD0 为 1606 vertices / 568 triangles、1 LOD，Bounds 约 `4.83 m × 3.34 m × 5.60 m`；树干保留 1 个简单碰撞，Grass/Hero 不生成碰撞。
+- Atlas：`T_LR_M1_Foliage_BC` 为 sRGB/World/Default，生成 Mips，并启用 `Do Scale Mips for Alpha Coverage`，只启用 `A Threshold = 0.4`；SMK 为 Linear Masks，Normal 为 Normalmap。当前项目没有独立 Foliage Texture Group，因此本候选使用 World。
+- 材质：`M_LR_StylizedFoliageMasked` 新增以 0.5 为中性的 Vertex Color RGB 相对综合色链路；`FoliageMassTintRange = 0.2`，Master 的 `FoliageMassTintStrength = 0`，M1 实例为 1。Vertex Color A 未接入。Master 重新编译成功，仍为 4 Texture Samples、0 Static Switch。
+- Benchmark：`L_PIE_Test` 的 `ArtBenchmark/Normal/FoliageM1` 包含 NormalStrength 0/0.25 树木 A/B、Grass Band、Hero Tuft、Single/Density Cell 与固定 Neutral Key/Fill/PPV。PIE 可启动并停止，M1 日志无新增 Material/Shader/PIE Error；测试关卡仍有既存 SaveAnchor 与 Ruth Presentation Lock Warning，不归因于 M1。
+- 构建：关闭 Live Coding 后，`LostRunicEditor Win64 Development` 完整构建通过；只有既有 UE/API 弃用警告。
+- 未通过声明：当前 Density Cell 使用多个 StaticMeshActor 形成固定屏幕像素压力代理，不代表 Static Mesh Foliage/HISM 的实例提交或剔除成本。1080p/1440p、SP 70/100、Near/Mid/Far、Shader Complexity/Quad Overdraw Proxy、综合色缩略图与最终主观签字仍待人工 Profile；M1 不是 Production Baseline。
+- 独立遗留：当前编辑器历史日志仍保留 G–L 阶段 `M_LR_StylizedGlass` 与 `M_D_LR_StylizedColor` 的旧编译失败记录。它们不是本次 M1 修改产生，但在重新形成无错误全局 Rendering Baseline 前必须单独复编并清除验证。
 
 ## 20. Asset Acceptance Checklist
 

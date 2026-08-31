@@ -27,6 +27,11 @@ def save_rgba(name: str, rgba: np.ndarray) -> None:
 	Image.fromarray(image, "RGBA").save(OUTPUT_DIR / f"{name}.png")
 
 
+def save_gray(name: str, gray: np.ndarray) -> None:
+	image = np.clip(gray * 255.0 + 0.5, 0, 255).astype(np.uint8)
+	Image.fromarray(image, "L").save(OUTPUT_DIR / f"{name}.png")
+
+
 def blur(field: np.ndarray, radius: float) -> np.ndarray:
 	image = Image.fromarray(np.clip(field * 255.0 + 0.5, 0, 255).astype(np.uint8), "L")
 	return np.asarray(image.filter(ImageFilter.GaussianBlur(radius)), dtype=np.float32) / 255.0
@@ -115,11 +120,56 @@ def make_shared_wash() -> None:
 	save_rgb("T_LR_Shared_PainterlyWash_A", wash)
 
 
+def ellipse_field(x: np.ndarray, y: np.ndarray, center_x: float, center_y: float, radius_x: float, radius_y: float, rotation: float) -> np.ndarray:
+	cosine = np.cos(rotation)
+	sine = np.sin(rotation)
+	local_x = (x - center_x) * cosine + (y - center_y) * sine
+	local_y = -(x - center_x) * sine + (y - center_y) * cosine
+	return 1.0 - (local_x / radius_x) ** 2 - (local_y / radius_y) ** 2
+
+
+def make_foliage_cluster() -> None:
+	"""Create a few overlapping broad lobes so outline validation measures cluster silhouette."""
+	x, y = coordinates()
+	lobes = (
+		ellipse_field(x, y, 0.34, 0.43, 0.24, 0.34, -0.35),
+		ellipse_field(x, y, 0.61, 0.38, 0.27, 0.31, 0.42),
+		ellipse_field(x, y, 0.48, 0.64, 0.33, 0.25, 0.04),
+		ellipse_field(x, y, 0.50, 0.50, 0.27, 0.38, 0.0),
+	)
+	shape = np.maximum.reduce(lobes)
+	alpha = np.clip(shape * 18.0 + 0.5, 0.0, 1.0)
+	height = np.clip(shape, 0.0, 1.0)
+
+	low_wave = 0.5 + 0.18 * np.sin((x * 1.7 + y * 1.1) * np.pi * 2.0)
+	base = np.dstack((0.19 + low_wave * 0.10, 0.34 + low_wave * 0.18, 0.17 + low_wave * 0.08))
+	base_rgba = np.dstack((base, alpha))
+	macro = np.clip(0.5 + (low_wave - 0.5) * 0.7, 0.25, 0.75)
+	smk = np.dstack((np.zeros_like(alpha), np.zeros_like(alpha), macro, np.zeros_like(alpha)))
+
+	save_rgba("T_LR_Benchmark_Foliage_BC", base_rgba)
+	save_rgba("T_LR_Benchmark_Foliage_SMK", smk)
+	save_rgb("T_LR_Benchmark_Foliage_NRM", normal_from_height(height, 2.0))
+
+
+def make_wall_crack_mask() -> None:
+	"""Create a sparse deterministic crack mask with a 1:2 source aspect."""
+	x, y = coordinates()
+	center = 0.52 + 0.10 * np.sin(y * np.pi * 4.0) + 0.035 * np.sin(y * np.pi * 13.0)
+	main = np.exp(-((x - center) / 0.010) ** 2)
+	branch_center = center + 0.15 * np.clip((y - 0.46) * 4.0, 0.0, 1.0)
+	branch = np.exp(-((x - branch_center) / 0.008) ** 2) * np.clip(1.0 - np.abs(y - 0.60) * 6.0, 0.0, 1.0)
+	mask = np.clip(np.maximum(main, branch) * np.clip((y - 0.08) * 10.0, 0.0, 1.0) * np.clip((0.94 - y) * 10.0, 0.0, 1.0), 0.0, 1.0)
+	save_gray("T_LR_Benchmark_WallCrack_Mask", mask)
+
+
 def main() -> None:
 	OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 	for index, kind in enumerate(("Wood", "Plaster", "Wallpaper", "Metal", "Cloth"), start=1):
 		make_material(kind, 1729 + index * 97)
 	make_shared_wash()
+	make_foliage_cluster()
+	make_wall_crack_mask()
 
 
 if __name__ == "__main__":
