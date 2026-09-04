@@ -878,7 +878,9 @@ StringTable 的 `Source String` 只填写源语言（本项目约定为 `zh-Hans
 
 ### 状态表现协调与验收
 
-`ULRStatePresentationComponent::CompleteStatePresentation()` 仍是唯一正常解锁入口。现有 `PresentStateChange` 编排启动 PP transition、Eye Overlay（由 Hold/State 事件自行收尾）和其他状态表现，然后启动本状态唯一 Presentation Window；Perception 进入/退出窗口分别为 `0.30/0.20 s`，窗口结束后调用 `CompleteStatePresentation()`。Renderer、HUD Controller、Eye Overlay 均不得直接释放状态锁。
+1. `/Game/LostRunic/UI/WBP_LRStateEyeOverlay` 派生自 `ULRStateEyeOverlayWidget`。Widget Tree 使用全屏 `CanvasPanel` Root，并创建 `TopBlock`、`BottomBlock` 两个勾选 **Is Variable** 的 `Image`；上块锚点 `(0,0)-(1,0.5)`、下块锚点 `(0,0.5)-(1,1)`，Offsets 全为 0，Root 与 Image 均设为 **Hit Test Invisible**。运行时位移、Tint、Opacity 由 C++ 控制，不在 Widget Blueprint 重复制作动画。
+2. 打开 `/Game/LostRunic/Blueprints/UI/BP_LRHUD`，在 Class Defaults 将 **State Overlay Screen Class** 指向 `WBP_LRStateEyeOverlay`。该层常驻 HUD 生命周期，但稳定状态会由 Widget 自身折叠。
+3. `ULRStatePresentationComponent::CompleteStatePresentation()` 仍是唯一正常解锁入口。由于原生组件的 protected `PresentStateChange` 事件不会作为 Actor override 暴露给 `BP_Ruth`，当前 `/Game/LostRunic/Blueprints/Character/BP_Ruth` 在 BeginPlay 对原生 `StatePresentation` 组件执行 **Assign On State Presentation Requested**：委托事件按 `nextMode == Perception` 选择 `0.30 s`，其他状态选择 `0.20 s`，经唯一 Delay 后只调用一次该组件的 `CompleteStatePresentation()`。PP transition 由同一委托驱动，Eye Overlay 由 Hold/State UI 事件自行收尾，不向这条链回报完成；Renderer、HUD Controller、Eye Overlay 均不得直接释放状态锁。
 
 在 `/Game/LostRunic/Levels/PIE_Test/L_PIE_Test` 验收：
 
