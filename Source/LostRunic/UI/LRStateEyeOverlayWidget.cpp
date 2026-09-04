@@ -155,7 +155,8 @@ void ULRStateEyeOverlayWidget::HandleHoldThresholdReached(const ELRStateRequestT
 	CurrentOpacity = controller ? controller->GetEyeOverlayMaxOpacity(targetMode) : HoldBlockOpacity;
 	ActiveTint = controller ? controller->GetEyeOverlayTint(targetMode) : ActiveTint;
 	ApplyVisualSample(CurrentClosedness, CurrentOpacity);
-	StartInterpolation(CurrentClosedness, FullyOpenClosedness, CurrentOpacity, 0.0f, duration,
+	const float successTargetClosedness = bOpening ? FullyOpenClosedness : FullyClosedClosedness;
+	StartInterpolation(CurrentClosedness, successTargetClosedness, CurrentOpacity, 0.0f, duration,
 		ELREyeOverlayAnimationPhase::SuccessTail);
 }
 
@@ -261,13 +262,15 @@ void ULRStateEyeOverlayWidget::FinishInterpolation()
 	{
 		ActiveTint = StableTint;
 	}
-	if (AnimationPhase == ELREyeOverlayAnimationPhase::SuccessTail
-		|| AnimationPhase == ELREyeOverlayAnimationPhase::Rollback)
+	if (AnimationPhase == ELREyeOverlayAnimationPhase::SuccessTail)
 	{
-		CurrentClosedness = AnimationPhase == ELREyeOverlayAnimationPhase::SuccessTail
-			? FullyOpenClosedness : StableClosedness;
-		CurrentOpacity = AnimationPhase == ELREyeOverlayAnimationPhase::SuccessTail
-			? 0.0f : StableOpacity;
+		CurrentClosedness = AnimationTargetClosedness;
+		CurrentOpacity = 0.0f;
+	}
+	else if (AnimationPhase == ELREyeOverlayAnimationPhase::Rollback)
+	{
+		CurrentClosedness = StableClosedness;
+		CurrentOpacity = StableOpacity;
 	}
 	ApplyVisualSample(CurrentClosedness, CurrentOpacity);
 	AnimationPhase = ELREyeOverlayAnimationPhase::Idle;
