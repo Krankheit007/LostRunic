@@ -14,6 +14,17 @@
 #include "Perception/LRPerceptionRules.h"
 #include "Perception/LRPerceptionSoundSourceComponent.h"
 
+namespace
+{
+	float ResolveVisualRadius(const FLRPerceptionPulseRequest& request,
+		const ULRPresentationTuning* tuning)
+	{
+		const float configuredRadius = request.VisualRadiusCm > 0.0f
+			? request.VisualRadiusCm : (tuning ? tuning->NoiseRevealRadius : 200.0f);
+		return FMath::Max(configuredRadius, 1.0f);
+	}
+}
+
 void ULRPerceptionPresentationComponent::ApplyPulse(const FLRPerceptionPulseRequest& request)
 {
 	if (!bPerceptionActive || !GetWorld())
@@ -59,7 +70,7 @@ void ULRPerceptionPresentationComponent::SpawnPulseVFX(const FLRPerceptionPulseR
 	{
 		return;
 	}
-	component->SetVariableFloat(FName(TEXT("User.Radius")), request.VisualRadiusCm);
+	component->SetVariableFloat(FName(TEXT("User.Radius")), ResolveVisualRadius(request, Tuning));
 	component->SetVariableFloat(FName(TEXT("User.ExpansionSeconds")), Tuning->EchoExpansionSeconds);
 	component->SetVariableFloat(FName(TEXT("User.WaveWidthCm")), Tuning->EchoWaveWidthCm);
 	component->SetVariableFloat(FName(TEXT("User.Intensity")), request.Intensity);
@@ -96,8 +107,7 @@ void ULRPerceptionPresentationComponent::SetEchoSlot(const int32 slotIndex,
 	const FLRPerceptionPulseRequest& request, const float now, const bool bRefresh)
 {
 	FLRPerceptionEchoSlot& slot = EchoSlots[slotIndex];
-	const float radius = request.VisualRadiusCm > 0.0f
-		? request.VisualRadiusCm : (Tuning ? Tuning->NoiseRevealRadius : 200.0f);
+	const float radius = ResolveVisualRadius(request, Tuning);
 	const float duration = Tuning ? Tuning->NoiseRevealDurationSeconds : 5.0f;
 	if (!bRefresh)
 	{
@@ -107,7 +117,7 @@ void ULRPerceptionPresentationComponent::SetEchoSlot(const int32 slotIndex,
 		slot.SourceObject = request.SourceObject;
 	}
 	slot.bActive = true;
-	slot.RadiusCm = FMath::Max(radius, 1.0f);
+	slot.RadiusCm = radius;
 	slot.LastPulseTime = now;
 	slot.ExpireTime = now + FMath::Max(duration, 0.001f);
 	slot.Intensity = FMath::Clamp(request.Intensity, 0.0f, 1.0f);
