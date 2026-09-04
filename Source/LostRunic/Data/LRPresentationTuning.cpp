@@ -21,5 +21,12 @@ bool ULRPresentationTuning::Validate(FString& outError) const
 		&& LRValidation::RequireRange(TEXT("NoiseRevealRadius"), NoiseRevealRadius, 0.0f, 5000.0f, outError)
 		&& LRValidation::RequireRange(TEXT("NoiseRevealDurationSeconds"), NoiseRevealDurationSeconds, 0.0f, 30.0f, outError)
 		&& LRValidation::RequireRange(TEXT("PerceptionBlendWeight"), PerceptionBlendWeight, 0.0f, 1.0f, outError)
-		&& LRValidation::RequireRange(TEXT("CourageBlendWeight"), CourageBlendWeight, 0.0f, 1.0f, outError);
+		&& LRValidation::RequireRange(TEXT("CourageBlendWeight"), CourageBlendWeight, 0.0f, 1.0f, outError)
+		&& LRValidation::RequireRange(TEXT("CutawayHideDurationSeconds"), CutawayHideDurationSeconds, 0.0f, 2.0f, outError)
+		&& LRValidation::RequireRange(TEXT("CutawayRestoreDurationSeconds"), CutawayRestoreDurationSeconds, 0.0f, 2.0f, outError)
+		&& LRValidation::RequireRange(TEXT("CutawayRadiusRefPx"), CutawayRadiusRefPx, 32.0f, 600.0f, outError)
+		&& LRValidation::RequireRange(TEXT("CutawayDetectionFrequencyHz"), CutawayDetectionFrequencyHz, 1.0f, 60.0f, outError)
+		&& LRValidation::RequireRange(TEXT("CutawayTraceSphereRadiusCm"), CutawayTraceSphereRadiusCm, 0.0f, 100.0f, outError)
+		&& LRValidation::RequireRange(TEXT("DefaultCameraDistanceCm"), DefaultCameraDistanceCm, 300.0f, 1400.0f, outError)
+		&& LRValidation::RequireRange(TEXT("DefaultCameraDistanceBlendSeconds"), DefaultCameraDistanceBlendSeconds, 0.0f, 5.0f, outError);
 }

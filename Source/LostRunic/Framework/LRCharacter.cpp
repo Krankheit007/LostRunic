@@ -8,6 +8,8 @@
  */
 #include "Framework/LRCharacter.h"
 
+#include "Camera/LRCameraCutawayComponent.h"
+#include "Camera/LRCameraRigComponent.h"
 #include "Gameplay/LRLocomotionComponent.h"
 #include "Interaction/LRInteractionComponent.h"
 #include "Items/LRAttackTargetResolver.h"
@@ -39,11 +41,13 @@ ALRCharacter::ALRCharacter()
 	CameraBoom->SetUsingAbsoluteRotation(true);
 	CameraBoom->TargetArmLength = 700.0f;
 	CameraBoom->SetRelativeRotation(FRotator(-50.0f, 0.0f, 0.0f));
-	CameraBoom->bDoCollisionTest = true;
+	CameraBoom->bDoCollisionTest = false;
 
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 	Camera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
 	Camera->bUsePawnControlRotation = false;
+	CameraRig = CreateDefaultSubobject<ULRCameraRigComponent>(TEXT("CameraRig"));
+	CameraCutaway = CreateDefaultSubobject<ULRCameraCutawayComponent>(TEXT("CameraCutaway"));
 
 	Locomotion = CreateDefaultSubobject<ULRLocomotionComponent>(TEXT("Locomotion"));
 	State = CreateDefaultSubobject<ULRStateComponent>(TEXT("State"));

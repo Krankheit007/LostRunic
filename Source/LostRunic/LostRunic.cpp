@@ -15,4 +15,5 @@
 IMPLEMENT_PRIMARY_GAME_MODULE( FDefaultGameModuleImpl, LostRunic, "LostRunic" );
 
 DEFINE_LOG_CATEGORY(LogLostRunic)
+DEFINE_LOG_CATEGORY(LogLostRunicCutaway)
 

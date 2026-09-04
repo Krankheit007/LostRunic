@@ -14,6 +14,8 @@
 #include "LRCharacter.generated.h"
 
 class UCameraComponent;
+class ULRCameraCutawayComponent;
+class ULRCameraRigComponent;
 class ULRInteractionComponent;
 class ULRInventoryComponent;
 class ULRItemActionComponent;
@@ -119,6 +121,12 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Lost Runic|Camera")
 	UCameraComponent* GetTopDownCamera() const { return Camera; }
 
+	UFUNCTION(BlueprintPure, Category = "Lost Runic|Camera")
+	ULRCameraRigComponent* GetCameraRigComponent() const { return CameraRig; }
+
+	UFUNCTION(BlueprintPure, Category = "Lost Runic|Camera")
+	ULRCameraCutawayComponent* GetCameraCutawayComponent() const { return CameraCutaway; }
+
 private:
 	/** Camera Boom 的领域数据，由所属类型负责维护和校验。 仅在蓝图或详情面板中查看，不可编辑。 */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
@@ -127,6 +135,12 @@ private:
 	/** Camera 的领域数据，由所属类型负责维护和校验。 仅在蓝图或详情面板中查看，不可编辑。 */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UCameraComponent> Camera;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<ULRCameraRigComponent> CameraRig;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<ULRCameraCutawayComponent> CameraCutaway;
 
 	/** Locomotion 的领域数据，由所属类型负责维护和校验。 仅在蓝图或详情面板中查看，不可编辑。 */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
