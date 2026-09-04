@@ -11,6 +11,7 @@
 #include "Core/LRTypes.h"
 #include "GameFramework/InputDeviceSubsystem.h"
 #include "Interaction/LRInteractionTypes.h"
+#include "State/LRStateTypes.h"
 #include "UI/LRUITypes.h"
 #include "UObject/Object.h"
 
@@ -23,6 +24,13 @@ class UEnhancedInputUserSettings;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FLRHUDPerceptionModeChanged, ELRPerceptionMode, mode, FGameplayTag, reason);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FLRHUDInteractionPromptChanged, FLRInteractionPromptView, promptView);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FLRHUDStateHoldStarted, ELRStateRequestType, inputType,
+	ELRPerceptionMode, targetMode, float, holdSeconds);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FLRHUDStateHoldCanceled, ELRStateRequestType, inputType);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FLRHUDStateHoldThresholdReached, ELRStateRequestType, inputType,
+	ELRPerceptionMode, targetMode);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FLRHUDStateChangeRejected, FLRStateChangeRequest, request,
+	FGameplayTag, reason);
 
 /** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
 UCLASS(BlueprintType, meta = (DisplayName = "Lost Runic HUD Widget Controller"))
@@ -50,6 +58,22 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Lost Runic|UI")
 	FLRInteractionPromptView GetCurrentInteractionPrompt() const { return CurrentInteractionPrompt; }
 
+	/** Returns the PresentationTuning-owned success tail for the eye overlay. */
+	UFUNCTION(BlueprintPure, Category = "Lost Runic|UI|State")
+	float GetEyeOverlaySuccessTailSeconds() const;
+	/** Returns the PresentationTuning-owned cancellation/rejection rollback duration. */
+	UFUNCTION(BlueprintPure, Category = "Lost Runic|UI|State")
+	float GetEyeOverlayCancelSeconds() const;
+	/** Returns the visual open fraction used at the gameplay threshold. */
+	UFUNCTION(BlueprintPure, Category = "Lost Runic|UI|State")
+	float GetEyeOpenThresholdVisualProgress() const;
+	/** Returns the authored eye-overlay tint for a committed or target perception mode. */
+	UFUNCTION(BlueprintPure, Category = "Lost Runic|UI|State")
+	FLinearColor GetEyeOverlayTint(ELRPerceptionMode mode) const;
+	/** Returns the authored maximum eye-overlay opacity for a committed or target perception mode. */
+	UFUNCTION(BlueprintPure, Category = "Lost Runic|UI|State")
+	float GetEyeOverlayMaxOpacity(ELRPerceptionMode mode) const;
+
 	/** 当 Perception Mode Changed 发生时广播；蓝图可绑定该委托以更新表现，不应在回调中改写核心规则。  */
 	UPROPERTY(BlueprintAssignable, Category = "Lost Runic|UI")
 	FLRHUDPerceptionModeChanged OnPerceptionModeChanged;
@@ -57,6 +81,20 @@ public:
 	/** Focus-only prompt event for the HUD widget; this controller never performs world queries. */
 	UPROPERTY(BlueprintAssignable, Category = "Lost Runic|UI")
 	FLRHUDInteractionPromptChanged OnInteractionPromptChanged;
+
+	/** UI-only forwarding of the state component's eye-hold lifecycle. */
+	UPROPERTY(BlueprintAssignable, Category = "Lost Runic|UI|State")
+	FLRHUDStateHoldStarted OnHoldStarted;
+
+	UPROPERTY(BlueprintAssignable, Category = "Lost Runic|UI|State")
+	FLRHUDStateHoldCanceled OnHoldCanceled;
+
+	UPROPERTY(BlueprintAssignable, Category = "Lost Runic|UI|State")
+	FLRHUDStateHoldThresholdReached OnHoldThresholdReached;
+
+	/** UI-only forwarding of a rejected state request; the UI must not retry or mutate state. */
+	UPROPERTY(BlueprintAssignable, Category = "Lost Runic|UI|State")
+	FLRHUDStateChangeRejected OnStateChangeRejected;
 
 private:
 	/**
@@ -66,6 +104,18 @@ private:
 	 */
 	UFUNCTION()
 	void HandleStateChanged(ELRPerceptionMode currentMode, FGameplayTag reason);
+	/** Forwards a state hold start without exposing the state component to UI. */
+	UFUNCTION()
+	void HandleHoldStarted(ELRStateRequestType inputType, ELRPerceptionMode targetMode, float holdSeconds);
+	/** Forwards an uncommitted hold cancellation to the overlay. */
+	UFUNCTION()
+	void HandleHoldCanceled(ELRStateRequestType inputType);
+	/** Forwards the gameplay threshold event before the state request is committed. */
+	UFUNCTION()
+	void HandleHoldThresholdReached(ELRStateRequestType inputType, ELRPerceptionMode targetMode);
+	/** Forwards a rejected state request for visual rollback only. */
+	UFUNCTION()
+	void HandleStateChangeRejected(FLRStateChangeRequest request, FGameplayTag reason);
 	/** Stores the player component's focus snapshot before UI presentation concerns are applied. */
 	UFUNCTION()
 	void HandleFocusedInteractionChanged(FLRInteractionFocusSnapshot focusSnapshot);
@@ -105,10 +155,12 @@ private:
 
 	/** Observed Character 的内部运行时数据；不参与蓝图配置。 */
 	TWeakObjectPtr<ALRCharacter> ObservedCharacter;
+	TWeakObjectPtr<class ULRStateComponent> ObservedStateComponent;
 	TWeakObjectPtr<ALRPlayerController> ObservedPlayerController;
 	TWeakObjectPtr<UEnhancedInputLocalPlayerSubsystem> EnhancedInputSubsystem;
 	TWeakObjectPtr<UEnhancedInputUserSettings> EnhancedInputUserSettings;
 	TWeakObjectPtr<UInputDeviceSubsystem> InputDeviceSubsystem;
+	TWeakObjectPtr<class ULRPresentationTuning> PresentationTuning;
 	/** 当前已提交的心理状态；仅状态组件可修改，蓝图只能读取。该字段由 C++ 在运行时维护，不在蓝图中配置。 */
 	ELRPerceptionMode CurrentMode = ELRPerceptionMode::Normal;
 	ELRInputMode CurrentInputMode = ELRInputMode::Gameplay;

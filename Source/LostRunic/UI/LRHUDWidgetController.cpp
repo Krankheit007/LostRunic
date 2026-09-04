@@ -9,7 +9,10 @@
 #include "UI/LRHUDWidgetController.h"
 
 #include "EnhancedInputSubsystems.h"
+#include "Data/LRGameTuningSet.h"
+#include "Data/LRPresentationTuning.h"
 #include "Engine/Engine.h"
+#include "Framework/LRGameInstanceSubsystem.h"
 #include "Framework/LRCharacter.h"
 #include "Framework/LRPlayerController.h"
 #include "Interaction/LRInteractionComponent.h"
@@ -33,7 +36,20 @@ void ULRHUDWidgetController::SetObservedCharacter(ALRCharacter* character)
 		return;
 	}
 	CurrentMode = state->GetCurrentMode();
+	ObservedStateComponent = state;
+	if (character->GetWorld())
+	{
+		const UGameInstance* gameInstance = character->GetWorld()->GetGameInstance();
+		const ULRGameInstanceSubsystem* dataSubsystem = gameInstance
+			? gameInstance->GetSubsystem<ULRGameInstanceSubsystem>() : nullptr;
+		PresentationTuning = dataSubsystem && dataSubsystem->GetTuningSet()
+			? dataSubsystem->GetTuningSet()->Presentation : nullptr;
+	}
 	state->OnStateChanged.AddDynamic(this, &ULRHUDWidgetController::HandleStateChanged);
+	state->OnHoldStarted.AddDynamic(this, &ULRHUDWidgetController::HandleHoldStarted);
+	state->OnHoldCanceled.AddDynamic(this, &ULRHUDWidgetController::HandleHoldCanceled);
+	state->OnHoldThresholdReached.AddDynamic(this, &ULRHUDWidgetController::HandleHoldThresholdReached);
+	state->OnStateChangeRejected.AddDynamic(this, &ULRHUDWidgetController::HandleStateChangeRejected);
 	ObservedPlayerController = character ? Cast<ALRPlayerController>(character->GetController()) : nullptr;
 	if (ALRPlayerController* playerController = ObservedPlayerController.Get())
 	{
@@ -75,9 +91,16 @@ void ULRHUDWidgetController::SetObservedCharacter(ALRCharacter* character)
  */
 void ULRHUDWidgetController::Deinitialize()
 {
+	if (ULRStateComponent* state = ObservedStateComponent.Get())
+	{
+		state->OnStateChanged.RemoveDynamic(this, &ULRHUDWidgetController::HandleStateChanged);
+		state->OnHoldStarted.RemoveDynamic(this, &ULRHUDWidgetController::HandleHoldStarted);
+		state->OnHoldCanceled.RemoveDynamic(this, &ULRHUDWidgetController::HandleHoldCanceled);
+		state->OnHoldThresholdReached.RemoveDynamic(this, &ULRHUDWidgetController::HandleHoldThresholdReached);
+		state->OnStateChangeRejected.RemoveDynamic(this, &ULRHUDWidgetController::HandleStateChangeRejected);
+	}
 	if (ALRCharacter* character = ObservedCharacter.Get())
 	{
-		character->GetStateComponent()->OnStateChanged.RemoveDynamic(this, &ULRHUDWidgetController::HandleStateChanged);
 		if (ULRInteractionComponent* interaction = character->GetInteractionComponent())
 		{
 			interaction->OnFocusedInteractionChanged.RemoveDynamic(this, &ULRHUDWidgetController::HandleFocusedInteractionChanged);
@@ -104,10 +127,12 @@ void ULRHUDWidgetController::Deinitialize()
 		settings->OnSettingsChanged.RemoveDynamic(this, &ULRHUDWidgetController::HandleUserSettingsChanged);
 	}
 	ObservedCharacter.Reset();
+	ObservedStateComponent.Reset();
 	ObservedPlayerController.Reset();
 	EnhancedInputSubsystem.Reset();
 	EnhancedInputUserSettings.Reset();
 	InputDeviceSubsystem.Reset();
+	PresentationTuning.Reset();
 	CurrentMode = ELRPerceptionMode::Normal;
 	CurrentInputMode = ELRInputMode::Gameplay;
 	SourceInteractionFocus = FLRInteractionFocusSnapshot();
@@ -123,6 +148,94 @@ void ULRHUDWidgetController::HandleStateChanged(const ELRPerceptionMode currentM
 {
 	CurrentMode = currentMode;
 	OnPerceptionModeChanged.Broadcast(CurrentMode, reason);
+}
+
+float ULRHUDWidgetController::GetEyeOverlaySuccessTailSeconds() const
+{
+	const ULRPresentationTuning* tuning = PresentationTuning.Get();
+	return tuning ? FMath::Max(0.0f, tuning->EyeOverlaySuccessTailSeconds) : 0.12f;
+}
+
+float ULRHUDWidgetController::GetEyeOverlayCancelSeconds() const
+{
+	const ULRPresentationTuning* tuning = PresentationTuning.Get();
+	return tuning ? FMath::Max(0.0f, tuning->EyeOverlayCancelSeconds) : 0.15f;
+}
+
+float ULRHUDWidgetController::GetEyeOpenThresholdVisualProgress() const
+{
+	const ULRPresentationTuning* tuning = PresentationTuning.Get();
+	return tuning ? FMath::Clamp(tuning->EyeOpenThresholdVisualProgress, 0.0f, 1.0f) : 0.90f;
+}
+
+FLinearColor ULRHUDWidgetController::GetEyeOverlayTint(const ELRPerceptionMode mode) const
+{
+	if (!PresentationTuning.IsValid())
+	{
+		return FLinearColor::Black;
+	}
+
+	switch (mode)
+	{
+	case ELRPerceptionMode::Perception:
+		return PresentationTuning->PerceptionEyeOverlayStyle.Tint;
+	case ELRPerceptionMode::Courage:
+		return PresentationTuning->CourageEyeOverlayStyle.Tint;
+	case ELRPerceptionMode::Memory:
+		return PresentationTuning->MemoryEyeOverlayStyle.Tint;
+	case ELRPerceptionMode::Normal:
+	default:
+		return FLinearColor::Black;
+	}
+}
+
+float ULRHUDWidgetController::GetEyeOverlayMaxOpacity(const ELRPerceptionMode mode) const
+{
+	if (!PresentationTuning.IsValid() || mode == ELRPerceptionMode::Normal)
+	{
+		return 0.80f;
+	}
+
+	const FLRStateEyeOverlayStyle* style = nullptr;
+	switch (mode)
+	{
+	case ELRPerceptionMode::Perception:
+		style = &PresentationTuning->PerceptionEyeOverlayStyle;
+		break;
+	case ELRPerceptionMode::Courage:
+		style = &PresentationTuning->CourageEyeOverlayStyle;
+		break;
+	case ELRPerceptionMode::Memory:
+		style = &PresentationTuning->MemoryEyeOverlayStyle;
+		break;
+	case ELRPerceptionMode::Normal:
+	default:
+		break;
+	}
+	return style ? FMath::Clamp(style->MaxOpacity, 0.0f, 1.0f) : 0.80f;
+}
+
+void ULRHUDWidgetController::HandleHoldStarted(const ELRStateRequestType inputType,
+	const ELRPerceptionMode targetMode, const float holdSeconds)
+{
+	OnHoldStarted.Broadcast(inputType, targetMode, holdSeconds);
+}
+
+void ULRHUDWidgetController::HandleHoldCanceled(const ELRStateRequestType inputType)
+{
+	OnHoldCanceled.Broadcast(inputType);
+}
+
+void ULRHUDWidgetController::HandleHoldThresholdReached(const ELRStateRequestType inputType,
+	const ELRPerceptionMode targetMode)
+{
+	OnHoldThresholdReached.Broadcast(inputType, targetMode);
+}
+
+void ULRHUDWidgetController::HandleStateChangeRejected(const FLRStateChangeRequest request,
+	const FGameplayTag reason)
+{
+	OnStateChangeRejected.Broadcast(request, reason);
 }
 
 /** Stores and forwards the Focus prompt produced by the interaction component. */
