@@ -61,7 +61,7 @@ public:
 	UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Category = "Perception|Sound")
 	bool bRefreshExistingSource = true;
 
-	/** Route an ambient pulse through a sibling NoiseEmitter for AI hearing as well. */
+	/** Route an ambient pulse to AI hearing as well; this source remains independent of NoiseEmitter. */
 	UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Category = "Perception|Sound")
 	bool bAlsoEmitToAI = false;
 

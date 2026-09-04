@@ -16,6 +16,7 @@
 #include "Data/LRUITuning.h"
 #include "Data/LRVisualStyleDefinition.h"
 #include "Perception/LRPerceptionRules.h"
+#include "Perception/LRPerceptionSoundSourceComponent.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLRPerceptionEchoRulesTest, "LostRunic.Perception.EchoRules",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
@@ -144,6 +145,22 @@ bool FLRPerceptionVisualStyleResolutionTest::RunTest(const FString& parameters)
 		contentSet->ResolveVisualStyle(NAME_None) == defaultStyle);
 	TestTrue(TEXT("Map override resolves before the project default"),
 		contentSet->ResolveVisualStyle(FName(TEXT("TestMap"))) == mapStyle);
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLRPerceptionSoundSourceContractTest,
+	"LostRunic.Perception.SoundSourceContract",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FLRPerceptionSoundSourceContractTest::RunTest(const FString& parameters)
+{
+	(void)parameters;
+	const ULRPerceptionSoundSourceComponent* source = NewObject<ULRPerceptionSoundSourceComponent>();
+	TestFalse(TEXT("Ambient source does not report to AI by default"), source->bAlsoEmitToAI);
+	TestEqual(TEXT("Ambient visual radius remains tuning-resolved by default"),
+		source->VisualRadiusOverrideCm, 0.0f, 0.001f);
+	TestEqual(TEXT("Ambient AI radius is independent and disabled by default"),
+		source->AIHearingRadiusCm, 0.0f, 0.001f);
 	return true;
 }
 

@@ -32,6 +32,13 @@ void ULRPerceptionPresentationComponent::WriteStyleParameters()
 {
 	if (PerceptionPostProcessMID && VisualStyle)
 	{
+		const float fullRevealRadius = Tuning ? Tuning->PerceptionFullRevealRadius : 400.0f;
+		const float revealRadius = Tuning ? Tuning->PerceptionRevealRadius : 450.0f;
+		const float expansionSeconds = Tuning ? Tuning->EchoExpansionSeconds : 0.75f;
+		const float wetSeconds = Tuning ? Tuning->EchoWetSeconds : 0.20f;
+		const float dryFadeDurationSeconds = Tuning ? Tuning->EchoDryFadeDurationSeconds : 1.30f;
+		const float waveWidthCm = Tuning ? Tuning->EchoWaveWidthCm : 12.5f;
+		const float boundaryNoiseCm = Tuning ? Tuning->PerceptionBoundaryNoiseCm : 18.0f;
 		PerceptionPostProcessMID->SetTextureParameterValue(FName(LRPerceptionMaterialParameters::Palette), VisualStyle->Palette);
 		PerceptionPostProcessMID->SetVectorParameterValue(FName(LRPerceptionMaterialParameters::BlindColor), VisualStyle->BlindColor);
 		PerceptionPostProcessMID->SetScalarParameterValue(FName(LRPerceptionMaterialParameters::RevealedValueFloor), VisualStyle->RevealedValueFloor);
@@ -50,6 +57,13 @@ void ULRPerceptionPresentationComponent::WriteStyleParameters()
 			Tuning ? Tuning->AccentDepthToleranceCm : 3.0f);
 		PerceptionPostProcessMID->SetScalarParameterValue(FName(LRPerceptionMaterialParameters::DebugView),
 			static_cast<float>(DebugView));
+		PerceptionPostProcessMID->SetScalarParameterValue(FName(LRPerceptionMaterialParameters::PerceptionFullRevealRadius), fullRevealRadius);
+		PerceptionPostProcessMID->SetScalarParameterValue(FName(LRPerceptionMaterialParameters::PerceptionRevealRadius), revealRadius);
+		PerceptionPostProcessMID->SetScalarParameterValue(FName(LRPerceptionMaterialParameters::EchoExpansionSeconds), expansionSeconds);
+		PerceptionPostProcessMID->SetScalarParameterValue(FName(LRPerceptionMaterialParameters::EchoWetSeconds), wetSeconds);
+		PerceptionPostProcessMID->SetScalarParameterValue(FName(LRPerceptionMaterialParameters::EchoDryFadeDurationSeconds), dryFadeDurationSeconds);
+		PerceptionPostProcessMID->SetScalarParameterValue(FName(LRPerceptionMaterialParameters::EchoWaveWidthCm), waveWidthCm);
+		PerceptionPostProcessMID->SetScalarParameterValue(FName(LRPerceptionMaterialParameters::PerceptionBoundaryNoiseCm), boundaryNoiseCm);
 	}
 	if (VisualStyleMPCInstance)
 	{

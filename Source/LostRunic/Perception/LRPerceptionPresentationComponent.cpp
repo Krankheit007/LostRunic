@@ -21,6 +21,7 @@
 #include "Perception/LRPerceptionEventSubsystem.h"
 #include "Perception/LRPerceptionMaterialParameters.h"
 #include "State/LRStateComponent.h"
+#include "State/LRStatePresentationComponent.h"
 
 ULRPerceptionPresentationComponent::ULRPerceptionPresentationComponent()
 {
@@ -34,11 +35,12 @@ void ULRPerceptionPresentationComponent::BeginPlay()
 {
 	Super::BeginPlay();
 	ResolveRuntimeDependencies();
-	if (!StateComponent || !GetWorld())
+	if (!StateComponent || !StatePresentation || !GetWorld())
 	{
 		return;
 	}
-	StateComponent->OnStateChanged.AddDynamic(this, &ULRPerceptionPresentationComponent::HandleStateChanged);
+	StatePresentation->OnStatePresentationRequested.AddDynamic(this,
+		&ULRPerceptionPresentationComponent::HandleStatePresentationRequested);
 	if (ACharacter* character = Cast<ACharacter>(GetOwner()))
 	{
 		character->OnCharacterMovementUpdated.AddDynamic(this,
@@ -46,7 +48,6 @@ void ULRPerceptionPresentationComponent::BeginPlay()
 	}
 	if (ULRPerceptionEventSubsystem* subsystem = GetWorld()->GetSubsystem<ULRPerceptionEventSubsystem>())
 	{
-		subsystem->RegisterPresentation(this);
 		subsystem->OnPerceptionPulse.AddUObject(this, &ULRPerceptionPresentationComponent::HandlePerceptionPulse);
 	}
 	SetPlayerPosition(GetOwner() ? GetOwner()->GetActorLocation() : FVector::ZeroVector);
@@ -58,9 +59,10 @@ void ULRPerceptionPresentationComponent::BeginPlay()
 
 void ULRPerceptionPresentationComponent::EndPlay(const EEndPlayReason::Type endPlayReason)
 {
-	if (StateComponent)
+	if (StatePresentation)
 	{
-		StateComponent->OnStateChanged.RemoveDynamic(this, &ULRPerceptionPresentationComponent::HandleStateChanged);
+		StatePresentation->OnStatePresentationRequested.RemoveDynamic(this,
+			&ULRPerceptionPresentationComponent::HandleStatePresentationRequested);
 	}
 	if (ACharacter* character = Cast<ACharacter>(GetOwner()))
 	{
@@ -72,7 +74,6 @@ void ULRPerceptionPresentationComponent::EndPlay(const EEndPlayReason::Type endP
 		if (ULRPerceptionEventSubsystem* subsystem = world->GetSubsystem<ULRPerceptionEventSubsystem>())
 		{
 			subsystem->OnPerceptionPulse.RemoveAll(this);
-			subsystem->UnregisterPresentation(this);
 			subsystem->SetPerceptionActive(false);
 		}
 	}
@@ -149,6 +150,7 @@ void ULRPerceptionPresentationComponent::SetDebugView(const ELRPerceptionDebugVi
 void ULRPerceptionPresentationComponent::ResolveRuntimeDependencies()
 {
 	StateComponent = GetOwner() ? GetOwner()->FindComponentByClass<ULRStateComponent>() : nullptr;
+	StatePresentation = GetOwner() ? GetOwner()->FindComponentByClass<ULRStatePresentationComponent>() : nullptr;
 	Camera = GetOwner() ? GetOwner()->FindComponentByClass<UCameraComponent>() : nullptr;
 	const UGameInstance* gameInstance = GetWorld() ? GetWorld()->GetGameInstance() : nullptr;
 	const ULRGameInstanceSubsystem* subsystem = gameInstance
@@ -160,6 +162,11 @@ void ULRPerceptionPresentationComponent::ResolveRuntimeDependencies()
 	if (!StateComponent)
 	{
 		UE_LOG(LogLostRunicState, Warning, TEXT("Perception presentation on %s has no StateComponent."),
+			*GetNameSafe(GetOwner()));
+	}
+	if (!StatePresentation)
+	{
+		UE_LOG(LogLostRunicState, Warning, TEXT("Perception presentation on %s has no StatePresentationComponent."),
 			*GetNameSafe(GetOwner()));
 	}
 	if (!Camera)
@@ -279,11 +286,12 @@ void ULRPerceptionPresentationComponent::ExitPerception()
 	BeginBlend(0.0f, Tuning ? Tuning->PerceptionExitBlendSeconds : 0.20f);
 }
 
-void ULRPerceptionPresentationComponent::HandleStateChanged(const ELRPerceptionMode currentMode,
-	const FGameplayTag reason)
+void ULRPerceptionPresentationComponent::HandleStatePresentationRequested(
+	const ELRPerceptionMode previousMode, const ELRPerceptionMode nextMode, const FGameplayTag reason)
 {
+	(void)previousMode;
 	(void)reason;
-	if (currentMode == ELRPerceptionMode::Perception)
+	if (nextMode == ELRPerceptionMode::Perception)
 	{
 		EnterPerception();
 	}

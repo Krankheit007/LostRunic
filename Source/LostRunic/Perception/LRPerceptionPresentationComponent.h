@@ -16,6 +16,7 @@ class ULRGameContentSet;
 class ULRPerceptionEventSubsystem;
 class ULRPresentationTuning;
 class ULRStateComponent;
+class ULRStatePresentationComponent;
 class ULRVisualStyleDefinition;
 
 /** Runtime Perception renderer; no permanent Tick and no direct state unlock authority. */
@@ -74,7 +75,8 @@ private:
 	void SetEchoSlot(int32 slotIndex, const FLRPerceptionPulseRequest& request, float now, bool bRefresh);
 
 	UFUNCTION()
-	void HandleStateChanged(ELRPerceptionMode currentMode, FGameplayTag reason);
+	void HandleStatePresentationRequested(ELRPerceptionMode previousMode, ELRPerceptionMode nextMode,
+		FGameplayTag reason);
 
 	UFUNCTION()
 	void HandleCharacterMovementUpdated(float deltaSeconds, FVector oldLocation, FVector oldVelocity);
@@ -86,6 +88,9 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<ULRStateComponent> StateComponent;
+
+	UPROPERTY(Transient)
+	TObjectPtr<ULRStatePresentationComponent> StatePresentation;
 
 	UPROPERTY(Transient)
 	TObjectPtr<ULRPresentationTuning> Tuning;

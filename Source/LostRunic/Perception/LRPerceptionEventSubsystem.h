@@ -12,7 +12,6 @@
 class ULRInteractionPresentationComponent;
 class ULRNoiseEmitterComponent;
 class ULRPerceptionAccentComponent;
-class ULRPerceptionPresentationComponent;
 class ULRPerceptionSoundSourceComponent;
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnLostRunicPerceptionPulse, const FLRPerceptionPulseRequest&);
@@ -28,10 +27,6 @@ public:
 
 	/** Publishes one visual pulse; pulses are discarded while Perception is inactive. */
 	void PublishPulse(const FLRPerceptionPulseRequest& request);
-
-	/** Binds a Presentation Component to the world pulse stream. */
-	void RegisterPresentation(ULRPerceptionPresentationComponent* presentation);
-	void UnregisterPresentation(ULRPerceptionPresentationComponent* presentation);
 
 	/** Registers loop sources and emits them immediately when Perception becomes active. */
 	void RegisterSoundSource(ULRPerceptionSoundSourceComponent* source);
@@ -62,10 +57,6 @@ private:
 
 
 	static bool IsVisualNoiseReason(const FGameplayTag& reason);
-	void PruneRegistrations();
-
-	UPROPERTY(Transient)
-	TArray<TWeakObjectPtr<ULRPerceptionPresentationComponent>> Presentations;
 
 	UPROPERTY(Transient)
 	TArray<TWeakObjectPtr<ULRPerceptionSoundSourceComponent>> SoundSources;

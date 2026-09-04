@@ -77,17 +77,6 @@ void ULRNoiseEmitterComponent::EmitNoise(const FVector location, const float rad
 	EmitNoiseWithPace(location, radius, reason, ELRMovementPace::Walk, false);
 }
 
-void ULRNoiseEmitterComponent::ReportNoiseToAI(const FVector location, const float radius,
-	const FGameplayTag reason)
-{
-	if (!GetWorld() || radius <= 0.0f || !reason.IsValid())
-	{
-		return;
-	}
-	UAISense_Hearing::ReportNoiseEvent(GetWorld(), location, 1.0f, GetOwner(), radius,
-		reason.GetTagName());
-}
-
 void ULRNoiseEmitterComponent::EmitNoiseWithPace(const FVector location, const float radius,
 	const FGameplayTag reason, const ELRMovementPace sourcePace, const bool bHasSourcePace)
 {
@@ -100,7 +89,8 @@ void ULRNoiseEmitterComponent::EmitNoiseWithPace(const FVector location, const f
 		return;
 	}
 
-	ReportNoiseToAI(location, radius, reason);
+	UAISense_Hearing::ReportNoiseEvent(GetWorld(), location, 1.0f, GetOwner(), radius,
+		reason.GetTagName());
 	OnNoiseEmitted.Broadcast(location, radius, reason);
 }
 

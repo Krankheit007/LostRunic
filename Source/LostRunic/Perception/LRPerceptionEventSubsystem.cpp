@@ -7,7 +7,6 @@
 #include "Core/LRGameplayTags.h"
 #include "Interaction/LRInteractionPresentationComponent.h"
 #include "Perception/LRPerceptionAccentComponent.h"
-#include "Perception/LRPerceptionPresentationComponent.h"
 #include "Perception/LRPerceptionSoundSourceComponent.h"
 #include "Stealth/LRNoiseEmitterComponent.h"
 
@@ -30,7 +29,6 @@ void ULRPerceptionEventSubsystem::Deinitialize()
 		}
 	}
 	bPerceptionActive = false;
-	Presentations.Reset();
 	SoundSources.Reset();
 	NarrativeAccents.Reset();
 	InteractionPresentations.Reset();
@@ -45,23 +43,6 @@ void ULRPerceptionEventSubsystem::PublishPulse(const FLRPerceptionPulseRequest& 
 		return;
 	}
 	OnPerceptionPulse.Broadcast(request);
-}
-
-void ULRPerceptionEventSubsystem::RegisterPresentation(ULRPerceptionPresentationComponent* presentation)
-{
-	if (!IsValid(presentation))
-	{
-		return;
-	}
-	Presentations.AddUnique(TWeakObjectPtr<ULRPerceptionPresentationComponent>(presentation));
-}
-
-void ULRPerceptionEventSubsystem::UnregisterPresentation(ULRPerceptionPresentationComponent* presentation)
-{
-	Presentations.RemoveAll([presentation](const TWeakObjectPtr<ULRPerceptionPresentationComponent>& value)
-	{
-		return value.Get() == presentation;
-	});
 }
 
 void ULRPerceptionEventSubsystem::RegisterSoundSource(ULRPerceptionSoundSourceComponent* source)
@@ -244,13 +225,4 @@ bool ULRPerceptionEventSubsystem::IsVisualNoiseReason(const FGameplayTag& reason
 		|| reason == LRGameplayTags::NoiseFootstepRun
 		|| reason == LRGameplayTags::NoiseFootstepWalkFaint
 		|| reason == LRGameplayTags::NoiseFootstepRunIndoor;
-}
-
-void ULRPerceptionEventSubsystem::PruneRegistrations()
-{
-	Presentations.RemoveAll([](const TWeakObjectPtr<ULRPerceptionPresentationComponent>& value) { return !IsValid(value.Get()); });
-	SoundSources.RemoveAll([](const TWeakObjectPtr<ULRPerceptionSoundSourceComponent>& value) { return !IsValid(value.Get()); });
-	NarrativeAccents.RemoveAll([](const TWeakObjectPtr<ULRPerceptionAccentComponent>& value) { return !IsValid(value.Get()); });
-	InteractionPresentations.RemoveAll([](const TWeakObjectPtr<ULRInteractionPresentationComponent>& value) { return !IsValid(value.Get()); });
-	NoiseEmitters.RemoveAll([](const TWeakObjectPtr<ULRNoiseEmitterComponent>& value) { return !IsValid(value.Get()); });
 }

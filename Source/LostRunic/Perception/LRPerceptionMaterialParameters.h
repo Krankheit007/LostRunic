@@ -12,6 +12,13 @@ namespace LRPerceptionMaterialParameters
 	inline constexpr TCHAR InteractionPresentationGate[] = TEXT("LR_InteractionPresentationGate");
 	inline constexpr TCHAR PlayerOcclusionColor[] = TEXT("LR_PlayerOcclusionColor");
 	inline constexpr TCHAR PlayerPosition[] = TEXT("LR_PlayerPosition");
+	inline constexpr TCHAR PerceptionFullRevealRadius[] = TEXT("LR_PerceptionFullRevealRadius");
+	inline constexpr TCHAR PerceptionRevealRadius[] = TEXT("LR_PerceptionRevealRadius");
+	inline constexpr TCHAR EchoExpansionSeconds[] = TEXT("LR_EchoExpansionSeconds");
+	inline constexpr TCHAR EchoWetSeconds[] = TEXT("LR_EchoWetSeconds");
+	inline constexpr TCHAR EchoDryFadeDurationSeconds[] = TEXT("LR_EchoDryFadeDurationSeconds");
+	inline constexpr TCHAR EchoWaveWidthCm[] = TEXT("LR_EchoWaveWidthCm");
+	inline constexpr TCHAR PerceptionBoundaryNoiseCm[] = TEXT("LR_PerceptionBoundaryNoiseCm");
 	inline constexpr TCHAR EchoCenterRadiusPrefix[] = TEXT("LR_EchoCenterRadius");
 	inline constexpr TCHAR EchoTimingPrefix[] = TEXT("LR_EchoTiming");
 	inline constexpr TCHAR Palette[] = TEXT("LR_Palette");

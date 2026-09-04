@@ -10,8 +10,8 @@
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
 #include "Framework/LRGameInstanceSubsystem.h"
+#include "Perception/AISense_Hearing.h"
 #include "Perception/LRPerceptionEventSubsystem.h"
-#include "Stealth/LRNoiseEmitterComponent.h"
 #include "TimerManager.h"
 
 ULRPerceptionSoundSourceComponent::ULRPerceptionSoundSourceComponent()
@@ -66,12 +66,10 @@ void ULRPerceptionSoundSourceComponent::TriggerPulse()
 	}
 	const FVector location = GetOwner()->GetActorLocation();
 	const float visualRadius = ResolveVisualRadius();
-	if (bAlsoEmitToAI && AIHearingRadiusCm > 0.0f)
+	if (bAlsoEmitToAI && AIHearingRadiusCm > 0.0f && Reason.IsValid())
 	{
-		if (ULRNoiseEmitterComponent* emitter = GetOwner()->FindComponentByClass<ULRNoiseEmitterComponent>())
-		{
-			emitter->ReportNoiseToAI(location, AIHearingRadiusCm, Reason);
-		}
+		UAISense_Hearing::ReportNoiseEvent(world, location, 1.0f, GetOwner(), AIHearingRadiusCm,
+			Reason.GetTagName());
 	}
 
 	FLRPerceptionPulseRequest request;
