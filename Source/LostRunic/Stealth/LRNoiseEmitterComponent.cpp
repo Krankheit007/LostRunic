@@ -19,6 +19,7 @@
 #include "Interaction/LRInteractionComponent.h"
 #include "Interaction/LRInteractionTypes.h"
 #include "Perception/AISense_Hearing.h"
+#include "Perception/LRPerceptionEventSubsystem.h"
 
 ULRNoiseEmitterComponent::ULRNoiseEmitterComponent()
 {
@@ -28,6 +29,13 @@ ULRNoiseEmitterComponent::ULRNoiseEmitterComponent()
 void ULRNoiseEmitterComponent::BeginPlay()
 {
 	Super::BeginPlay();
+	if (UWorld* world = GetWorld())
+	{
+		if (ULRPerceptionEventSubsystem* subsystem = world->GetSubsystem<ULRPerceptionEventSubsystem>())
+		{
+			subsystem->RegisterNoiseEmitter(this);
+		}
+	}
 	Locomotion = GetOwner() ? GetOwner()->FindComponentByClass<ULRLocomotionComponent>() : nullptr;
 	Interaction = GetOwner() ? GetOwner()->FindComponentByClass<ULRInteractionComponent>() : nullptr;
 	const UGameInstance* gameInstance = GetWorld() ? GetWorld()->GetGameInstance() : nullptr;
@@ -45,6 +53,13 @@ void ULRNoiseEmitterComponent::BeginPlay()
 
 void ULRNoiseEmitterComponent::EndPlay(const EEndPlayReason::Type endPlayReason)
 {
+	if (UWorld* world = GetWorld())
+	{
+		if (ULRPerceptionEventSubsystem* subsystem = world->GetSubsystem<ULRPerceptionEventSubsystem>())
+		{
+			subsystem->UnregisterNoiseEmitter(this);
+		}
+	}
 	if (Locomotion)
 	{
 		Locomotion->OnFootstep.RemoveDynamic(this, &ULRNoiseEmitterComponent::HandleFootstep);
@@ -62,6 +77,17 @@ void ULRNoiseEmitterComponent::EmitNoise(const FVector location, const float rad
 	EmitNoiseWithPace(location, radius, reason, ELRMovementPace::Walk, false);
 }
 
+void ULRNoiseEmitterComponent::ReportNoiseToAI(const FVector location, const float radius,
+	const FGameplayTag reason)
+{
+	if (!GetWorld() || radius <= 0.0f || !reason.IsValid())
+	{
+		return;
+	}
+	UAISense_Hearing::ReportNoiseEvent(GetWorld(), location, 1.0f, GetOwner(), radius,
+		reason.GetTagName());
+}
+
 void ULRNoiseEmitterComponent::EmitNoiseWithPace(const FVector location, const float radius,
 	const FGameplayTag reason, const ELRMovementPace sourcePace, const bool bHasSourcePace)
 {
@@ -74,8 +100,7 @@ void ULRNoiseEmitterComponent::EmitNoiseWithPace(const FVector location, const f
 		return;
 	}
 
-	UAISense_Hearing::ReportNoiseEvent(GetWorld(), location, 1.0f, GetOwner(), radius,
-		reason.GetTagName());
+	ReportNoiseToAI(location, radius, reason);
 	OnNoiseEmitted.Broadcast(location, radius, reason);
 }
 

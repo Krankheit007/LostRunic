@@ -25,6 +25,7 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "Perception/AIPerceptionStimuliSourceComponent.h"
 #include "Perception/AISense_Sight.h"
+#include "Perception/LRPerceptionPresentationComponent.h"
 
 /**
  * @brief 创建对象并设置默认子对象、能力开关和安全初值；需要 World、资产或玩家的依赖延迟到初始化阶段解析。
@@ -58,6 +59,7 @@ ALRCharacter::ALRCharacter()
 	Interaction = CreateDefaultSubobject<ULRInteractionComponent>(TEXT("Interaction"));
 	Hide = CreateDefaultSubobject<ULRHideComponent>(TEXT("Hide"));
 	NoiseEmitter = CreateDefaultSubobject<ULRNoiseEmitterComponent>(TEXT("NoiseEmitter"));
+	PerceptionPresentation = CreateDefaultSubobject<ULRPerceptionPresentationComponent>(TEXT("PerceptionPresentation"));
 	StimuliSource = CreateDefaultSubobject<UAIPerceptionStimuliSourceComponent>(TEXT("StimuliSource"));
 	StimuliSource->bAutoRegister = true;
 	StimuliSource->RegisterForSense(UAISense_Sight::StaticClass());

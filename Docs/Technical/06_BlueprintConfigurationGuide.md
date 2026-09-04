@@ -856,3 +856,34 @@ StringTable 的 `Source String` 只填写源语言（本项目约定为 `zh-Hans
 - 测试地图：`/Game/LostRunic/Levels/PIE_Test/L_PIE_Test`。
 - 必测序列：普通 Noise `0→1`、白色观察/衰减、`0/1/5 + Sight→6`、Grace 内 Noise 保持 6、Grace 内抵达/失败、Grace 结束仍可见→11、Grace 丢失→10 级调查、`6→5` 后 Sight 重新获得 Grace、红色 Noise `6→7→10`、Room Run `0→5→6→7→10`、Hard Hidden 保留 Raw Contact、真实 Sight Lost 停止跟踪、`11→10` 保留 ConfirmedThreat、Alert 归零清空记忆。
 - 检查 StateTree Debugger 只出现五个 Guard 状态，检查导航移动时身体转向而非横向平移，检查 Output Log 不新增 Guard/AIPerception/StateTree/Navigation/UI Warning 或 Error。
+
+## Perception Rendering Runtime（2026-09-04）
+
+本节是闭眼显影第一版的运行时装配契约。代码实现位于 `ULRPerceptionPresentationComponent`、`ULRPerceptionEventSubsystem`、`ULRPerceptionSoundSourceComponent` 和 `ULRPerceptionAccentComponent`；这些类型只维护表现状态，不改变 `ULRStateComponent` 的合法性或解锁协议。
+
+### 资产与参数绑定
+
+1. 打开 `/Game/LostRunic/Data/DA_LRGameContentSet`（若 Content Browser 显示的同名资产路径不同，以当前资产实际路径为准），在 **Content|Presentation → Default Visual Style** 指向项目默认 `ULRVisualStyleDefinition`。在每个 `FLRMapRegistration` 的 **Map|Presentation → Visual Style Override** 填写可选章节覆盖；未填写时回退到 Default Visual Style。
+2. 打开 `/Game/LostRunic/Data/Tuning/DA_LRPresentationTuning`，在 **Presentation|Perception|Assets** 绑定 `M_PP_LR_PerceptionComposite`（Before Tonemapping）、`MPC_LR_VisualStyle`、`MPC_LR_PerceptionRuntime` 和可选 `NS_LR_PerceptionPulse`。材质参数名必须与 `Source/LostRunic/Perception/LRPerceptionMaterialParameters.h` 保持一致。缺少 Niagara 只关闭装饰波壳，不关闭规则显影。
+3. 在同一资产设置：`PerceptionRevealRadius=450 cm`、`PerceptionFullRevealRadius=400 cm`、`NoiseRevealRadius=200 cm`、`NoiseRevealDurationSeconds=5 s`、`EchoExpansionSeconds=0.75 s`、`EchoWetSeconds=0.20 s`、`EchoDryFadeDurationSeconds=1.30 s`、`EchoWaveWidthCm=12.5 cm`、`EchoRefreshMergeDistanceCm=25 cm`、`AccentDepthToleranceCm=3 cm`、进入/退出 PP Blend 为 `0.30/0.20 s`。不要添加或保留 `EchoDryFadeStartSeconds`；3.70 s 只由 `5.0-1.3` 派生。
+4. `MPC_LR_VisualStyle` 只放全局状态参数：`StateBlend`、`PerceptionIntensity`、`NormalOutlineGate`、`InteractionPresentationGate`、`PlayerOcclusionStateColor`。`MPC_LR_PerceptionRuntime` 只放 `PlayerPosition` 以及 `LR_EchoCenterRadius0..7`、`LR_EchoTiming0..7`。Palette、HDR、Normal retention、Shape lift、Echo/Wet/Accent 外观由章节 VisualStyle 和 PP MID 提供。
+
+### 组件装配与事件语义
+
+1. `ALRCharacter` 原生创建一个 `PerceptionPresentation`。组件无常驻 Tick；进入/退出 PP Blend 时才启用组件 Tick。玩家移动时由 `CharacterMovementUpdated` 更新 `PlayerPosition`，静止时不产生位置写入。
+2. 固定 8 槽的 `EchoTimingN` 是 `(FirstStartTime, LastPulseTime, ExpireTime, Intensity)`，时间统一来自 `UWorld::GetTimeSeconds()`；材质使用与同一 View Game Time 对齐的 Time 节点（Ignore Pause=false、Override Period=false），不通过 MPC 传 `CurrentTime`。Residue Dry Fade 只使用 `ExpireTime-CurrentTime` 的最后 `EchoDryFadeDurationSeconds`。
+3. `ULRPerceptionSoundSourceComponent` 的 `LoopIntervalSeconds=0` 使用 PresentationTuning 的 `DefaultLoopIntervalSeconds=3 s`；Radio 可保持 0，Wind 等来源显式填 `6 s`。正值是该实例的明确覆盖。视觉半径正值使用实例覆盖，否则使用 `NoiseRevealRadius=200 cm`，不会自动继承 AI Noise Radius。若 `bAlsoEmitToAI=true`，另填独立的 `AIHearingRadiusCm`；该字段只送入 `ULRNoiseEmitterComponent::ReportNoiseToAI`，不会改变视觉半径。
+4. 只有 `bRefreshExistingSource=true` 的 looping 来源才尝试合并；必须同一 SourceObject、原槽未过期且新位置与旧 Center 距离不超过 `25 cm`。OneShot/gameplay pulse 默认 false，因此移动 NPC 在 A/B 两点发声不会瞬移旧残影。
+5. `ULRNoiseEmitterComponent` 在自身 BeginPlay/EndPlay 注册和注销 World Perception bridge；bridge 只接收白名单 Reason，并把原 AI Hearing Radius 丢弃为视觉默认半径，避免两套规则半径耦合。Narrative Accent 组件进入 Perception 时缓存 Primitive 的旧 CustomDepth/Stencil，写 `Stencil=3` 并打开 CustomDepth；退出时只在仍由它写入 `3` 的情况下恢复。Stencil 3 的材质可见性还必须通过 SceneDepth/CustomDepth 线性深度容差门，不能用 Stencil 单独显影。Interaction Presentation 在此期间被 `SetInteractionPresentationSuppressed(true)` 挂起，退出后按当前状态重新应用；Stencil 1/2/3 仍是互斥固定值。
+
+### 状态表现协调与验收
+
+`ULRStatePresentationComponent::CompleteStatePresentation()` 仍是唯一正常解锁入口。现有 `PresentStateChange` 编排启动 PP transition、Eye Overlay（由 Hold/State 事件自行收尾）和其他状态表现，然后启动本状态唯一 Presentation Window；Perception 进入/退出窗口分别为 `0.30/0.20 s`，窗口结束后调用 `CompleteStatePresentation()`。Renderer、HUD Controller、Eye Overlay 均不得直接释放状态锁。
+
+在 `/Game/LostRunic/Levels/PIE_Test/L_PIE_Test` 验收：
+
+- Enter 后约 2 s 暂停游戏 5 s 再恢复，Echo 应继续约 2 s 年龄，不应立即过期；用 Time Dilation `0.5` 和 `2.0` 重复。
+- 验证 1、8、9 个事件的空槽/过期槽/最早 ExpireTime 选择、同源近距刷新、远距空间拆槽和刷新后 `FirstStartTime` 保留。
+- 验证 Player 400 cm 全显影、400–450 cm Wash 羽化、450 cm 外无 Player Reveal；Echo 不受 450 cm 玩家半径限制。
+- 验证 Stencil 3 前景 Accent 可见、墙后 Accent 不泄漏，Stencil 2 Player Occlusion 仍按原规则工作；双角色 Interaction 在 Accent 生命周期内不恢复白色 Outline/FarHint，但 200 cm HUD 执行提示仍可读。
+- Normal Stable 时 GPU Visualizer/DumpGPU 不应出现 Perception Composite Pass；Candidate Development Budget（1080p 1.5 ms、1440p 2.5 ms）只作为当前开发 GPU 警戒线，目标硬件锁定后重新基准化。

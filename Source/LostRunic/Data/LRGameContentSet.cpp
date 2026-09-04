@@ -11,6 +11,7 @@
 #include "Data/LRCollectibleDefinition.h"
 #include "Data/LRItemDefinition.h"
 #include "Data/LRLevelEventDefinition.h"
+#include "Data/LRVisualStyleDefinition.h"
 #include "Engine/DataTable.h"
 #include "Internationalization/StringTable.h"
 #include "Items/LRInventoryComponent.h"
@@ -198,6 +199,21 @@ TSoftObjectPtr<UWorld> ULRGameContentSet::FindMap(const FName mapId) const
 const FLRMapRegistration* ULRGameContentSet::FindMapRegistration(const FName mapId) const
 {
 	return Maps.FindByPredicate([mapId](const FLRMapRegistration& map) { return map.MapId == mapId; });
+}
+
+ULRVisualStyleDefinition* ULRGameContentSet::ResolveVisualStyle(const FName mapId) const
+{
+	if (const FLRMapRegistration* map = FindMapRegistration(mapId))
+	{
+		if (!map->VisualStyleOverride.IsNull())
+		{
+			if (ULRVisualStyleDefinition* overrideStyle = map->VisualStyleOverride.LoadSynchronous())
+			{
+				return overrideStyle;
+			}
+		}
+	}
+	return DefaultVisualStyle;
 }
 
 FText ULRGameContentSet::ResolveUIText(const FName textKey) const

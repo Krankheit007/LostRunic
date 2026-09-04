@@ -22,6 +22,7 @@ class ULRItemActionComponent;
 class ULRHideComponent;
 class ULRLocomotionComponent;
 class ULRNoiseEmitterComponent;
+class ULRPerceptionPresentationComponent;
 class ULRStateComponent;
 class ULRStatePresentationComponent;
 class UAIPerceptionStimuliSourceComponent;
@@ -113,6 +114,10 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Lost Runic|Stealth")
 	ULRNoiseEmitterComponent* GetNoiseEmitterComponent() const { return NoiseEmitter; }
 
+	/** Returns the native Perception presentation component. */
+	UFUNCTION(BlueprintPure, Category = "Lost Runic|Perception")
+	ULRPerceptionPresentationComponent* GetPerceptionPresentationComponent() const { return PerceptionPresentation; }
+
 	/** Returns the designer-configurable top-down camera boom. */
 	UFUNCTION(BlueprintPure, Category = "Lost Runic|Camera")
 	USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
@@ -177,6 +182,10 @@ private:
 	/** Noise Emitter 的领域数据，由所属类型负责维护和校验。 仅在蓝图或详情面板中查看，不可编辑。 */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<ULRNoiseEmitterComponent> NoiseEmitter;
+
+	/** Perception 的领域数据，由所属类型负责维护和校验。 仅在蓝图或详情面板中查看，不可编辑。 */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<ULRPerceptionPresentationComponent> PerceptionPresentation;
 
 	/** Stimuli Source 的领域数据，由所属类型负责维护和校验。 仅在蓝图或详情面板中查看，不可编辑。 */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))

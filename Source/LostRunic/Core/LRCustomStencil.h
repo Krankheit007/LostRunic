@@ -7,4 +7,5 @@ namespace LRCustomStencil
 {
 	inline constexpr uint8 InteractionSelected = 1;
 	inline constexpr uint8 PlayerOccluded = 2;
+	inline constexpr uint8 PerceptionNarrativeAccent = 3;
 }

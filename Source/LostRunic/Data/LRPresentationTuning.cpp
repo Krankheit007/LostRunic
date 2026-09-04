@@ -10,6 +10,8 @@
 
 #include "Core/LRValidation.h"
 
+// Keep validation in this translation unit so the generated UObject layout is rebuilt with the tuning contract.
+
 /**
  * @brief 校验当前资产的必填引用、数值边界及跨字段关系，并输出可诊断错误。
  * @param outError 输出校验失败原因；成功时保持为空。
@@ -20,8 +22,22 @@ bool ULRPresentationTuning::Validate(FString& outError) const
 	return LRValidation::RequireRange(TEXT("PerceptionRevealRadius"), PerceptionRevealRadius, 0.0f, 5000.0f, outError)
 		&& LRValidation::RequireRange(TEXT("NoiseRevealRadius"), NoiseRevealRadius, 0.0f, 5000.0f, outError)
 		&& LRValidation::RequireRange(TEXT("NoiseRevealDurationSeconds"), NoiseRevealDurationSeconds, 0.0f, 30.0f, outError)
+		&& LRValidation::RequireRange(TEXT("PerceptionFullRevealRadius"), PerceptionFullRevealRadius, 0.0f, 5000.0f, outError)
+		&& LRValidation::RequireRange(TEXT("EchoExpansionSeconds"), EchoExpansionSeconds, 0.001f, 30.0f, outError)
+		&& LRValidation::RequireRange(TEXT("EchoWetSeconds"), EchoWetSeconds, 0.0f, 30.0f, outError)
+		&& LRValidation::RequireRange(TEXT("EchoDryFadeDurationSeconds"), EchoDryFadeDurationSeconds, 0.001f, 30.0f, outError)
+		&& LRValidation::RequireRange(TEXT("EchoWaveWidthCm"), EchoWaveWidthCm, 0.0f, 1000.0f, outError)
+		&& LRValidation::RequireRange(TEXT("EchoRefreshMergeDistanceCm"), EchoRefreshMergeDistanceCm, 0.0f, 1000.0f, outError)
+		&& LRValidation::RequireRange(TEXT("PerceptionBoundaryNoiseCm"), PerceptionBoundaryNoiseCm, 0.0f, 1000.0f, outError)
+		&& LRValidation::RequireRange(TEXT("DefaultLoopIntervalSeconds"), DefaultLoopIntervalSeconds, 0.001f, 60.0f, outError)
+		&& LRValidation::RequireRange(TEXT("AccentDepthToleranceCm"), AccentDepthToleranceCm, 0.0f, 100.0f, outError)
+		&& LRValidation::RequireRange(TEXT("PerceptionEnterBlendSeconds"), PerceptionEnterBlendSeconds, 0.0f, 5.0f, outError)
+		&& LRValidation::RequireRange(TEXT("PerceptionExitBlendSeconds"), PerceptionExitBlendSeconds, 0.0f, 5.0f, outError)
 		&& LRValidation::RequireRange(TEXT("PerceptionBlendWeight"), PerceptionBlendWeight, 0.0f, 1.0f, outError)
 		&& LRValidation::RequireRange(TEXT("CourageBlendWeight"), CourageBlendWeight, 0.0f, 1.0f, outError)
+		&& LRValidation::RequireRange(TEXT("EyeOverlaySuccessTailSeconds"), EyeOverlaySuccessTailSeconds, 0.0f, 1.0f, outError)
+		&& LRValidation::RequireRange(TEXT("EyeOverlayCancelSeconds"), EyeOverlayCancelSeconds, 0.0f, 1.0f, outError)
+		&& LRValidation::RequireRange(TEXT("EyeOpenThresholdVisualProgress"), EyeOpenThresholdVisualProgress, 0.0f, 1.0f, outError)
 		&& LRValidation::RequireRange(TEXT("CutawayHideDurationSeconds"), CutawayHideDurationSeconds, 0.0f, 2.0f, outError)
 		&& LRValidation::RequireRange(TEXT("CutawayRestoreDurationSeconds"), CutawayRestoreDurationSeconds, 0.0f, 2.0f, outError)
 		&& LRValidation::RequireRange(TEXT("CutawayRadiusRefPx"), CutawayRadiusRefPx, 32.0f, 600.0f, outError)

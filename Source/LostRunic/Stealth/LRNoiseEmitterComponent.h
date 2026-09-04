@@ -31,6 +31,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Lost Runic|Noise")
 	void EmitNoise(FVector location, float radius, FGameplayTag reason);
 
+	/** Reports an AI hearing event without broadcasting the Perception visual bridge. */
+	UFUNCTION(BlueprintCallable, Category = "Lost Runic|Noise")
+	void ReportNoiseToAI(FVector location, float radius, FGameplayTag reason);
+
 	UPROPERTY(BlueprintAssignable, Category = "Lost Runic|Noise")
 	FLRNoiseEmitted OnNoiseEmitted;
 

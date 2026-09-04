@@ -21,6 +21,7 @@ class ULRItemDefinition;
 class ULRLevelEventDefinition;
 class ULRDialogueScriptRegistry;
 class ULRDialogueSpeakerRegistry;
+class ULRVisualStyleDefinition;
 
 /** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
 UCLASS(BlueprintType, meta = (DisplayName = "Lost Runic Game Content Set"))
@@ -52,6 +53,10 @@ public:
 	/** StringTable-backed dialogue speaker names and hard portrait references. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Content|Localization")
 	TObjectPtr<ULRDialogueSpeakerRegistry> DialogueSpeakerRegistry;
+
+	/** Project-default Perception world style; a map registration may override it explicitly. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Content|Presentation")
+	TObjectPtr<ULRVisualStyleDefinition> DefaultVisualStyle;
 
 	/** Items 的领域数据，由所属类型负责维护和校验。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Content|Definitions")
@@ -100,6 +105,9 @@ public:
 
 	/** Returns the full registration used for display metadata and default anchors. */
 	const FLRMapRegistration* FindMapRegistration(FName mapId) const;
+
+	/** Resolves the project-default then map-specific Perception style. */
+	ULRVisualStyleDefinition* ResolveVisualStyle(FName mapId) const;
 
 	/** Resolves a UI key from the configured string table without putting localized literals in gameplay code. */
 	UFUNCTION(BlueprintPure, Category = "Lost Runic|Localization")

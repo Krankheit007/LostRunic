@@ -27,6 +27,9 @@ public:
 	/** Resolves actor components tagged InteractionOutline after Blueprint construction completes. */
 	virtual void BeginPlay() override;
 
+	/** Unregisters the presentation gate before the owning actor is torn down. */
+	virtual void EndPlay(const EEndPlayReason::Type endPlayReason) override;
+
 	/** Rebuilds the tagged outline component cache after actor component composition changes. */
 	void RefreshOutlineComponents();
 
@@ -37,6 +40,14 @@ public:
 	/** Returns the currently applied visual state. */
 	UFUNCTION(BlueprintPure, Category = "Lost Runic|Interaction")
 	ELRInteractionPresentationState GetPresentationState() const { return CurrentState; }
+
+	/** Suspends Interaction-owned visuals while Narrative Accent owns CustomDepth. */
+	UFUNCTION(BlueprintCallable, Category = "Lost Runic|Interaction")
+	void SetInteractionPresentationSuppressed(bool bSuppressed);
+
+	/** Returns whether Interaction visuals are currently suspended by Perception. */
+	UFUNCTION(BlueprintPure, Category = "Lost Runic|Interaction")
+	bool IsInteractionPresentationSuppressed() const { return bInteractionPresentationSuppressed; }
 
 	/** Registers the shared far-hint Niagara component created by the world actor. */
 	void SetFarHintComponent(UNiagaraComponent* component);
@@ -79,4 +90,5 @@ private:
 	TArray<TObjectPtr<UPrimitiveComponent>> OutlineComponents;
 
 	ELRInteractionPresentationState CurrentState = ELRInteractionPresentationState::None;
+	bool bInteractionPresentationSuppressed = false;
 };

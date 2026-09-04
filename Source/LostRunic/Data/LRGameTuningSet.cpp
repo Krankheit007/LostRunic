@@ -55,12 +55,75 @@ namespace
  */
 bool ULRGameTuningSet::Validate(FString& outError) const
 {
-	return ValidateEntry(TEXT("State"), State.Get(), outError)
-		&& ValidateEntry(TEXT("Movement"), Movement.Get(), outError)
-		&& ValidateEntry(TEXT("Interaction"), Interaction.Get(), outError)
-		&& ValidateEntry(TEXT("Save"), Save.Get(), outError)
-		&& ValidateEntry(TEXT("UI"), UI.Get(), outError)
-		&& ValidateEntry(TEXT("Presentation"), Presentation.Get(), outError);
+	if (!ValidateEntry(TEXT("State"), State.Get(), outError)
+		|| !ValidateEntry(TEXT("Movement"), Movement.Get(), outError)
+		|| !ValidateEntry(TEXT("Interaction"), Interaction.Get(), outError)
+		|| !ValidateEntry(TEXT("Save"), Save.Get(), outError)
+		|| !ValidateEntry(TEXT("UI"), UI.Get(), outError)
+		|| !ValidateEntry(TEXT("Presentation"), Presentation.Get(), outError))
+	{
+		return false;
+	}
+
+	if (Presentation->PerceptionFullRevealRadius > Presentation->PerceptionRevealRadius)
+	{
+		outError = FString::Printf(TEXT("Presentation.PerceptionFullRevealRadius (%.3f) must be <= "
+			"Presentation.PerceptionRevealRadius (%.3f)."), Presentation->PerceptionFullRevealRadius,
+			Presentation->PerceptionRevealRadius);
+		return false;
+	}
+	if (Presentation->EchoDryFadeDurationSeconds >= Presentation->NoiseRevealDurationSeconds)
+	{
+		outError = FString::Printf(TEXT("Presentation.EchoDryFadeDurationSeconds (%.3f) must be < "
+			"Presentation.NoiseRevealDurationSeconds (%.3f)."), Presentation->EchoDryFadeDurationSeconds,
+			Presentation->NoiseRevealDurationSeconds);
+		return false;
+	}
+	if (Presentation->EchoWetSeconds <= 0.0f
+		|| Presentation->EchoWetSeconds > Presentation->NoiseRevealDurationSeconds)
+	{
+		outError = FString::Printf(TEXT("Presentation.EchoWetSeconds (%.3f) must be > 0 and <= "
+			"Presentation.NoiseRevealDurationSeconds (%.3f)."), Presentation->EchoWetSeconds,
+			Presentation->NoiseRevealDurationSeconds);
+		return false;
+	}
+	if (Presentation->EchoExpansionSeconds > Presentation->NoiseRevealDurationSeconds)
+	{
+		outError = FString::Printf(TEXT("Presentation.EchoExpansionSeconds (%.3f) must be <= "
+			"Presentation.NoiseRevealDurationSeconds (%.3f)."), Presentation->EchoExpansionSeconds,
+			Presentation->NoiseRevealDurationSeconds);
+		return false;
+	}
+	if (Presentation->PerceptionEnterBlendSeconds >= State->PresentationSafetyTimeoutSeconds)
+	{
+		outError = FString::Printf(TEXT("Presentation.PerceptionEnterBlendSeconds (%.3f) must be < "
+			"State.PresentationSafetyTimeoutSeconds (%.3f)."), Presentation->PerceptionEnterBlendSeconds,
+			State->PresentationSafetyTimeoutSeconds);
+		return false;
+	}
+	if (Presentation->PerceptionExitBlendSeconds >= State->PresentationSafetyTimeoutSeconds)
+	{
+		outError = FString::Printf(TEXT("Presentation.PerceptionExitBlendSeconds (%.3f) must be < "
+			"State.PresentationSafetyTimeoutSeconds (%.3f)."), Presentation->PerceptionExitBlendSeconds,
+			State->PresentationSafetyTimeoutSeconds);
+		return false;
+	}
+	if (Presentation->EyeOverlaySuccessTailSeconds > FMath::Min(Presentation->PerceptionEnterBlendSeconds,
+		Presentation->PerceptionExitBlendSeconds))
+	{
+		outError = FString::Printf(TEXT("Presentation.EyeOverlaySuccessTailSeconds (%.3f) must be <= the "
+			"shorter Perception presentation window (%.3f)."), Presentation->EyeOverlaySuccessTailSeconds,
+			FMath::Min(Presentation->PerceptionEnterBlendSeconds, Presentation->PerceptionExitBlendSeconds));
+		return false;
+	}
+	if (Interaction->ExecuteDistance > Presentation->PerceptionFullRevealRadius)
+	{
+		outError = FString::Printf(TEXT("Interaction.ExecuteDistance (%.3f) must be <= "
+			"Presentation.PerceptionFullRevealRadius (%.3f)."), Interaction->ExecuteDistance,
+			Presentation->PerceptionFullRevealRadius);
+		return false;
+	}
+	return true;
 }
 
 /**

@@ -7,7 +7,9 @@
 #include "Components/PrimitiveComponent.h"
 #include "Components/SceneComponent.h"
 #include "Core/LRCustomStencil.h"
+#include "Engine/World.h"
 #include "NiagaraComponent.h"
+#include "Perception/LRPerceptionEventSubsystem.h"
 
 /** Creates an event-driven presentation component. */
 ULRInteractionPresentationComponent::ULRInteractionPresentationComponent()
@@ -20,7 +22,26 @@ void ULRInteractionPresentationComponent::BeginPlay()
 {
 	Super::BeginPlay();
 	RefreshOutlineComponents();
+	if (UWorld* world = GetWorld())
+	{
+		if (ULRPerceptionEventSubsystem* subsystem = world->GetSubsystem<ULRPerceptionEventSubsystem>())
+		{
+			subsystem->RegisterInteractionPresentation(this);
+		}
+	}
 	ApplyVisualState();
+}
+
+void ULRInteractionPresentationComponent::EndPlay(const EEndPlayReason::Type endPlayReason)
+{
+	if (UWorld* world = GetWorld())
+	{
+		if (ULRPerceptionEventSubsystem* subsystem = world->GetSubsystem<ULRPerceptionEventSubsystem>())
+		{
+			subsystem->UnregisterInteractionPresentation(this);
+		}
+	}
+	Super::EndPlay(endPlayReason);
 }
 
 /** Rebuilds the interaction outline cache and assigns the project-owned stencil value. */
@@ -32,7 +53,11 @@ void ULRInteractionPresentationComponent::RefreshOutlineComponents()
 	{
 		if (primitive && primitive->ComponentTags.Contains(TEXT("InteractionOutline")))
 		{
-			primitive->SetCustomDepthStencilValue(LRCustomStencil::InteractionSelected);
+			if (!bInteractionPresentationSuppressed
+				&& primitive->CustomDepthStencilValue != LRCustomStencil::PerceptionNarrativeAccent)
+			{
+				primitive->SetCustomDepthStencilValue(LRCustomStencil::InteractionSelected);
+			}
 			OutlineComponents.Add(primitive);
 		}
 	}
@@ -46,6 +71,31 @@ void ULRInteractionPresentationComponent::SetPresentationState(const ELRInteract
 		CurrentState = newState;
 		ApplyVisualState();
 	}
+}
+
+void ULRInteractionPresentationComponent::SetInteractionPresentationSuppressed(const bool bSuppressed)
+{
+	if (bInteractionPresentationSuppressed == bSuppressed)
+	{
+		return;
+	}
+	bInteractionPresentationSuppressed = bSuppressed;
+	if (bInteractionPresentationSuppressed)
+	{
+		if (FarHintComponent)
+		{
+			FarHintComponent->SetActive(false, true);
+		}
+		for (UPrimitiveComponent* primitive : OutlineComponents)
+		{
+			if (primitive && primitive->CustomDepthStencilValue == LRCustomStencil::InteractionSelected)
+			{
+				primitive->SetRenderCustomDepth(false);
+			}
+		}
+		return;
+	}
+	ApplyVisualState();
 }
 
 /** Associates the actor-owned Niagara component with this visual mapper. */
@@ -81,6 +131,14 @@ float ULRInteractionPresentationComponent::ResolvePromptZOffset(const float defa
 /** Maps state thresholds to particle activation and white-outline CustomDepth. */
 void ULRInteractionPresentationComponent::ApplyVisualState()
 {
+	if (bInteractionPresentationSuppressed)
+	{
+		if (FarHintComponent)
+		{
+			FarHintComponent->SetActive(false, true);
+		}
+		return;
+	}
 	const bool bShowHint = CurrentState != ELRInteractionPresentationState::None;
 	const bool bShowOutline = CurrentState == ELRInteractionPresentationState::NearOutline
 		|| CurrentState == ELRInteractionPresentationState::Focused;
@@ -90,7 +148,7 @@ void ULRInteractionPresentationComponent::ApplyVisualState()
 	}
 	for (UPrimitiveComponent* primitive : OutlineComponents)
 	{
-		if (primitive)
+		if (primitive && primitive->CustomDepthStencilValue == LRCustomStencil::InteractionSelected)
 		{
 			primitive->SetRenderCustomDepth(bShowOutline);
 		}
