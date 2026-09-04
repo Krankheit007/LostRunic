@@ -517,7 +517,8 @@ Hand-painted BaseColor
 - Blendable Priority：0。
 - 输入：SceneDepth、WorldNormal、PostProcessInput0、InvViewSize。
 - 不依赖 CustomDepth 选择全场景对象。
-- 输出线色由章节 Ink Tint 主导，Local Scene Tint 只做弱影响。
+- 输出线色由当前像素的 `PostProcessInput0` 经对象相对暗化产生；BaseColor 只提供受门控的弱色相影响，不使用章节 InkTint/LocalSceneTint 作为主动着色来源。
+- 采样契约：本轮不新增资产 `Texture Sample`；Art Outline 最多增加一次当前像素的 GBuffer BaseColor `SceneTexture` 查找，不读取邻域 BaseColor。SceneDepth/WorldNormal 的邻域采样仍只服务边缘检测，不得复制 BaseColor 查找。
 
 `After DOF / Priority 0` 是 Normal A–F Vertical Slice 当前权威配置。最低配置 GPU Profile 仍决定是否升级为 Production Baseline，但不使本阶段的 Blendable Location 保持未决。
 
@@ -575,15 +576,22 @@ InternalEdgeStrength
 - Depth Silhouette 保留得更多，以维持房间、门、角色和大型家具边界。
 - 远景小面不得形成满屏线稿。
 
-### 11.5 Ink Tint
+### 11.5 对象相对描边色
 
-每章节提供 `InkTint`。合成原则：
+`M_PP_LR_StyleOutline` 的主动颜色契约固定为当前像素相对暗化，避免统一黑线压平材质识别：
 
 ```text
-InkColor = ChapterInkTint 为主 + 少量 LocalSceneTint
+Lit = max(PostProcessInput0.rgb, 0)
+DarkenedLit = Lit * OutlineDarkenFactor       // 默认 0.55，编辑器范围 0.35–0.60
+BaseMax = max(BaseColor.r, BaseColor.g, BaseColor.b)
+BaseChroma = BaseMax - min(BaseColor.r, BaseColor.g, BaseColor.b)
+HueValidity = smoothstep(0.02, 0.08, BaseMax) * smoothstep(0.015, 0.08, BaseChroma)
+BaseHue = BaseColor / max(BaseMax, epsilon)
+HueTint = lerp(1, BaseHue, OutlineBaseHueInfluence * HueValidity) // 默认 0.15，范围 0–0.25
+OutlineColor = DarkenedLit * HueTint
 ```
 
-不直接取邻域最暗色，避免 Bloom、彩色材质边界和 Temporal Jitter 造成线色跳变。
+`OutlineDarkenFactor` 与 `OutlineBaseHueInfluence` 位于材质实例的 `40_OutlineColor` 分组。黑色/近灰 BaseColor 必须退回中性 `HueTint=1`；有效材质的描边 RGB 与线性亮度均不得高于 `Lit * 0.60`。旧的 `InkTint`、`LocalSceneTint` 参数和实例覆盖可保留为历史序列化数据，但不再连接到主动输出。历史 A–F 的 `BenchmarkCalibratedEV = -2.14` 仅是曝光记录，不是描边颜色来源。
 
 ### 11.6 资产绘制结构线
 
@@ -647,7 +655,18 @@ Normal A–F Benchmark 已将艺术描边与交互描边统一在 `After DOF`，
 - 当前候选线宽为 `InteractionOutlineWidthPx = 1.0`，线色为白色；只生成 `Saturate(Expanded - SelectedCenter)` 外轮廓，不读取选中模型 WorldNormal，不产生内部白线，不使用 Blur。
 - 可见性先用 Stencil 选择结果过滤对应的 CustomDepth tap，再与 SceneDepth 比较；未选中 tap 的远平面深度不得参与深度汇总。PIE 中以 Plaster 临时遮挡 Wallpaper Cube 下半部验证，遮挡区域不透线。
 - `M_PP_LR_StyleOutline` 与 `M_PP_InteractionOutline` 均固定在 `After DOF`；前者 `BlendablePriority = 0`，后者 `BlendablePriority = 10`，保证交互白线最后覆盖艺术黑线。这是 A–F 当前权威基线；最低配置 GPU Profile 未通过前仍不升级为 Production Baseline。
+- `L_PIE_Test` 的全局 `LR_PostProcess`（`Priority 0 / Unbound`）现在按该顺序承载艺术描边实例与最终 `MI_PP_LR_InteractionOutline_Diag0707`；局部 `ArtBench_PPV` 仅保留其 Review Lighting/颜色覆盖，不再重复挂载 Blendable。`ArtBench_M1_NeutralPPV` 的体积边界覆盖完整 `ArtBenchmark/Normal/FoliageM1`（含约 100cm 安全边界）。
 - `LRCustomStencil::InteractionSelected = 1` 是交互选择唯一登记值；`ULRInteractionPresentationComponent` 只处理带 `InteractionOutline` Component Tag 的 Primitive，并按状态切换 Render CustomDepth。
+- `LRCustomStencil::PlayerOccluded = 2` 由 `ULRCameraCutawayComponent` 集中写入所有角色视觉 Primitive（Body 及带 `CharacterVisual` Component Tag 的附件）。`M_PP_LR_PlayerOcclusion` 固定 `After DOF / Priority 20`，只在 `CustomDepth > SceneDepth + OcclusionDepthBiasCm` 时输出白色填充与 `1px @ 1080p Reference` 外轮廓；当前 Bias 起点为 1cm。
+
+### 12.4 Camera Cutaway 材质基线（2026-09-01）
+
+- Gate 0 资产位于 `/Game/LostRunic/Materials/Benchmark/CutawayGate/`：Opaque 父材质连接 Opacity Mask，普通实例保持 Opaque，Masked 实例用 Base Property Override。正式路径采用同一策略；若未来引擎升级导致普通 Static Mesh 路径回归，回退为专用 `M_LR_StylizedCutawayMasked` 并共享现有 Surface 逻辑。
+- `M_LR_StylizedOpaque` 与真实植被 Master `M_LR_StylizedFoliageMasked` 都读取 CPD 0–8。前者只有采用 Masked Override 的 Cutaway MI 才裁像素；后者将既有 Alpha 与 Cutaway Dither 相乘。不新增资产 `Texture Sample`、运行时 MID 或材质交换，Static Switch 数不增加。
+- Local 中心充分让开，默认半径 `200px @ 1080p Reference`、过渡 `8px @ 1080p Reference`，用共享 `MF_LR_CutawayRadialShape` 产生 reference-space `CutawayCoverage` 与 `SignedBoundaryDistanceRefPx`；Painterly cell/hash 只在该函数内执行，屏幕 Dither 只读取 Coverage，不再乘 raw Amount。Foreground 在 PixelDepth 100cm 内完全裁切、300cm 外完全可见。
+- Art Outline 从 `/Game/LostRunic/Materials/Parameters/MPC_LR_CutawayView` 读取最多四个 `LocalCutawayState0..3`（RGBA 为 CenterUV.X/Y、RadiusRefPx、Amount），沿 signed distance `[-10,+2]`（8px transition + 2px margin）取四槽最大抑制环，约 1px 软化，并保持 `FinalArtEdge *= 1 - SuppressionRing`。状态由相机 sticky slots 发布；ActiveCount 只使用首个连续槽，超出四个的目标仍可裁切但不进入描边抑制。
+- Root Preserve 由 MI Scalar `RootPreserveEnabled / DefaultRootHeightCm / DefaultRootFeatherCm` 配置。墙/树干生产起点 10/5cm；屋顶、叶簇默认 0。Target 的运行时 Override 只在明确启用时覆盖，显式 0 有效。
+- `DA_LRPresentationTuning.ApprovedCutawayMasterMaterials` 是材质准入唯一列表；Validator 读取最终 Blend Mode 与 Base Material，并按显式 `PersistentMaterialSlots` 排除，不递归猜测材质图。
 
 ## 13. 植被
 
@@ -691,6 +710,15 @@ Custom Vertex Normal 是树冠主要体积受光的权威数据。M1 使用 `nor
 - Build 设置固定为 `Recompute Normals = Off`、`Recompute Tangents = On`、`Use MikkTSpace = On`；M1 不得在不同资产间混用 Tangent 策略。
 - Import/Reimport 后必须用 WorldNormal 可视化确认每个 Lobe 仍呈连续的径向或椭球分布。若重新变成单张 Card 的平面法线，导入失败，不得据此否定风格方向。
 
+M1 树的绕序是导出门禁的一部分，不以单个顶点法线代替面级验证。`generate_m1_foliage_meshes.py` 在导出前对每个 Trunk/Canopy 渲染面计算：
+
+```text
+Dot(FaceGeometricNormal,
+    Normalize(Average(VertexCustomNormals))) > 0.5
+```
+
+平均 authored normal 小于等于 `1e-5` 或几何面法线接近零直接失败；失败行必须报告对象名、材质区、面索引、实际 dot 和原因，并在成功/失败前报告每个材质区的面数、`min_dot` 与 `avg_dot`。当前门禁输出为 Tree `Trunk`：`min=0.998836 / avg=0.999229`，`Canopy`：`min=0.655953 / avg=0.893891`。本轮脚本只对 Tree 的 Trunk/Branch 与 Canopy 执行该 dot assert；Grass/Hero 的根到尖倾斜 authored normal 不属于 Lobe 体积法线契约，须按独立草簇的轮廓、颜色与透明度门禁复核，不得把它们写成已通过本断言。
+
 ### 13.3 Foliage Vertex Color 契约
 
 所有 Foliage 顶点 RGB 在艺术涂色前必须显式初始化为 `(0.5, 0.5, 0.5)`，不得依赖 DCC 默认白色或未初始化数据。M1 的 RGB 以 `0.5` 为中性，表示相对综合色变化：
@@ -731,7 +759,16 @@ Vertex Color A 保留为 `FutureBendWeight`。草地 M1 可以写入 Root 0 → 
 - `Neutral Foliage Review Lighting`：使用固定中性 Key/Fill、固定 Manual Exposure 与 Neutral Color Grade，检查 Lobe Custom Normal 连续性、卡片正反面受光、体积和异常高光。
 - `BaseColor Diagnostic`：使用 `Buffer Visualization > Base Color` 并关闭 Art Outline，独立检查 Vertex Color 大色块、Atlas、Cluster 内部综合色与草的 Root→Tip 色阶；不得用关闭主要灯光代替该诊断。
 - Gameplay Camera 下不得出现视觉上占主导的单叶/草叶墨线。若通用 Art Outline 无法满足，则记录为后续 Foliage Outline Policy 输入，不在 M1 增加 Stencil 或特殊 Pass。
-- 同一 Camera 下按 Tree 屏幕高度 Near 约 35%、Mid 约 15%、Far 约 7% 测试；覆盖 TSR、1080p/1440p 与 Screen Percentage 70%/100%。Near 读取 Cluster，Mid 读取 Lobe，Far 只读取整体 Silhouette 与综合色。
+- 同一 Camera 下按 Tree 屏幕高度 Near 约 35%、Mid 约 15%、Far 约 7% 测试；覆盖 TSR、1080p/1440p 与 Screen Percentage 70%/100%。Near 读取 Cluster，Mid 读取 Lobe，Far 只读取整体 Silhouette 与综合色。只验证现有 mip 稳定性与 `1200–4500 cm` 内部 Normal Edge 淡出；远景保留 Depth Silhouette，不新增 Shader 分档。
+
+法线必须按两步判定，禁止把 Normal、Painterly 与 Outline 同时打开后猜根因：
+
+1. **Stage 1 / Custom Normal Gate**：`NormalStrength = 0`、`Default Lit`、`Neutral Lighting`、`Painterly Off`、`Art Outline Off`，用 `WorldNormal` 与 Lit 视图检查四个 Lobe 是否读成连续的大块受光。通过才表示 authored normal、绕序、导入和 tangent 链路通过；失败时只排查这些链路。
+2. **Stage 2 / Normal Texture A/B**：保持 Stage 1 视图，只切 `NormalStrength = 0.25`。若贴图重新打碎大体积，成品候选保持 `0`，`0.25` 只作为失败对照，不能用贴图调参掩盖 Stage 1 失败。
+
+Stage 1 通过后才执行 **Cluster Silhouette Gate**：在 `NormalStrength = 0`、`Art Outline Off` 的 Gameplay Camera 下看 25% 缩略图。若画面仍由细长条、接近 edge-on 的 Card、大空洞或纸片轮廓主导，归类为 `Cluster Geometry/Orientation/Alpha Density` 失败并停止本轮；不得修改 Cluster 数量、分布、尺寸、朝向策略或 Alpha 密度，也不得继续修改 Normal Shader。后续独立评审才可考虑簇间覆盖、减少内部空洞、调整 Card 朝向或让部分平面偏向树冠上方/Gameplay Camera。
+
+法线与 silhouette 分类完成后才执行 **Outline Gate**：用 `ArtEdgeDebugView 1/3/4` 分别检查 Depth、Normal、Final；成品目标为树干轮廓清晰、树冠只保留弱外轮廓、草极弱或不强调。测试关卡的 `LR_PostProcess` 为全局体积，按 After DOF 顺序承载艺术描边和最终 `0.707` 交互描边；局部 `ArtBench_PPV` 不再重复添加 Blendable，`ArtBench_M1_NeutralPPV` 覆盖整个 `ArtBenchmark/Normal/FoliageM1` 区域。
 
 ### 13.7 M1 性能 Proxy 与已知 LOD 风险
 
@@ -958,7 +995,7 @@ Profile 必须保存：
 ### 19.1 Normal Rendering A–F 验证记录（2026-08-30）
 
 - Surface：五类代表材质与五个 MF、`M_LR_StylizedOpaque` 已编译；用户已通过 Surface Direction Gate。Wallpaper 的 `DetailTiling = 2`，方向性建筑纹理继续以 Mesh UV/Trim UV 为尺度权威。
-- Exposure：`BenchmarkCalibratedEV = -2.14`；Gray18 ROI 为 `(0.43, 0.68)–(0.57, 0.75)`，线性中位亮度 `0.1774`，满足 0.18 目标与 ±0.03 容差。
+- Exposure（旧 A–F 历史校准记录）：保留 `BenchmarkCalibratedEV = -2.14`；Gray18 ROI 为 `(0.43, 0.68)–(0.57, 0.75)`，线性中位亮度 `0.1774`，满足 0.18 目标与 ±0.03 容差。该历史数值不得直接作为新的 PPV `Exposure Compensation`；新 PPV 必须单独重新校准。
 - Lighting：固定 `ArtBench_LightingROI = (0.02, 0.02)–(0.98, 0.98)`；Isolation 对照通过。截图/Profile PIE 临时禁用项为 `DirectionalLight_1`、`SkyLight_1`、`RectLight_0`、`RectLight_3–11`、`PostProcessVolume_1`，停止 PIE 后恢复。
 - Art Outline：`M_PP_LR_StyleOutline` 使用 `After DOF / BlendablePriority = 0`；Raw Depth、Relative Depth、Normal 与 FinalArtEdge 调试输出均已分别验证，材质编译无错误。
 - Temporal：TSR（`r.AntiAliasingMethod=4`）下完成固定相机连续平移、动态分辨率以及 1080p、1440p、4K 检查，未观察到明显闪烁、爬线、线宽跳变或远景爆线。证据位于 `Saved/ArtBenchmark/`。
@@ -974,17 +1011,19 @@ Profile 必须保存：
 - I：已检查 Ruth 当前为四张独立 BaseColor/Roughness/Metallic/Normal，而非 packed map；创建 `M_LR_StylizedCharacter` 与 `MI_LR_Ruth_Child`，固定 Atlas UV0、Decal Response None、5 samples、0 Static Switch，并应用到 `BP_Ruth.CharacterMesh0`。
 - J：已创建 `M_LR_StylizedGlass` 与基准实例；当前为 Thin Translucent、Surface ForwardShading、无 Refraction、Decal Response None，1 sample。Wash 只进入综合色，Opacity 只由常量与 Fresnel 控制。
 - K：已创建 Color-only `M_D_LR_StylizedColor`、确定性裂纹 Mask 与 Benchmark Decal。Opaque Receiver 为 Color；Foliage、Character、Glass 为 None。固定相机未观察到向地板、Ruth、Foliage 或 Glass 的投影穿透。
-- L：`ArtBench_PPV` 同时包含 Priority 0 Art Outline 与 0.707 Interaction Outline 实例；`ArtBench_Door` 以 Stencil 1 作为 Combined Gate 目标。固定相机 PIE 已同时显示 Opaque、Foliage、Ruth、Glass、Decal 与双描边；`LostRunic.Interaction.OutlineStencilClearsAcrossTargets` 通过（1/1，0 Warning / 0 Error）。
+- L：`L_PIE_Test` 的全局 `LR_PostProcess` 承载 Priority 0 Art Outline 与最终 0.707 Interaction Outline 实例；局部 `ArtBench_PPV` 不再包含 Blendable；`ArtBench_Door` 以 Stencil 1 作为 Combined Gate 目标。固定相机 PIE 已同时显示 Opaque、Foliage、Ruth、Glass、Decal 与双描边；`LostRunic.Interaction.OutlineStencilClearsAcrossTargets` 通过（1/1，0 Warning / 0 Error）。
 - 编译：五个 Surface MF、Opaque/Foliage/Character/Glass/Decal 与两套 PP Material 已重新编译。当前结构统计为 Opaque 5、Foliage 4、Character 5、Glass 1、Decal 1 samples，均为 0 Static Switch；当前重新编译未产生新的 Material/Shader Error。构建阶段曾出现的 Thin Translucent output/Lighting Mode 与 Deferred Decal Blend Mode 警告属于节点尚未接完时的中间状态，最终状态已复编通过。
 - 待升级项：MCP 当前未提供 CVar 写入、GPU Visualizer 或持久截图导出接口，因此 1080p/1440p、70%/100%、4K Smoke、Shader Complexity/Quad Overdraw、DBuffer 与分项 GPU 增量仍列为 Candidate Baseline 的人工 Profile 门禁，不在本记录中伪造通过。
 
-### 19.3 M1 Cluster-Based Foliage Prototype 验证记录（2026-08-31）
+### 19.3 M1 Cluster-Based Foliage Prototype 验证记录（2026-09-02）
 
 - 确定性源：`Tools/ArtBenchmark/generate_m1_foliage_textures.py` 生成共享 BC/SMK/Normal；`Tools/ArtBenchmark/generate_m1_foliage_meshes.py` 生成中型树、三种 Grass Clump 与 Hero Tuft FBX。树冠使用 4 个 Lobe、80 个 Cluster Card 的 M1 组织起点；该数量不是生产预算。
-- 导入：树冠自定义法线与 Vertex Color 由 DCC 写入；UE 重导入采用 Imported Normals、MikkTSpace Tangent，并关闭 Recompute Normals。树 LOD0 为 1606 vertices / 568 triangles、1 LOD，Bounds 约 `4.83 m × 3.34 m × 5.60 m`；树干保留 1 个简单碰撞，Grass/Hero 不生成碰撞。
+- 绕序门禁：修复 Trunk/Branch cylinder 与 Canopy Card 绕序后，Blender 导出器逐面检查 `Dot(FaceGeometricNormal, Normalize(Average(VertexCustomNormals))) > 0.5`；平均 authored normal 近零直接失败，并输出对象/材质区/面索引/dot。当前 Tree `Trunk min/avg = 0.998836/0.999229`，`Canopy min/avg = 0.655953/0.893891`，门禁 PASS。
+- 导入：树冠自定义法线与 Vertex Color 由 DCC 写入；UE 通过 `ImportAssets` 回退流程重导入至正式资产（MCP 仅提供新建导入，无法对现有包直接 Reimport），设置为 `Import Normals`、`Recompute Normals Off`、`Recompute Tangents On`、`MikkTSpace On`、weighted normals off、两槽保留。最新正式资产的 AssetImportData tag 为 `Timestamp=1788322961`（FBX mtime：`2026-09-02 04:22:41 UTC`）、`FileMD5=1492ae5d7b6ba9995ab93f6477323f9b`，与当前 FBX 一致。树 LOD0 为 1616 vertices / 568 triangles、1 LOD，Bounds 约 `4.83 m × 3.34 m × 5.60 m`；树干保留 1 个简单碰撞，Grass/Hero 不生成碰撞。TreeDensity `0_0..2_2` 九个 StaticMeshActor 均绑定该正式 Tree，变换保持原值。
 - Atlas：`T_LR_M1_Foliage_BC` 为 sRGB/World/Default，生成 Mips，并启用 `Do Scale Mips for Alpha Coverage`，只启用 `A Threshold = 0.4`；SMK 为 Linear Masks，Normal 为 Normalmap。当前项目没有独立 Foliage Texture Group，因此本候选使用 World。
 - 材质：`M_LR_StylizedFoliageMasked` 新增以 0.5 为中性的 Vertex Color RGB 相对综合色链路；`FoliageMassTintRange = 0.2`，Master 的 `FoliageMassTintStrength = 0`，M1 实例为 1。Vertex Color A 未接入。Master 重新编译成功，仍为 4 Texture Samples、0 Static Switch。
-- Benchmark：`L_PIE_Test` 的 `ArtBenchmark/Normal/FoliageM1` 包含 NormalStrength 0/0.25 树木 A/B、Grass Band、Hero Tuft、Single/Density Cell 与固定 Neutral Key/Fill/PPV。PIE 可启动并停止，M1 日志无新增 Material/Shader/PIE Error；测试关卡仍有既存 SaveAnchor 与 Ruth Presentation Lock Warning，不归因于 M1。
+- Benchmark：`L_PIE_Test` 的 `ArtBenchmark/Normal/FoliageM1` 包含 NormalStrength 0/0.25 树木 A/B、Grass Band、Hero Tuft、Single/Density Cell 与固定 Neutral Key/Fill/PPV。已按 Stage 1（NormalStrength 0 + Default Lit + Neutral Lighting + Painterly/Art Outline Off）和 Stage 2（仅切 0.25）记录验证要求；当前 MCP 无法切换 WorldNormal/视口 Buffer Visualization 或持久截图，因此两阶段视觉连续性列为人工 Gate，不能伪造 PASS。Stage 1 通过后才允许执行 25% 缩略图 Cluster Silhouette Gate；若仍由条状/edge-on Card/空洞主导，应归类为 Geometry/Orientation/Alpha Density，不在本轮改 Shader 或 Cluster 分布。
+- 后处理：`LR_PostProcess` 为全局 `Priority 0 / Unbound`，承载艺术描边与最终 `MI_PP_LR_InteractionOutline_Diag0707`；`ArtBench_PPV` 的重复 Blendable 已清理。`ArtBench_M1_NeutralPPV` 已移动/缩放至完整 FoliageM1 bounds 加约 100cm 边界（约 `X 4450–8100 / Y -1300–1300 / Z -102–660 cm`）。
 - 构建：关闭 Live Coding 后，`LostRunicEditor Win64 Development` 完整构建通过；只有既有 UE/API 弃用警告。
 - 未通过声明：当前 Density Cell 使用多个 StaticMeshActor 形成固定屏幕像素压力代理，不代表 Static Mesh Foliage/HISM 的实例提交或剔除成本。1080p/1440p、SP 70/100、Near/Mid/Far、Shader Complexity/Quad Overdraw Proxy、综合色缩略图与最终主观签字仍待人工 Profile；M1 不是 Production Baseline。
 - 独立遗留：当前编辑器历史日志仍保留 G–L 阶段 `M_LR_StylizedGlass` 与 `M_D_LR_StylizedColor` 的旧编译失败记录。它们不是本次 M1 修改产生，但在重新形成无错误全局 Rendering Baseline 前必须单独复编并清除验证。

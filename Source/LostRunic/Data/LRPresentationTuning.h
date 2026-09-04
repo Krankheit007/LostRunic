@@ -12,6 +12,9 @@
 
 #include "LRPresentationTuning.generated.h"
 
+class UMaterialInterface;
+class UMaterialParameterCollection;
+
 /** 该公开类型定义本文件领域边界的数据或行为；具体字段、参数与约束见下方中文注释。 */
 UCLASS(BlueprintType, meta = (DisplayName = "Lost Runic Presentation Tuning"))
 class LOSTRUNIC_API ULRPresentationTuning : public ULRTuningAsset
@@ -38,6 +41,39 @@ public:
 	/** Courage Blend Weight 的领域数据，由所属类型负责维护和校验。 C++ 安全默认值为 `1.0f`。 可在 DataAsset 或蓝图类默认值中配置，运行时蓝图只读。编辑器约束：最小值 `0.0`，最大值 `1.0`。 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Presentation|PostProcess", meta = (ClampMin = "0.0", ClampMax = "1.0"))
 	float CourageBlendWeight = 1.0f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Presentation|Cutaway|Transition", meta = (ClampMin = "0.0", ClampMax = "2.0", Units = "s"))
+	float CutawayHideDurationSeconds = 0.25f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Presentation|Cutaway|Transition", meta = (ClampMin = "0.0", ClampMax = "2.0", Units = "s"))
+	float CutawayRestoreDurationSeconds = 0.35f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Presentation|Cutaway|Local", meta = (ClampMin = "32.0", ClampMax = "600.0"))
+	float CutawayRadiusRefPx = 200.0f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Presentation|Cutaway|Detection", meta = (ClampMin = "1.0", ClampMax = "60.0", Units = "Hz"))
+	float CutawayDetectionFrequencyHz = 10.0f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Presentation|Cutaway|Detection", meta = (ClampMin = "0.0", ClampMax = "100.0", Units = "cm"))
+	float CutawayTraceSphereRadiusCm = 20.0f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Presentation|Camera", meta = (ClampMin = "300.0", ClampMax = "1400.0", Units = "cm"))
+	float DefaultCameraDistanceCm = 700.0f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Presentation|Camera", meta = (ClampMin = "0.0", ClampMax = "5.0", Units = "s"))
+	float DefaultCameraDistanceBlendSeconds = 0.25f;
+
+	/** Global stencil-2 player occlusion silhouette, authored as After DOF priority 20. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Presentation|Cutaway|Silhouette")
+	TSoftObjectPtr<UMaterialInterface> PlayerOcclusionPostProcessMaterial;
+
+	/** Hard reference to the shared per-camera cutaway state collection used by outline suppression. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Presentation|Cutaway|Materials")
+	TObjectPtr<UMaterialParameterCollection> CutawayViewParameterCollection;
+
+	/** Final validation accepts only instances resolving to these production masters. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Presentation|Cutaway|Materials")
+	TArray<TSoftObjectPtr<UMaterialInterface>> ApprovedCutawayMasterMaterials;
 
 	/**
 	 * @brief 校验当前资产的必填引用、数值边界及跨字段关系，并输出可诊断错误。
