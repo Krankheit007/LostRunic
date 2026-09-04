@@ -1,5 +1,16 @@
 #include "Camera/LRCutawayTypes.h"
 
+float LR::Cutaway::ConvertWorldHeightToLocalFraction(
+	const float worldHeightCm, const float localBoundsHeightCm, const float componentScaleZ)
+{
+	const float scaledHeightCm = FMath::Abs(localBoundsHeightCm * componentScaleZ);
+	if (scaledHeightCm <= UE_KINDA_SMALL_NUMBER)
+	{
+		return worldHeightCm > 0.0f ? 1.0f : 0.0f;
+	}
+	return FMath::Clamp(worldHeightCm / scaledHeightCm, 0.0f, 1.0f);
+}
+
 void FLRCutawayChannelState::Retarget(const float newTarget, const double now, const float hideDuration,
 	const float restoreDuration, const bool bImmediate)
 {

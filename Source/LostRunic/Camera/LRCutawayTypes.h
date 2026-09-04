@@ -11,6 +11,14 @@ enum class ELRCutawayRequestType : uint8
 	Group,
 	Foreground
 };
+
+namespace LR::Cutaway
+{
+	/** Converts a world-space centimeter distance to a primitive-local height fraction. */
+	LOSTRUNIC_API float ConvertWorldHeightToLocalFraction(
+		float worldHeightCm, float localBoundsHeightCm, float componentScaleZ);
+}
+
 /** Reversible scalar transition shared by all cutaway request channels. */
 USTRUCT()
 struct LOSTRUNIC_API FLRCutawayChannelState

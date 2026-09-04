@@ -79,6 +79,26 @@ bool FLRCutawayContractTest::RunTest(const FString& parameters)
 	return true;
 }
 
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLRCutawayRootWorldScaleTest,
+	"LostRunic.Cutaway.RootOverrideUsesWorldScaleZ",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FLRCutawayRootWorldScaleTest::RunTest(const FString& parameters)
+{
+	(void)parameters;
+	constexpr float localHeightCm = 300.0f;
+	constexpr float rootHeightCm = 40.0f;
+	constexpr float expectedFraction = rootHeightCm / 600.0f;
+
+	TestEqual(TEXT("Scale Z=2 preserves forty world centimeters"),
+		LR::Cutaway::ConvertWorldHeightToLocalFraction(rootHeightCm, localHeightCm, 2.0f),
+		expectedFraction, 0.0001f);
+	TestEqual(TEXT("Negative Scale Z uses its absolute magnitude"),
+		LR::Cutaway::ConvertWorldHeightToLocalFraction(rootHeightCm, localHeightCm, -2.0f),
+		expectedFraction, 0.0001f);
+	return true;
+}
+
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLRCutawayFiniteRingMathTest,
 	"LostRunic.Cutaway.FiniteSuppressionRing",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)

@@ -45,6 +45,7 @@ public:
 	virtual void TickComponent(float deltaTime, ELevelTick tickType, FActorComponentTickFunction* tickFunction) override;
 
 private:
+	// PP suppression capacity only: overflow targets still cut away through their own CPD.
 	static constexpr int32 MaxStickySlots = 4;
 	static constexpr float StickyReleaseThreshold = 0.02f;
 

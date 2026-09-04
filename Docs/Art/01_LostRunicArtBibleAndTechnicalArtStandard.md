@@ -664,8 +664,8 @@ Normal A–F Benchmark 已将艺术描边与交互描边统一在 `After DOF`，
 - Gate 0 资产位于 `/Game/LostRunic/Materials/Benchmark/CutawayGate/`：Opaque 父材质连接 Opacity Mask，普通实例保持 Opaque，Masked 实例用 Base Property Override。正式路径采用同一策略；若未来引擎升级导致普通 Static Mesh 路径回归，回退为专用 `M_LR_StylizedCutawayMasked` 并共享现有 Surface 逻辑。
 - `M_LR_StylizedOpaque` 与真实植被 Master `M_LR_StylizedFoliageMasked` 都读取 CPD 0–8。前者只有采用 Masked Override 的 Cutaway MI 才裁像素；后者将既有 Alpha 与 Cutaway Dither 相乘。不新增资产 `Texture Sample`、运行时 MID 或材质交换，Static Switch 数不增加。
 - Local 中心充分让开，默认半径 `200px @ 1080p Reference`、过渡 `8px @ 1080p Reference`，用共享 `MF_LR_CutawayRadialShape` 产生 reference-space `CutawayCoverage` 与 `SignedBoundaryDistanceRefPx`；Painterly cell/hash 只在该函数内执行，屏幕 Dither 只读取 Coverage，不再乘 raw Amount。Foreground 在 PixelDepth 100cm 内完全裁切、300cm 外完全可见。
-- Art Outline 从 `/Game/LostRunic/Materials/Parameters/MPC_LR_CutawayView` 读取最多四个 `LocalCutawayState0..3`（RGBA 为 CenterUV.X/Y、RadiusRefPx、Amount），沿 signed distance `[-10,+2]`（8px transition + 2px margin）取四槽最大抑制环，约 1px 软化，并保持 `FinalArtEdge *= 1 - SuppressionRing`。状态由相机 sticky slots 发布；ActiveCount 只使用首个连续槽，超出四个的目标仍可裁切但不进入描边抑制。
-- Root Preserve 由 MI Scalar `RootPreserveEnabled / DefaultRootHeightCm / DefaultRootFeatherCm` 配置。墙/树干生产起点 10/5cm；屋顶、叶簇默认 0。Target 的运行时 Override 只在明确启用时覆盖，显式 0 有效。
+- Art Outline 从 `/Game/LostRunic/Materials/Parameters/MPC_LR_CutawayView` 读取最多四个 `LocalCutawayState0..3`（RGBA 为 CenterUV.X/Y、RadiusRefPx、Amount），沿 signed distance `[-10,+2]`（8px transition + 2px margin）取四槽最大抑制环，约 1px 软化，并保持 `FinalArtEdge *= 1 - SuppressionRing`。状态由相机 sticky slots 发布；ActiveCount 只使用首个连续槽。四槽是明确的视觉缓存容量上限，不是 Cutaway 容量：超出四个的目标仍可裁切但不进入描边抑制，必须在测试关卡压力验证 1/2/4/5/6 个同时 Local Occluder，并在第 5 个开始出现人工黑边时另行评估扩容或机制调整。
+- Root Preserve 由 MI Scalar `RootPreserveEnabled / DefaultRootHeightCm / DefaultRootFeatherCm` 配置。墙/树干生产起点 10/5cm；屋顶、叶簇默认 0。Target 的运行时 Override 只在明确启用时覆盖，显式 0 有效；其 Height/Feather 是世界厘米，归一化时计入 Primitive 的 Component World Scale Z。
 - `DA_LRPresentationTuning.ApprovedCutawayMasterMaterials` 是材质准入唯一列表；Validator 读取最终 Blend Mode 与 Base Material，并按显式 `PersistentMaterialSlots` 排除，不递归猜测材质图。
 
 ## 13. 植被

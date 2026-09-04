@@ -154,9 +154,12 @@ void ULRCutawayTargetComponent::InitializePrimitiveData()
 	WritePrimitiveDataFloat(LRCustomPrimitiveData::RootOverrideAmount, 1.0f);
 	for (UPrimitiveComponent* primitive : AffectedPrimitives)
 	{
-		const float height = FMath::Max(primitive->GetLocalBounds().BoxExtent.Z * 2.0f, 1.0f);
-		primitive->SetCustomPrimitiveDataFloat(LRCustomPrimitiveData::RootHeight01, FMath::Clamp(RootHeightCm / height, 0.0f, 1.0f));
-		primitive->SetCustomPrimitiveDataFloat(LRCustomPrimitiveData::RootFeather01, FMath::Clamp(RootFeatherCm / height, 0.0f, 1.0f));
+		const float localHeightCm = primitive->GetLocalBounds().BoxExtent.Z * 2.0f;
+		const float componentScaleZ = primitive->GetComponentScale().Z;
+		primitive->SetCustomPrimitiveDataFloat(LRCustomPrimitiveData::RootHeight01,
+			LR::Cutaway::ConvertWorldHeightToLocalFraction(RootHeightCm, localHeightCm, componentScaleZ));
+		primitive->SetCustomPrimitiveDataFloat(LRCustomPrimitiveData::RootFeather01,
+			LR::Cutaway::ConvertWorldHeightToLocalFraction(RootFeatherCm, localHeightCm, componentScaleZ));
 	}
 }
 
