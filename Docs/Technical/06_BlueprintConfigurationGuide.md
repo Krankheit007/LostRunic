@@ -880,12 +880,17 @@ StringTable 的 `Source String` 只填写源语言（本项目约定为 `zh-Hans
 
 1. `/Game/LostRunic/UI/WBP_LRStateEyeOverlay` 派生自 `ULRStateEyeOverlayWidget`。Widget Tree 使用全屏 `CanvasPanel` Root，并创建 `TopBlock`、`BottomBlock` 两个勾选 **Is Variable** 的 `Image`；上块锚点 `(0,0)-(1,0.5)`、下块锚点 `(0,0.5)-(1,1)`，Offsets 全为 0，Root 与 Image 均设为 **Hit Test Invisible**。运行时位移、Tint、Opacity 由 C++ 控制，不在 Widget Blueprint 重复制作动画。
 2. 打开 `/Game/LostRunic/Blueprints/UI/BP_LRHUD`，在 Class Defaults 将 **State Overlay Screen Class** 指向 `WBP_LRStateEyeOverlay`。该层常驻 HUD 生命周期，但稳定状态会由 Widget 自身折叠。
+   - 运行时 Screen 使用固定 Z-order：StateOverlay `0`、HUD `5`、Narrative/Dialog/Menu `10–14`、Transition `30`。不要在蓝图中再次 `Add To Viewport` 或依赖创建顺序覆盖这些值。
+   - 稳定 Normal/Perception 状态下 `TopBlock`、`BottomBlock` 均应透明且整个 Widget 为 `Collapsed`；Perception 的闭合端点只用于下一次 OpenEyes 动画起点。
 3. `ULRStatePresentationComponent::CompleteStatePresentation()` 仍是唯一正常解锁入口。由于原生组件的 protected `PresentStateChange` 事件不会作为 Actor override 暴露给 `BP_Ruth`，当前 `/Game/LostRunic/Blueprints/Character/BP_Ruth` 在 BeginPlay 对原生 `StatePresentation` 组件执行 **Assign On State Presentation Requested**：委托事件按 `nextMode == Perception` 选择 `0.30 s`，其他状态选择 `0.20 s`，经唯一 Delay 后只调用一次该组件的 `CompleteStatePresentation()`。PP transition 由同一委托驱动，Eye Overlay 由 Hold/State UI 事件自行收尾，不向这条链回报完成；Renderer、HUD Controller、Eye Overlay 均不得直接释放状态锁。
+4. OpenEyes Hold 的画面切换是 Renderer 的 UI-only 预览：滑块打开时露出 Normal；未达阈值取消/拒绝时立即恢复 Perception。该预览不得调用正式 `ExitPerception()`，否则会提前关闭事件总线并清空 Echo；只有成功提交后的 State Presentation 事件负责真正退出。
 
 在 `/Game/LostRunic/Levels/PIE_Test/L_PIE_Test` 验收：
 
 - Enter 后约 2 s 暂停游戏 5 s 再恢复，Echo 应继续约 2 s 年龄，不应立即过期；用 Time Dilation `0.5` 和 `2.0` 重复。
 - 验证 1、8、9 个事件的空槽/过期槽/最早 ExpireTime 选择、同源近距刷新、远距空间拆槽和刷新后 `FirstStartTime` 保留。
 - 验证 Player 400 cm 全显影、400–450 cm Wash 羽化、450 cm 外无 Player Reveal；Echo 不受 450 cm 玩家半径限制。
+- 验证 Perception 内物体存在清晰青蓝外轮廓/内部结构线，同时 450 cm 外没有任何由 Depth/Normal 引起的轮廓泄漏。
+- 验证 OpenEyes 长按滑开时露出 Normal；阈值前取消后恢复 Perception 且 Echo 历史仍在；成功、取消和拒绝的尾段结束后 Eye Overlay 均为透明且 `Collapsed`，HUD 始终绘制在眼睑之上。
 - 验证 Stencil 3 前景 Accent 可见、墙后 Accent 不泄漏，Stencil 2 Player Occlusion 仍按原规则工作；双角色 Interaction 在 Accent 生命周期内不恢复白色 Outline/FarHint，但 200 cm HUD 执行提示仍可读。
 - Normal Stable 时 GPU Visualizer/DumpGPU 不应出现 Perception Composite Pass；Candidate Development Budget（1080p 1.5 ms、1440p 2.5 ms）只作为当前开发 GPU 警戒线，目标硬件锁定后重新基准化。

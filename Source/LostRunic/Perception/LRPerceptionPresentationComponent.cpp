@@ -39,6 +39,12 @@ void ULRPerceptionPresentationComponent::BeginPlay()
 	{
 		return;
 	}
+	StateComponent->OnHoldStarted.AddDynamic(this,
+		&ULRPerceptionPresentationComponent::HandleStateHoldStarted);
+	StateComponent->OnHoldCanceled.AddDynamic(this,
+		&ULRPerceptionPresentationComponent::HandleStateHoldCanceled);
+	StateComponent->OnStateChangeRejected.AddDynamic(this,
+		&ULRPerceptionPresentationComponent::HandleStateChangeRejected);
 	StatePresentation->OnStatePresentationRequested.AddDynamic(this,
 		&ULRPerceptionPresentationComponent::HandleStatePresentationRequested);
 	if (ACharacter* character = Cast<ACharacter>(GetOwner()))
@@ -63,6 +69,15 @@ void ULRPerceptionPresentationComponent::EndPlay(const EEndPlayReason::Type endP
 	{
 		StatePresentation->OnStatePresentationRequested.RemoveDynamic(this,
 			&ULRPerceptionPresentationComponent::HandleStatePresentationRequested);
+	}
+	if (StateComponent)
+	{
+		StateComponent->OnHoldStarted.RemoveDynamic(this,
+			&ULRPerceptionPresentationComponent::HandleStateHoldStarted);
+		StateComponent->OnHoldCanceled.RemoveDynamic(this,
+			&ULRPerceptionPresentationComponent::HandleStateHoldCanceled);
+		StateComponent->OnStateChangeRejected.RemoveDynamic(this,
+			&ULRPerceptionPresentationComponent::HandleStateChangeRejected);
 	}
 	if (ACharacter* character = Cast<ACharacter>(GetOwner()))
 	{
@@ -289,6 +304,7 @@ void ULRPerceptionPresentationComponent::ExitPerception()
 void ULRPerceptionPresentationComponent::HandleStatePresentationRequested(
 	const ELRPerceptionMode previousMode, const ELRPerceptionMode nextMode, const FGameplayTag reason)
 {
+	bNormalEyeHoldPreviewActive = false;
 	(void)previousMode;
 	(void)reason;
 	if (nextMode == ELRPerceptionMode::Perception)

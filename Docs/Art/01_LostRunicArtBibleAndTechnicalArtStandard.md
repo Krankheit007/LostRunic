@@ -991,7 +991,7 @@ Palette 必须是一张 **256×4** 纹理，四行固定为：Row 0 Player、Row
 
 ### Outline、Stencil 与材质边界
 
-艺术线必须 Reveal-gated：`FinalArtEdge = ArtEdgeMask × FinalRevealMask`，未知区域不能仅因几何边缘、Normal 或 Stencil 生成可见线。Perception 进入期间 `NormalOutlineGate = 1 - StateBlend`，稳定 Perception 时为 0；因此 Perception 关闭 Normal Outline，不得把 Normal 外轮廓作为感知内容。交互表现由 `InteractionPresentationGate` 在 Perception 活跃期间抑制，退出后重新应用。
+艺术线必须 Reveal-gated：`FinalArtEdge = ArtEdgeMask × FinalRevealMask`，未知区域不能仅因几何边缘、Normal 或 Stencil 生成可见线。Perception Composite 使用相对 SceneDepth 梯度（避免线性厘米深度使斜面整片误判）与 WorldNormal 梯度合成 ArtEdge，并以 Echo/Wet Palette 派生的高对比青蓝色描画；不得只把暗部再次压黑而造成“实际有线、视觉不可读”。Perception 进入期间 `NormalOutlineGate = 1 - StateBlend`，稳定 Perception 时为 0；因此 Perception 关闭 Normal Outline，不得把 Normal 外轮廓作为感知内容。交互表现由 `InteractionPresentationGate` 在 Perception 活跃期间抑制，退出后重新应用。
 
 Stencil 值是互斥的固定语义，不使用位拼接：
 
@@ -1015,10 +1015,12 @@ VisibleAccent = (CustomStencil == 3)
 
 ### UI 眼睑与唯一解锁入口
 
-`/Game/LostRunic/UI/WBP_LRStateEyeOverlay` 是 `ULRStateEyeOverlayWidget` 的双眼睑 CanvasPanel：`TopBlock` 与 `BottomBlock` 分别锚定上下半屏，零偏移，Root/Images 为 `HitTestInvisible`。Widget 只表现 hold/成功/取消/拒绝，不查询世界、不判定状态、不报告解锁完成。
+`/Game/LostRunic/UI/WBP_LRStateEyeOverlay` 是 `ULRStateEyeOverlayWidget` 的双眼睑 CanvasPanel：`TopBlock` 与 `BottomBlock` 分别锚定上下半屏，零偏移，Root/Images 为 `HitTestInvisible`。Widget 只表现 hold/成功/取消/拒绝，不查询世界、不判定状态、不报告解锁完成。稳定状态下黑块始终 `Opacity=0` 且 `Collapsed`；Perception 只保存“闭合”几何端点，不能把 0.8 透明度保存成稳定态。
 
-- Hold 时上下眼睑从开放向闭合，使用 gameplay 提供的 hold 时长；成功后保留 `EyeOverlaySuccessTailSeconds=0.12 s` 的尾帧，再打开。
-- 取消/拒绝只做 UI 回滚，最长 `EyeOverlayCancelSeconds=0.15 s`；达到阈值时眼睛视觉上已打开 `EyeOpenThresholdVisualProgress=0.90`，最后 10% 不改变玩法时机。
+- CloseEyes Hold 时上下眼睑从开放向闭合，使用 gameplay 提供的 hold 时长；成功后在闭合端快速透明并折叠，露出已经提交的 Perception。
+- OpenEyes Hold 一开始，Renderer 仅把画面预览到 Normal 端点，眼睑滑开后露出的必须是 Normal；该预览不改变 `CurrentMode`、不关闭 Perception Event Bus，也不清空 Echo 槽。达到阈值后仍由正式状态事件执行退出与清理。
+- 取消/拒绝时，Renderer 立即恢复 Perception 端点，眼睑按 `EyeOverlayCancelSeconds<=0.15 s` 回到已提交状态的几何端点并淡出；最终必须透明、`Collapsed`。达到阈值时眼睛视觉上已打开 `EyeOpenThresholdVisualProgress=0.90`，最后 10% 不改变玩法时机。
+- Viewport Z-order 使用显式合同：StateOverlay `0`、HUD `5`、Narrative/Dialog/Menu `10–14`、Transition `30`。眼睑只遮挡世界，不得遮挡正常 HUD，也不得依赖 Widget 创建顺序。
 - 状态表现窗口由同一权威调优控制：进入 Perception 为 `0.30 s`，退出 Perception 为 `0.20 s`。`BP_Ruth` 只能在 `OnStatePresentationRequested` 后选择相应延迟，并且只安排一次 `CompleteStatePresentation()`；`ULRStatePresentationComponent::CompleteStatePresentation()` 是状态表现锁唯一的正常解锁入口。Renderer、HUD、Eye Widget、Niagara 和 PP Composite 均不得调用它或复制它。
 
 ### Niagara 责任
@@ -1030,9 +1032,9 @@ VisibleAccent = (CustomStencil == 3)
 | 范围 | 状态 | 证据与未完成项 |
 | --- | --- | --- |
 | C++ 状态边界、8 槽、三时间戳、刷新/移动声源、AI Hearing 分离、调优校验 | **已实现并通过定向测试** | `Source/LostRunic/Perception/`、`Source/LostRunic/Data/` 已提供运行时合同；2026-09-05 构建后 `LostRunic.Perception` 4 项与 `LostRunic.Tuning` 3 项自动化测试全部通过。 |
-| 眼睑 Widget、HUD Screen Class、`BP_Ruth` 单一 Complete 调用装配 | **已装配** | Blueprint 已编译/保存且无绑定警告；尚未在 `L_PIE_Test` 完成 PIE 行为验收。 |
+| 眼睑 Widget、HUD Screen Class、`BP_Ruth` 单一 Complete 调用装配 | **已修正候选** | 稳定遮罩透明/折叠、OpenEyes Normal 预览、取消恢复 Perception 与显式 HUD Z-order 已进入代码；Blueprint 已编译/保存，仍需在 `L_PIE_Test` 完成最终视觉验收。 |
 | `MPC_LR_VisualStyle`、`MPC_LR_PerceptionRuntime` 文件 | **已装配候选资产** | Runtime MPC 为 `PlayerPosition + 8×(CenterRadius/Timing)` 共 17 个 Vector；VisualStyle MPC 为四个状态/门控 Scalar 与 `PlayerOcclusionColor`。`DA_LRPresentationTuning` 已绑定两套 MPC；实际 PIE 写值仍待验证。 |
-| `M_PP_LR_PerceptionComposite`、256×4 Palette、Reveal/Outline 材质图 | **已装配候选资产** | Composite 为 UE 5.8 `MD_PostProcess / BL_SceneColorAfterDOF`（Before Tonemapping 当前枚举），单 Emissive 输出已连接；8 槽、HDR/Palette、Reveal、可见 Stencil 3 与 Stencil 2 例外已进入可编译的 Custom HLSL 候选。Palette 已验证 256×4、Clamp、Nearest、NoMip、NeverStream、Linear/Data；`DA_LRPresentationTuning` 与 `DA_LRGameContentSet` 已完成引用。PIE/GPU 视觉签字仍待完成。 |
+| `M_PP_LR_PerceptionComposite`、256×4 Palette、Reveal/Outline 材质图 | **已修正候选资产** | Composite 为 UE 5.8 `MD_PostProcess / BL_SceneColorAfterDOF`（Before Tonemapping 当前枚举），单 Emissive 输出已连接；8 槽、HDR/Palette、Reveal、可见 Stencil 3 与 Stencil 2 例外已进入 Custom HLSL。ArtEdge 已改为 Reveal-gated 相对深度/Normal 检测和高对比青蓝线；材质已重编译保存，仍需 PIE/GPU 视觉签字。 |
 | Niagara pulse | **已装配候选资产** | `NS_LR_PerceptionPulse` 与 `M_LR_PerceptionPulse` 已编译、保存并绑定 Presentation Tuning；Niagara Stack 为 0 error/0 warning。它仍是可选装饰，PIE 观感与 GPU Profile 待验证。 |
 | PIE（距离、Echo、Pause/Time Dilation、Stencil、透明/Decal、唯一解锁） | **待验证** | 尚未取得本章 Gate 证据。 |
 | GPU Visualizer / `stat GPU` | **待验证** | 尚未锁定目标最低配置 GPU，也未取得 Normal 零权重与 Perception Composite 分项 Profile。 |

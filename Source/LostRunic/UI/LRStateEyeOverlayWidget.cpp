@@ -163,7 +163,9 @@ void ULRStateEyeOverlayWidget::HandleHoldThresholdReached(const ELRStateRequestT
 void ULRStateEyeOverlayWidget::HandleStateChangeRejected(const FLRStateChangeRequest request,
 	const FGameplayTag reason)
 {
-	if (AnimationPhase != ELREyeOverlayAnimationPhase::Hold || ActiveInputType != request.RequestType)
+	if ((AnimationPhase != ELREyeOverlayAnimationPhase::Hold
+		&& AnimationPhase != ELREyeOverlayAnimationPhase::SuccessTail)
+		|| ActiveInputType != request.RequestType)
 	{
 		return;
 	}
@@ -176,15 +178,16 @@ void ULRStateEyeOverlayWidget::HandleModeChanged(const ELRPerceptionMode current
 	StableClosedness = currentMode == ELRPerceptionMode::Perception ? FullyClosedClosedness : FullyOpenClosedness;
 	StableTint = HUDWidgetController
 		? HUDWidgetController->GetEyeOverlayTint(currentMode) : FLinearColor::Black;
-	StableOpacity = StableClosedness > 0.5f
-		? (HUDWidgetController ? HUDWidgetController->GetEyeOverlayMaxOpacity(currentMode) : HoldBlockOpacity)
-		: 0.0f;
+	// Stable state is represented by the world presentation. The lid blocks are transient and
+	// must remain transparent/collapsed even while Perception keeps a closed geometry endpoint.
+	StableOpacity = 0.0f;
 	if (AnimationPhase == ELREyeOverlayAnimationPhase::Idle)
 	{
 		ActiveTint = StableTint;
 		CurrentClosedness = StableClosedness;
 		CurrentOpacity = StableOpacity;
 		ApplyVisualSample(CurrentClosedness, CurrentOpacity);
+		SetOverlayVisualVisible(false);
 	}
 	(void)reason;
 }
@@ -270,7 +273,7 @@ void ULRStateEyeOverlayWidget::FinishInterpolation()
 	else if (AnimationPhase == ELREyeOverlayAnimationPhase::Rollback)
 	{
 		CurrentClosedness = StableClosedness;
-		CurrentOpacity = StableOpacity;
+		CurrentOpacity = 0.0f;
 	}
 	ApplyVisualSample(CurrentClosedness, CurrentOpacity);
 	AnimationPhase = ELREyeOverlayAnimationPhase::Idle;

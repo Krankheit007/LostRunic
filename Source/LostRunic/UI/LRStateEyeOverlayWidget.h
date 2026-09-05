@@ -104,6 +104,7 @@ private:
 	float CurrentClosedness = 0.0f;
 	float CurrentOpacity = 0.0f;
 	float StableClosedness = 0.0f;
+	/** Stable state is always transparent; closedness only preserves the next rollback geometry. */
 	float StableOpacity = 0.0f;
 	FLinearColor StableTint = FLinearColor::Black;
 	FLinearColor ActiveTint = FLinearColor::Black;

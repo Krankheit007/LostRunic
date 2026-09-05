@@ -6,6 +6,7 @@
 
 #include "Components/ActorComponent.h"
 #include "Perception/LRPerceptionTypes.h"
+#include "State/LRStateTypes.h"
 
 #include "LRPerceptionPresentationComponent.generated.h"
 
@@ -41,7 +42,7 @@ public:
 	/** Clears all active slots without changing the Perception state machine. */
 	void ClearEchoes();
 
-	/** Returns whether the Perception post-process is currently active or transitioning. */
+	/** Returns whether Perception presentation ownership is active; an uncommitted eye-hold Normal preview keeps it active. */
 	UFUNCTION(BlueprintPure, Category = "Lost Runic|Perception")
 	bool IsPerceptionActive() const { return bPerceptionActive; }
 
@@ -79,9 +80,20 @@ private:
 		FGameplayTag reason);
 
 	UFUNCTION()
+	void HandleStateHoldStarted(ELRStateRequestType inputType, ELRPerceptionMode targetMode, float holdSeconds);
+
+	UFUNCTION()
+	void HandleStateHoldCanceled(ELRStateRequestType inputType);
+
+	UFUNCTION()
+	void HandleStateChangeRejected(FLRStateChangeRequest request, FGameplayTag reason);
+
+	UFUNCTION()
 	void HandleCharacterMovementUpdated(float deltaSeconds, FVector oldLocation, FVector oldVelocity);
 
 	void HandlePerceptionPulse(const FLRPerceptionPulseRequest& request);
+	void PreviewNormalForEyeHold();
+	void RestorePerceptionAfterEyeHold();
 
 	UPROPERTY(Transient)
 	TObjectPtr<UCameraComponent> Camera;
@@ -119,4 +131,6 @@ private:
 	float BlendElapsed = 0.0f;
 	bool bPerceptionActive = false;
 	bool bBlendActive = false;
+	/** True while an uncommitted Perception -> Normal eye hold temporarily previews Normal rendering. */
+	bool bNormalEyeHoldPreviewActive = false;
 };

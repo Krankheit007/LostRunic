@@ -26,6 +26,7 @@
 #include "UI/LRScreenWidget.h"
 #include "UI/LRSaveWidgetController.h"
 #include "UI/LRTransitionWidgetController.h"
+#include "UI/LRUIScreenLayers.h"
 #include "Save/LRSaveSubsystem.h"
 
 /**
@@ -317,7 +318,7 @@ void ALRHUD::CreateScreen(ALRPlayerController* playerController, const ELRScreen
 	ULRScreenWidget* widget = CreateWidget<ULRScreenWidget>(playerController, screenClass);
 	if (widget)
 	{
-		widget->AddToPlayerScreen();
+		widget->AddToPlayerScreen(LRUIScreenLayers::ResolveZOrder(screen));
 		widget->SetHUDWidgetController(HUDController);
 		widget->SetScreenVisible(false);
 		ScreenWidgets.Add(screen, widget);
