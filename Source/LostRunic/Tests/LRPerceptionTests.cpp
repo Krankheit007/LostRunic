@@ -15,6 +15,8 @@
 #include "Data/LRStateTuning.h"
 #include "Data/LRUITuning.h"
 #include "Data/LRVisualStyleDefinition.h"
+#include "Materials/Material.h"
+#include "Materials/MaterialParameterCollection.h"
 #include "Perception/LRPerceptionRules.h"
 #include "Perception/LRPerceptionSoundSourceComponent.h"
 
@@ -89,6 +91,12 @@ bool FLRPerceptionTuningContractTest::RunTest(const FString& parameters)
 	tuningSet->Save = NewObject<ULRSaveTuning>(tuningSet);
 	tuningSet->UI = NewObject<ULRUITuning>(tuningSet);
 	tuningSet->Presentation = NewObject<ULRPresentationTuning>(tuningSet);
+	tuningSet->Presentation->PerceptionCompositeMaterial =
+		TSoftObjectPtr<UMaterialInterface>(NewObject<UMaterial>(tuningSet));
+	tuningSet->Presentation->PerceptionVisualStyleParameterCollection =
+		NewObject<UMaterialParameterCollection>(tuningSet);
+	tuningSet->Presentation->PerceptionRuntimeParameterCollection =
+		NewObject<UMaterialParameterCollection>(tuningSet);
 
 	FString error;
 	AddInfo(FString::Printf(TEXT("Presentation CDO CutawayRadiusRefPx=%.3f; fixture CutawayRadiusRefPx=%.3f; NoiseRevealDurationSeconds=%.3f; EchoDryFadeDurationSeconds=%.3f."),
@@ -114,6 +122,28 @@ bool FLRPerceptionTuningContractTest::RunTest(const FString& parameters)
 		tuningSet->Presentation->PerceptionRevealRadius + 1.0f;
 	TestFalse(TEXT("Full reveal cannot exceed player reveal radius"), tuningSet->Validate(error));
 	tuningSet->Presentation->PerceptionFullRevealRadius = 400.0f;
+
+	tuningSet->Presentation->PerceptionCompositeMaterial = TSoftObjectPtr<UMaterialInterface>();
+	TestFalse(TEXT("Missing Perception composite material fails validation"),
+		tuningSet->Presentation->Validate(error));
+	tuningSet->Presentation->PerceptionCompositeMaterial =
+		TSoftObjectPtr<UMaterialInterface>(NewObject<UMaterial>(tuningSet));
+
+	tuningSet->Presentation->PerceptionVisualStyleParameterCollection = nullptr;
+	TestFalse(TEXT("Missing VisualStyle MPC fails validation"),
+		tuningSet->Presentation->Validate(error));
+	tuningSet->Presentation->PerceptionVisualStyleParameterCollection =
+		NewObject<UMaterialParameterCollection>(tuningSet);
+
+	tuningSet->Presentation->PerceptionRuntimeParameterCollection = nullptr;
+	TestFalse(TEXT("Missing Perception runtime MPC fails validation"),
+		tuningSet->Presentation->Validate(error));
+	tuningSet->Presentation->PerceptionRuntimeParameterCollection =
+		NewObject<UMaterialParameterCollection>(tuningSet);
+
+	tuningSet->Presentation->PerceptionPulseSystem.Reset();
+	TestTrue(TEXT("Optional Niagara pulse system may be absent"),
+		tuningSet->Presentation->Validate(error));
 
 	tuningSet->Presentation->EchoWetSeconds = 0.0f;
 	TestFalse(TEXT("Wet interval must be positive"), tuningSet->Validate(error));

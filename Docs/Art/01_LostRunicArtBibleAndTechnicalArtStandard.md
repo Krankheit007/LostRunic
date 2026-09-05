@@ -1,9 +1,9 @@
 # LostRunic Art Bible v1 / Technical Art Standard v1
 
 版本：1.1  
-日期：2026-08-28  
+日期：2026-09-05
 适用范围：Normal 状态、Windows PC、UE 5.8、俯视角 3D Gameplay Camera  
-文档状态：**Approved for Vertical Slice / 候选生产基线**；本版不定义 Perception、Courage、Memory 的最终效果
+文档状态：**Approved for Vertical Slice / 候选生产基线**；Normal 仍沿用既有候选基线，Perception 以本文专章作为视觉与技术合同，Courage/Memory 的最终效果仍未定义
 
 本文档已获准指导 Normal Technical Art Vertical Slice 施工，但尚未获准驱动全项目材质批量生产。只有在 `/Game/LostRunic/Levels/PIE_Test/L_PIE_Test` 的 Mansion Benchmark 完成画面、Temporal、Interaction Outline 和目标最低配置 GPU Profile 验收后，文档状态才升级为 **Production Baseline**。
 
@@ -929,6 +929,134 @@ Vertical Slice 必须提供以下可独立查看的调试模式：
 - 只在 Editor/Development 调试流程使用，Shipping 默认 `Final`，不作为玩法路径或持续 Tick 来源。
 - Debug View 用于定位问题来源，不允许成为修复错误 BaseColor、Normal、Roughness、Mask 或灯光的最终补丁。
 
+## Perception 视觉与技术合同（2026-09-05）
+
+本章是 Perception 的美术表现、运行时参数和验收边界的唯一合同；它补充而不改写 Normal 的生产基线。实现状态必须按下列词义记录：**已实现**表示 C++ 规则/API 已存在；**已装配**表示蓝图或资产引用已经配置并可编译/保存；**待验证**表示仍需在 UE Editor、PIE、材质编译或目标 GPU 上取得证据。本章不把存在于工作区的材质包、未装配的 Niagara、未执行的 PIE 或未采集的 GPU Profile 写成完成。
+
+### 体验目标与状态边界
+
+Perception 的情绪是“在不确定中得到近处、可信、可读的线索”：神秘，但让玩家感到安全和有掌控感。它不是高压恐怖、惊吓或剥夺控制的后处理；不以持续红色告警、强烈屏幕震动、随机闪烁或不可预测的噪声制造压力。显现、声源、残响和眼睑都必须有稳定的时间/空间语义。
+
+`ULRStateComponent` 维护状态合法性，`ULRStatePresentationComponent` 维护表现锁，`ULRPerceptionPresentationComponent`/`ULRPerceptionEventSubsystem` 只负责表现适配和回放，不复制解锁规则。渲染器、HUD、眼睑 Widget、Niagara 均不得直接解锁状态。
+
+### 玩家显影与 ValidSceneSurface
+
+- 玩家位置使用世界空间厘米。`0–400 cm` 为完整 Player Reveal；`400–450 cm` 为带洗染（wash）的羽化带；`>450 cm` 不产生 Player Reveal。`PerceptionFullRevealRadius=400 cm`、`PerceptionRevealRadius=450 cm` 是调优资产的权威值，必须保持前者不大于后者。
+- 每像素只采样一次 `WorldWash`，并将该结果复用于本像素的候选形状/溶解计算；wash **只能扰动 Player 的 400–450 cm 羽化**，不能削弱或重新裁剪 `0–400 cm` 的完整显影。wash 绝不能成为全局屏幕 Clip，也不能以玩家最大半径限制远处 Echo：Echo 的资格、半径和抵达时间独立计算，远处 Echo 即使位于 `450 cm` 外仍可显现。
+- `ValidSceneSurface` 是所有 Player、Echo、Wet、Narrative Accent Reveal 的共同安全门：必须确认像素对应有效场景表面，并排除天空、背景/无场景深度和无效深度样本。无效表面输出 `BlindColor`，不得因 Stencil、wash 或颜色优先级绕过该门。该模式也必须能在 Debug View 中独立查看。
+
+### 声音、Echo 槽与空间语义
+
+运行时视觉声源默认使用 `NoiseRevealRadius=200 cm`。`ULRPerceptionSoundSourceComponent` 可用 `VisualRadiusOverrideCm` 配置实例半径，并在事件请求中写入 `VisualRadiusCm`；两者为非正值时才回退到 200 cm。这个半径只属于 Perception 视觉事件，与 AI Hearing 完全独立。声源勾选 `bAlsoEmitToAI` 时，才以独立的 `AIHearingRadiusCm` 向 `UAISense_Hearing::ReportNoiseEvent` 报告；不得把 AI 半径反向写入视觉半径，也不得把视觉事件自动当成 AI 噪声。
+
+运行时永远只有固定 **8 个 Echo 槽**（`MaxEchoSlots=8`），不是按事件动态扩容，也不是 8 个后处理 Pass。分配顺序为：第一个 inactive 槽、其次第一个已过期槽、最后选择最早 `ExpireTime` 的槽。槽结构至少包含 `Center`、`RadiusCm`、`FirstStartTime`、`LastPulseTime`、`ExpireTime`、`Intensity` 与 `SourceObject`。
+
+声源事件语义如下：
+
+| 事件 | 合同 |
+| --- | --- |
+| 一次性/Gameplay Pulse | 不刷新旧空间源；在当前位置申请槽。没有可刷新的槽时按固定 8 槽分配策略替换。 |
+| Looping Pulse | 仅当 `bRefreshExistingSource=true`、`SourceObject` 相同、槽未过期且新位置距已存中心不超过 `EchoRefreshMergeDistance=25 cm` 时刷新。 |
+| 合法刷新 | 保留 `Center` 与 `FirstStartTime`，只更新 `LastPulseTime`、`ExpireTime` 和强度；小范围移动不重启历史波。默认 Loop 间隔为 `3 s`，正的事件间隔可覆盖它（例如 Wind 使用 `6 s`）。 |
+| 超过 25 cm 的移动 | 不把移动声源伪装成同一静态源；旧槽按原位置继续衰减，并为新位置申请新的槽。 |
+
+`NoiseRevealDuration=5 s`。每个槽使用三项时间戳（合同中简称“三时钟”）：首次入槽时写入 `FirstStartTime`，每次接受 Pulse/刷新时写入 `LastPulseTime`，并令 `ExpireTime = LastPulseTime + 5 s`。三者和 `CurrentGameTime` 均来自 `UWorld::GetTimeSeconds()`；材质使用 View Game Time，`Ignore Pause=false`、`Override Period=false`。暂停时 Game Time 不前进，时间膨胀按同一 Game Time 语义影响抵达和过期，不能改用 Real Time 或另建 CurrentTime MPC。
+
+Echo 的抵达必须是 **per-pixel arrival**，而非整圈同时显示。对每个像素计算：
+
+```text
+ArrivalDelayPx = saturate(distance(WorldPosition, Center) / max(RadiusCm, epsilon)) * EchoExpansionSeconds
+HistoricalAgePx = CurrentGameTime - FirstStartTime - ArrivalDelayPx
+WetAgePx       = CurrentGameTime - LastPulseTime  - ArrivalDelayPx
+```
+
+其中 `EchoExpansionSeconds=0.75 s`，`HistoricalAgePx < 0` 的像素尚未抵达；最新 Pulse 的 Wet 边只在抵达后的 `EchoWetSeconds=0.20 s` 内成立，`EchoWaveWidthCm=12.5 cm` 只控制边缘宽度，不改变槽资格。槽总寿命为 5 s；不另存 `EchoDryFadeStartSeconds`，而以 `ExpireTime - CurrentGameTime` 推导最后 `EchoDryFadeDurationSeconds=1.30 s` 的干退区，干退起点固定为 `5.00-1.30=3.70 s`。刷新不会把 `FirstStartTime` 重置为当前时间，因此历史残响不会被错误地变成新的整圈扩张。
+
+### 单一 Composite、HDR 与 Palette
+
+Perception 只允许一个 `M_PP_LR_PerceptionComposite`，挂在 **Before Tonemapping** 的单一 Composite/Blendable 入口。进入 Perception 时添加并逐步写入权重，退出时逐步归零后移除；不得用多个 Perception 后处理材质叠加同一责任。Normal 稳定态的 Perception Composite Pass 权重必须为 `0`（理想状态为已移除），并用 GPU Visualizer 验证“零权重/移除”没有残留成本或颜色影响。
+
+Composite 的值链必须先压缩 HDR，再进行调色板和表面塑形，不得在后面重新引入未经压缩的 HDR：
+
+```text
+HdrValue        = luminance(SceneColorHDR)
+CompressedValue = pow(saturate((HdrValue / (HdrValue + ValueShoulder)) * ValueScale + ValueBias), ValueGamma)
+```
+
+`ValueShoulder`、`ValueScale`、`ValueBias`、`ValueGamma` 来自 `ULRVisualStyleDefinition`。`NormalColorRetention=0.20` 表示 Player 基础色最多保留 20% 的压缩 Normal/场景色相；它不是恢复 Normal 全彩的旁路，也不能把原始 HDR 重新接回。`RevealedValueFloor=0.075` 只可施加于已经通过 `ValidSceneSurface` 且已经 Reveal 的像素；Blind/invalid 像素保持 `BlindColor`，不得被 Floor 提亮。
+
+Palette 必须是一张 **256×4** 纹理，四行固定为：Row 0 Player、Row 1 Echo residue、Row 2 Wet wave、Row 3 Narrative Accent。压缩值在 X 轴取样，行使用固定行中心（0.125、0.375、0.625、0.875），X/Y 必须 Clamp，并禁止 Mip/过滤造成跨行 bleed（Point 或等效的显式行采样）。候选颜色的选择是优先级而不是最大值混合：`Narrative Accent > Wet > Echo residue > Player`；先由 `ValidSceneSurface` 和各候选 RevealMask 决定资格，再按该顺序选择唯一行。`RevealMask` 可以聚合候选的可见资格，但不能用“哪个强度最大”改变颜色语义。
+
+所有已显现表面允许一个 8–15% 的暗面 ShapeLift，默认 `ShapeLiftStrength=0.10`，沿 `ShapeDirection` 的 Half-Lambert/等效方向项恢复形体；不得将其施加到盲区或 invalid surface，也不得提升到破坏安全感和调色板层级的高对比。`LR_Palette`、`LR_RevealedValueFloor`、`LR_NormalColorRetention`、`LR_ShapeLiftStrength` 等参数由 PP MID 写入；Perception 运行时位置和 8 槽数据由 `MPC_LR_PerceptionRuntime` 写入，状态门控由 `MPC_LR_VisualStyle` 写入。
+
+### Outline、Stencil 与材质边界
+
+艺术线必须 Reveal-gated：`FinalArtEdge = ArtEdgeMask × FinalRevealMask`，未知区域不能仅因几何边缘、Normal 或 Stencil 生成可见线。Perception 进入期间 `NormalOutlineGate = 1 - StateBlend`，稳定 Perception 时为 0；因此 Perception 关闭 Normal Outline，不得把 Normal 外轮廓作为感知内容。交互表现由 `InteractionPresentationGate` 在 Perception 活跃期间抑制，退出后重新应用。
+
+Stencil 值是互斥的固定语义，不使用位拼接：
+
+| Stencil | 语义 | 可见性合同 |
+| --- | --- | --- |
+| 1 | `InteractionSelected` | Perception 活跃时由 Interaction Presentation 抑制；不转化为 Echo 或 Accent。 |
+| 2 | `PlayerOccluded` | Player 的明确遮挡例外，可穿过预期遮挡物保留玩家轮廓/状态色；它不继承 Stencil 3 的同表面深度容差。 |
+| 3 | `PerceptionNarrativeAccent` | 只有同时满足 `ValidSceneSurface` 与线性深度门控才可见；Stencil 值本身不是可见证明。 |
+
+Stencil 3 的可见门控至少为：
+
+```text
+VisibleAccent = (CustomStencil == 3)
+              * (abs(LinearCustomDepthCm - LinearSceneDepthCm) <= AccentDepthToleranceCm)
+              * ValidSceneSurface
+```
+
+默认 `AccentDepthToleranceCm=3 cm`。Stencil 2 是唯一明确的遮挡例外；它不能被错误复用为 Narrative Accent，也不能让 Stencil 3 绕过深度比较。
+
+透明、玻璃和 Decal 的边界必须显式记录：普通 Thin Translucent/玻璃不保证提供与 Opaque 相同的 CustomDepth/SceneDepth 证明，不能据此承诺独立 reveal、Stencil 3 深度门控或遮挡关系；若 Hero Glass 必须独立显现，应采用已批准的 Masked/Dithered 变体并单独验收，不在本章偷偷增加新的渲染路径。Color-only Decal 只改变有效 Receiver 的颜色，不写 Perception CustomDepth/Stencil，不得把颜色投射、DBuffer 或 Decal 响应误当成 Reveal，也不得向地板、角色、植被或玻璃产生 reveal bleed。
+
+### UI 眼睑与唯一解锁入口
+
+`/Game/LostRunic/UI/WBP_LRStateEyeOverlay` 是 `ULRStateEyeOverlayWidget` 的双眼睑 CanvasPanel：`TopBlock` 与 `BottomBlock` 分别锚定上下半屏，零偏移，Root/Images 为 `HitTestInvisible`。Widget 只表现 hold/成功/取消/拒绝，不查询世界、不判定状态、不报告解锁完成。
+
+- Hold 时上下眼睑从开放向闭合，使用 gameplay 提供的 hold 时长；成功后保留 `EyeOverlaySuccessTailSeconds=0.12 s` 的尾帧，再打开。
+- 取消/拒绝只做 UI 回滚，最长 `EyeOverlayCancelSeconds=0.15 s`；达到阈值时眼睛视觉上已打开 `EyeOpenThresholdVisualProgress=0.90`，最后 10% 不改变玩法时机。
+- 状态表现窗口由同一权威调优控制：进入 Perception 为 `0.30 s`，退出 Perception 为 `0.20 s`。`BP_Ruth` 只能在 `OnStatePresentationRequested` 后选择相应延迟，并且只安排一次 `CompleteStatePresentation()`；`ULRStatePresentationComponent::CompleteStatePresentation()` 是状态表现锁唯一的正常解锁入口。Renderer、HUD、Eye Widget、Niagara 和 PP Composite 均不得调用它或复制它。
+
+### Niagara 责任
+
+`NS_LR_PerceptionPulse` 只能是事件的装饰性脉冲外壳：可读取位置、半径、强度和扩散时长来画波纹，但不得写 Echo 槽、RevealMask、AI Hearing、StateComponent 或解锁。当前候选资产已使用 CPU 单粒子、世界空间 Sprite，读取 `User.Radius`、`User.ExpansionSeconds`、`User.WaveWidthCm`、`User.Intensity` 与 `User.Tint`；装饰遵守普通场景深度，不写 CustomDepth/Stencil，不承担遮挡例外。Niagara 缺失、加载失败或被平台禁用时，只移除装饰，不得关闭 C++ 规则、槽时间、Per-pixel reveal 合同；其最终材质/粒子成本仍须单独 Profile。
+
+### 实现状态（截至 2026-09-05）
+
+| 范围 | 状态 | 证据与未完成项 |
+| --- | --- | --- |
+| C++ 状态边界、8 槽、三时间戳、刷新/移动声源、AI Hearing 分离、调优校验 | **已实现并通过定向测试** | `Source/LostRunic/Perception/`、`Source/LostRunic/Data/` 已提供运行时合同；2026-09-05 构建后 `LostRunic.Perception` 4 项与 `LostRunic.Tuning` 3 项自动化测试全部通过。 |
+| 眼睑 Widget、HUD Screen Class、`BP_Ruth` 单一 Complete 调用装配 | **已装配** | Blueprint 已编译/保存且无绑定警告；尚未在 `L_PIE_Test` 完成 PIE 行为验收。 |
+| `MPC_LR_VisualStyle`、`MPC_LR_PerceptionRuntime` 文件 | **已装配候选资产** | Runtime MPC 为 `PlayerPosition + 8×(CenterRadius/Timing)` 共 17 个 Vector；VisualStyle MPC 为四个状态/门控 Scalar 与 `PlayerOcclusionColor`。`DA_LRPresentationTuning` 已绑定两套 MPC；实际 PIE 写值仍待验证。 |
+| `M_PP_LR_PerceptionComposite`、256×4 Palette、Reveal/Outline 材质图 | **已装配候选资产** | Composite 为 UE 5.8 `MD_PostProcess / BL_SceneColorAfterDOF`（Before Tonemapping 当前枚举），单 Emissive 输出已连接；8 槽、HDR/Palette、Reveal、可见 Stencil 3 与 Stencil 2 例外已进入可编译的 Custom HLSL 候选。Palette 已验证 256×4、Clamp、Nearest、NoMip、NeverStream、Linear/Data；`DA_LRPresentationTuning` 与 `DA_LRGameContentSet` 已完成引用。PIE/GPU 视觉签字仍待完成。 |
+| Niagara pulse | **已装配候选资产** | `NS_LR_PerceptionPulse` 与 `M_LR_PerceptionPulse` 已编译、保存并绑定 Presentation Tuning；Niagara Stack 为 0 error/0 warning。它仍是可选装饰，PIE 观感与 GPU Profile 待验证。 |
+| PIE（距离、Echo、Pause/Time Dilation、Stencil、透明/Decal、唯一解锁） | **待验证** | 尚未取得本章 Gate 证据。 |
+| GPU Visualizer / `stat GPU` | **待验证** | 尚未锁定目标最低配置 GPU，也未取得 Normal 零权重与 Perception Composite 分项 Profile。 |
+
+### Candidate 性能预算与 Gate 0–3 验收
+
+以下是 Vertical Slice 的候选预算，不是实测通过声明：
+
+| 项目 | Candidate 目标 | 当前状态 |
+| --- | --- | --- |
+| Perception 单一 Composite（含其必要纹理/采样开销） | 1080p ≤ `1.5 ms`；1440p ≤ `2.5 ms` | **待验证**，需目标 GPU GPU Visualizer。 |
+| Normal 稳定态 Perception Pass | Composite 权重 `0`/已移除，零残留颜色与可归因 GPU 增量 | **待验证**。 |
+| Echo runtime | 固定 8 槽、事件/Timer 驱动；无永久 Perception Tick、无每槽独立 Pass | **已实现**，仍需 PIE 与 Profile 证明。 |
+| Niagara | 仅装饰，按平台可禁用；不得成为规则依赖 | **已装配候选资产**，PIE 与 Profile 待验证。 |
+
+| Gate | 验收内容 | 通过条件/当前状态 |
+| --- | --- | --- |
+| Gate 0 — 数据与资产完整性 | 校验 `400≤450`、`5/0.75/0.20/1.30`、200 cm 默认；确认 8 槽、三时间字段、两 MPC 参数名、单 Composite Before Tonemapping、Palette 256×4 Clamp/无跨行 bleed、Stencil 1/2/3、`ValidSceneSurface` | C++ 数值/API、MPC、Composite 编译、Palette 导入属性与 DataAsset 引用已取得 Editor 证据；实际运行写值仍 **待验证**。 |
+| Gate 1 — 空间/时间语义 | 400/425/450/451 cm 玩家断点；450 cm 外的 Echo；1/8/9 Pulse 槽替换；同源 ≤25 cm 刷新与 >25 cm 空间分裂；5 s 过期、0.75 s per-pixel arrival、3.70 s dry 起点；暂停约 5 s 和 0.5×/2×时间膨胀 | 规则与测试定义 **已实现**；测试关卡运行与证据 **待验证**。 |
+| Gate 2 — Composite/边缘/材质边界 | Reveal-gated Art Edge、稳定 Normal Outline=0、Stencil 3 线性深度门控、Stencil 2 遮挡例外、Player/Echo 优先级、HDR 压缩/Floor/ShapeLift、透明/玻璃/Decal 边界 | C++ 门控参数与 Composite 候选 **已实现**；既有 Style Outline、Interaction Outline 与 Player Occlusion 已接入 VisualStyle MPC 并重新编译。PIE 中的屏幕空间边缘、深度结果和透明边界仍 **待验证**。 |
+| Gate 3 — 体验/整合/性能 | 眼睑 hold/0.12 tail/0.15 cancel、0.30/0.20 表现窗口、唯一 `CompleteStatePresentation`；Niagara 缺失不影响规则；Normal 零权重；1080p/1440p Candidate Profile；Output Log 无新增项目级 Warning/Error | UI 与 Niagara 候选资产 **已装配**；PIE、GPU 和最终体验签字 **待验证**。 |
+
+所有 Gate 必须在 `/Game/LostRunic/Levels/PIE_Test/L_PIE_Test` 使用实际 Gameplay Camera 验收；记录静止/移动相机、暂停/时间膨胀、1/8/9 槽、深度遮挡和透明/Decal 对照。Gate 通过前，本章保持候选合同状态，不升级为已验证 Production Baseline。
+
 ## 17. 候选性能预算
 
 基准目标：目标最低配置 GPU、1920×1080、实际 Gameplay Camera、60 FPS。以下数值是 Vertical Slice 的候选目标，不代表已经实测通过。最低配置尚未锁定前，开发机只用于趋势比较，不能替代最终验收。
@@ -1127,4 +1255,4 @@ Create the same original top-down/isometric LostRunic Home scene with grounded p
 - 工程运行时架构继续以 `Docs/Technical/08_ArchitectureBoundaries.md` 为权威。
 - 蓝图装配与实际资产路径继续维护在 `Docs/Technical/06_BlueprintConfigurationGuide.md`。
 - UE 工程事实以 `LostRunic.uproject`、`Config/DefaultEngine.ini`、现有 C++ 和实际 Content 资产为准。
-- Perception、Courage、Memory 的最终视觉标准另行评审；它们不得反向破坏本版 Normal 的候选生产基线。
+- Perception 的视觉与技术合同见本文专章；Courage、Memory 的最终视觉标准仍另行评审，且不得反向破坏本版 Normal 的候选生产基线。

@@ -14,6 +14,8 @@
 #include "Data/LRSaveTuning.h"
 #include "Data/LRStateTuning.h"
 #include "Data/LRUITuning.h"
+#include "Materials/Material.h"
+#include "Materials/MaterialParameterCollection.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLRTuningDefaultsTest, "LostRunic.Tuning.DefaultsAreValid",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
@@ -45,7 +47,14 @@ bool FLRTuningDefaultsTest::RunTest(const FString& parameters)
 
 	TestTrue(TEXT("Save defaults"), NewObject<ULRSaveTuning>()->Validate(error));
 	TestTrue(TEXT("UI defaults"), NewObject<ULRUITuning>()->Validate(error));
-	TestTrue(TEXT("Presentation defaults"), NewObject<ULRPresentationTuning>()->Validate(error));
+	ULRPresentationTuning* presentation = NewObject<ULRPresentationTuning>();
+	presentation->PerceptionCompositeMaterial =
+		TSoftObjectPtr<UMaterialInterface>(NewObject<UMaterial>(presentation));
+	presentation->PerceptionVisualStyleParameterCollection =
+		NewObject<UMaterialParameterCollection>(presentation);
+	presentation->PerceptionRuntimeParameterCollection =
+		NewObject<UMaterialParameterCollection>(presentation);
+	TestTrue(TEXT("Presentation defaults"), presentation->Validate(error));
 	TestTrue(TEXT("NPC defaults"), FLRNPCTuningSettings().Validate(error));
 	return true;
 }

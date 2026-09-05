@@ -19,6 +19,22 @@
  */
 bool ULRPresentationTuning::Validate(FString& outError) const
 {
+	if (PerceptionCompositeMaterial.IsNull())
+	{
+		outError = TEXT("PerceptionCompositeMaterial must be assigned.");
+		return false;
+	}
+	if (!PerceptionVisualStyleParameterCollection)
+	{
+		outError = TEXT("PerceptionVisualStyleParameterCollection must be assigned.");
+		return false;
+	}
+	if (!PerceptionRuntimeParameterCollection)
+	{
+		outError = TEXT("PerceptionRuntimeParameterCollection must be assigned.");
+		return false;
+	}
+
 	return LRValidation::RequireRange(TEXT("PerceptionRevealRadius"), PerceptionRevealRadius, 0.0f, 5000.0f, outError)
 		&& LRValidation::RequireRange(TEXT("NoiseRevealRadius"), NoiseRevealRadius, 0.0f, 5000.0f, outError)
 		&& LRValidation::RequireRange(TEXT("NoiseRevealDurationSeconds"), NoiseRevealDurationSeconds, 0.0f, 30.0f, outError)
