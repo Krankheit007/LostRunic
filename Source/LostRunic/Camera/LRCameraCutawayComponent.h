@@ -54,6 +54,7 @@ private:
 	void UpdateLocalRequests(const TSet<ULRCutawayTargetComponent*>& newTargets);
 	void UpdateStickySlots();
 	void RefreshStickySlotAmounts();
+	bool HasValidStickySlotAfter(int32 slotIndex) const;
 	void ReleaseStickySlot(int32 slotIndex);
 	bool InitializeSuppressionParameters();
 	void ClearPublishedSuppressionStates();

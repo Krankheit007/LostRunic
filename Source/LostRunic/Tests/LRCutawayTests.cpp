@@ -159,6 +159,12 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLRCutawayStickyPriorityTest,
 bool FLRCutawayStickyPriorityTest::RunTest(const FString& parameters)
 {
 	(void)parameters;
+	ULRCameraCutawayComponent* emptyComponent = NewObject<ULRCameraCutawayComponent>();
+	emptyComponent->UpdateStickySlots();
+	emptyComponent->RefreshStickySlotAmounts();
+	TestFalse(TEXT("Preallocated empty sticky slots remain empty without blocking"),
+		emptyComponent->HasStickySlots());
+
 	LR::Cutaway::FStickyCandidate recovering;
 	recovering.bActive = false;
 	recovering.Amount = 1.0f;

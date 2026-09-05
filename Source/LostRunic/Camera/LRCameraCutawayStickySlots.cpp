@@ -21,6 +21,15 @@ bool LR::Cutaway::IsStickyCandidateHigherPriority(const FStickyCandidate& left,
 	return left.ObjectKey < right.ObjectKey;
 }
 
+bool ULRCameraCutawayComponent::HasValidStickySlotAfter(const int32 slotIndex) const
+{
+	for (int32 index = slotIndex + 1; index < StickySlotTargets.Num(); ++index)
+	{
+		if (IsValid(StickySlotTargets[index])) return true;
+	}
+	return false;
+}
+
 void ULRCameraCutawayComponent::UpdateStickySlots()
 {
 	TSet<ULRCutawayTargetComponent*> representedTargets;
@@ -29,7 +38,7 @@ void ULRCameraCutawayComponent::UpdateStickySlots()
 		ULRCutawayTargetComponent* target = StickySlotTargets[slotIndex];
 		if (!IsValid(target))
 		{
-			if (slotIndex == StickySlotTargets.Num() - 1) break;
+			if (!HasValidStickySlotAfter(slotIndex)) break;
 			ReleaseStickySlot(slotIndex);
 			continue;
 		}
@@ -110,7 +119,7 @@ void ULRCameraCutawayComponent::RefreshStickySlotAmounts()
 		ULRCutawayTargetComponent* target = StickySlotTargets[slotIndex];
 		if (!IsValid(target))
 		{
-			if (slotIndex == StickySlotTargets.Num() - 1) break;
+			if (!HasValidStickySlotAfter(slotIndex)) break;
 			ReleaseStickySlot(slotIndex);
 			continue;
 		}
