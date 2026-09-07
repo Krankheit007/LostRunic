@@ -1,0 +1,33 @@
+{
+  "changed_geometry": [
+    "ArmSideEnvelope",
+    "ArmSideEnvelope.001",
+    "S02_Sofa_BackCushion",
+    "S02_Sofa_BackCushion.001",
+    "S02_Sofa_LooseCushion",
+    "S02_Sofa_LooseCushion.001",
+    "S02_Sofa_RolledArm",
+    "S02_Sofa_RolledArm.001",
+    "S02_Sofa_SeatCushion",
+    "S02_Sofa_SeatCushion.001",
+    "ArmSideEnvelope.002",
+    "ArmSideEnvelope.003",
+    "S02_ArmchairOchre_BackCushion",
+    "S02_ArmchairOchre_LooseCushion",
+    "S02_ArmchairOchre_RolledArm",
+    "S02_ArmchairOchre_RolledArm.001",
+    "S02_ArmchairOchre_SeatCushion",
+    "WingEnvelope",
+    "WingEnvelope.001",
+    "ArmSideEnvelope.004",
+    "ArmSideEnvelope.005",
+    "S02_ArmchairRusset_BackCushion",
+    "S02_ArmchairRusset_LooseCushion",
+    "S02_ArmchairRusset_RolledArm",
+    "S02_ArmchairRusset_RolledArm.001",
+    "S02_ArmchairRusset_SeatCushion"
+  ],
+  "layout_root_matrices": "UNCHANGED",
+  "floor_geometry": "UNCHANGED, continuous, no bevel",
+  "lighting_camera": "unchanged baseline for comparison"
+}

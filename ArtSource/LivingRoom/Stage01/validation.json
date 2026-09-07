@@ -1,0 +1,31 @@
+{
+  "stage": "01_PRIMARY_MASSES",
+  "mesh_count_including_architecture": 156,
+  "checks": [
+    "finite transforms",
+    "closed primitive masses",
+    "nonzero face area"
+  ],
+  "issues": [],
+  "technical_status": "PASS",
+  "visual_status": "AWAITING_USER",
+  "fbx_roundtrip": "NOT_APPLICABLE_YET",
+  "uv_material_animation": "DEFERRED_TO_LATER_GATES",
+  "workflow": "Docs/Art/02_ConceptDrivenBlenderWorkflow.md",
+  "previous_visual_gate": "FAIL_USER_LAYOUT_FEEDBACK",
+  "corner_painting_to_curtain_gap_m": 0.465,
+  "silhouette_views": [
+    "Silhouette_ArchBookcase_Front.png",
+    "Silhouette_ArmchairOchre_Front.png",
+    "Silhouette_ArmchairRusset_Front.png",
+    "Silhouette_CoffeeTable_Front.png",
+    "Silhouette_Fireplace_Front.png",
+    "Silhouette_Ottoman_Front.png",
+    "Silhouette_SideTableCup_Front.png",
+    "Silhouette_SmallCabinet_Front.png",
+    "Silhouette_Sofa_Front.png",
+    "Silhouette_Sofa_Side.png",
+    "Silhouette_WindowConsole_Front.png",
+    "Silhouette_WoodChair_Front.png"
+  ]
+}

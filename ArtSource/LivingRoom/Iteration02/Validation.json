@@ -1,0 +1,13 @@
+{
+  "automatic_status": "PASS",
+  "fbx_count": 81,
+  "visual_acceptance": "AWAITING_USER_SURFACE_REVIEW",
+  "UE_import_gameplay": "NOT_TESTED",
+  "animation": "Static FBX; existing pivot hierarchy retained, no Actions requested or baked",
+  "floor": "single continuous closed floor, no bevel; metric UV",
+  "limitations": [
+    "Texture direction/UV stretch requires final visual acceptance",
+    "No collision meshes or lightmap UV generated",
+    "Closed-shell audit applies only to meshes declared closed; open cloth and foliage are explicit exceptions"
+  ]
+}

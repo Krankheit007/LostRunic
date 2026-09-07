@@ -1,0 +1,62 @@
+[
+  {
+    "id": "SM_LR_Rug",
+    "source_triangles": 188,
+    "ue_triangles": 156,
+    "zero_area_triangles": 32
+  },
+  {
+    "id": "SM_LR_CoffeeTableBouquet",
+    "source_triangles": 7002,
+    "ue_triangles": 6394,
+    "zero_area_triangles": 608
+  },
+  {
+    "id": "SM_LR_SideTableBouquet",
+    "source_triangles": 6618,
+    "ue_triangles": 6058,
+    "zero_area_triangles": 560
+  },
+  {
+    "id": "SM_LR_WindowConsole",
+    "source_triangles": 10616,
+    "ue_triangles": 10568,
+    "zero_area_triangles": 48
+  },
+  {
+    "id": "SM_LR_MantelBouquet",
+    "source_triangles": 8946,
+    "ue_triangles": 8178,
+    "zero_area_triangles": 768
+  },
+  {
+    "id": "SM_LR_ArchBookcase",
+    "source_triangles": 7968,
+    "ue_triangles": 7936,
+    "zero_area_triangles": 32
+  },
+  {
+    "id": "SM_LR_SmallCabinet",
+    "source_triangles": 9212,
+    "ue_triangles": 9164,
+    "zero_area_triangles": 48
+  },
+  {
+    "id": "SM_LR_ConsolePlant",
+    "source_triangles": 4742,
+    "ue_triangles": 4214,
+    "zero_area_triangles": 528
+  },
+  {
+    "id": "SM_LR_CabinetPlant",
+    "source_triangles": 3334,
+    "ue_triangles": 2674,
+    "zero_area_triangles": 660
+  },
+  {
+    "id": "SM_LR_Rug_001",
+    "source_triangles": 188,
+    "ue_triangles": 156,
+    "zero_area_triangles": 32
+  }
+]

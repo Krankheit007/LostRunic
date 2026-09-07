@@ -1,0 +1,2233 @@
+{
+  "saved": true,
+  "assets": [
+    {
+      "id": "SM_LR_BackDoor",
+      "bounds": {
+        "min": {
+          "x": -55.500003814697266,
+          "y": -8.00001049041748,
+          "z": 0
+        },
+        "max": {
+          "x": 55.5,
+          "y": 77.6120376586914,
+          "z": 238.99998474121094
+        },
+        "isValid": true
+      },
+      "triangles": 1128,
+      "materials": [
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_Wood_BC.MI_LR_Scene_Wood_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_Wood_BC.MI_LR_Scene_Wood_BC"
+        }
+      ]
+    },
+    {
+      "id": "SM_LR_Sofa",
+      "bounds": {
+        "min": {
+          "x": -110.29999542236328,
+          "y": -46.00001907348633,
+          "z": 0
+        },
+        "max": {
+          "x": 110.30001068115234,
+          "y": 56.1183967590332,
+          "z": 111.72737121582031
+        },
+        "isValid": true
+      },
+      "triangles": 23112,
+      "materials": [
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_ROOT_Sofa_Cloth_BC.MI_LR_Scene_ROOT_Sofa_Cloth_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_ROOT_Sofa_Cloth_BC.MI_LR_Scene_ROOT_Sofa_Cloth_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_Wood_BC.MI_LR_Scene_Wood_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_ROOT_Sofa_Cloth_BC.MI_LR_Scene_ROOT_Sofa_Cloth_BC"
+        }
+      ]
+    },
+    {
+      "id": "SM_LR_ArmchairOchre",
+      "bounds": {
+        "min": {
+          "x": -44.299991607666016,
+          "y": -42.5000114440918,
+          "z": 0
+        },
+        "max": {
+          "x": 44.30000686645508,
+          "y": 45.48968505859375,
+          "z": 111.45289611816406
+        },
+        "isValid": true
+      },
+      "triangles": 7720,
+      "materials": [
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_ROOT_ArmchairOchre_Cloth_BC.MI_LR_Scene_ROOT_ArmchairOchre_Cloth_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_Wood_BC.MI_LR_Scene_Wood_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_ROOT_ArmchairOchre_Cloth_BC.MI_LR_Scene_ROOT_ArmchairOchre_Cloth_BC"
+        }
+      ]
+    },
+    {
+      "id": "SM_LR_ArmchairRusset",
+      "bounds": {
+        "min": {
+          "x": -40.29999542236328,
+          "y": -40.50000762939453,
+          "z": 0
+        },
+        "max": {
+          "x": 40.30000305175781,
+          "y": 43.50065231323242,
+          "z": 104.39366149902344
+        },
+        "isValid": true
+      },
+      "triangles": 5832,
+      "materials": [
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_ROOT_ArmchairRusset_Cloth_BC.MI_LR_Scene_ROOT_ArmchairRusset_Cloth_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_Wood_BC.MI_LR_Scene_Wood_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_ROOT_ArmchairRusset_Cloth_BC.MI_LR_Scene_ROOT_ArmchairRusset_Cloth_BC"
+        }
+      ]
+    },
+    {
+      "id": "SM_LR_FloorEnvelope",
+      "bounds": {
+        "min": {
+          "x": -494.0000305175781,
+          "y": -350.00006103515625,
+          "z": -9
+        },
+        "max": {
+          "x": 438.0000305175781,
+          "y": 350.00006103515625,
+          "z": 9
+        },
+        "isValid": true
+      },
+      "triangles": 40,
+      "materials": [
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_FloorMass_BC.MI_LR_Scene_FloorMass_BC"
+        }
+      ]
+    },
+    {
+      "id": "SM_LR_BackWallLeft",
+      "bounds": {
+        "min": {
+          "x": -54.999996185302734,
+          "y": -9.000008583068848,
+          "z": -170
+        },
+        "max": {
+          "x": 54.999996185302734,
+          "y": 9.000008583068848,
+          "z": 170
+        },
+        "isValid": true
+      },
+      "triangles": 188,
+      "materials": [
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_CoolPlaster_BC.MI_LR_Scene_CoolPlaster_BC"
+        }
+      ]
+    },
+    {
+      "id": "SM_LR_BackWallMain",
+      "bounds": {
+        "min": {
+          "x": -230,
+          "y": -25.000041961669922,
+          "z": -170
+        },
+        "max": {
+          "x": 275,
+          "y": 25.00003433227539,
+          "z": 170
+        },
+        "isValid": true
+      },
+      "triangles": 188,
+      "materials": [
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_CoolPlaster_BC.MI_LR_Scene_CoolPlaster_BC"
+        }
+      ]
+    },
+    {
+      "id": "SM_LR_BackDoorLintel",
+      "bounds": {
+        "min": {
+          "x": -50,
+          "y": -9.000007629394531,
+          "z": -52
+        },
+        "max": {
+          "x": 50,
+          "y": 9.000007629394531,
+          "z": 52
+        },
+        "isValid": true
+      },
+      "triangles": 188,
+      "materials": [
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_CoolPlaster_BC.MI_LR_Scene_CoolPlaster_BC"
+        }
+      ]
+    },
+    {
+      "id": "SM_LR_RightWallBack",
+      "bounds": {
+        "min": {
+          "x": -9.000008583068848,
+          "y": -56.50000762939453,
+          "z": -170
+        },
+        "max": {
+          "x": 9.000008583068848,
+          "y": 56.50000762939453,
+          "z": 170
+        },
+        "isValid": true
+      },
+      "triangles": 188,
+      "materials": [
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_CoolPlaster_BC.MI_LR_Scene_CoolPlaster_BC"
+        }
+      ]
+    },
+    {
+      "id": "SM_LR_RightWallFront",
+      "bounds": {
+        "min": {
+          "x": -9.00002384185791,
+          "y": -156.5,
+          "z": -170
+        },
+        "max": {
+          "x": 9.00002384185791,
+          "y": 156.5,
+          "z": 170
+        },
+        "isValid": true
+      },
+      "triangles": 188,
+      "materials": [
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_CoolPlaster_BC.MI_LR_Scene_CoolPlaster_BC"
+        }
+      ]
+    },
+    {
+      "id": "SM_LR_WindowSillWall",
+      "bounds": {
+        "min": {
+          "x": -9.000017166137695,
+          "y": -115,
+          "z": -39
+        },
+        "max": {
+          "x": 9.000017166137695,
+          "y": 115,
+          "z": 39
+        },
+        "isValid": true
+      },
+      "triangles": 188,
+      "materials": [
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_CoolPlaster_BC.MI_LR_Scene_CoolPlaster_BC"
+        }
+      ]
+    },
+    {
+      "id": "SM_LR_WindowLintel",
+      "bounds": {
+        "min": {
+          "x": -9.000018119812012,
+          "y": -119.00000762939453,
+          "z": -14
+        },
+        "max": {
+          "x": 9.000018119812012,
+          "y": 119.00000762939453,
+          "z": 14
+        },
+        "isValid": true
+      },
+      "triangles": 188,
+      "materials": [
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_CoolPlaster_BC.MI_LR_Scene_CoolPlaster_BC"
+        }
+      ]
+    },
+    {
+      "id": "SM_LR_BackWallDoorRight",
+      "bounds": {
+        "min": {
+          "x": -22.499967575073242,
+          "y": -9.000003814697266,
+          "z": -170
+        },
+        "max": {
+          "x": 22.50004005432129,
+          "y": 9.000003814697266,
+          "z": 170
+        },
+        "isValid": true
+      },
+      "triangles": 188,
+      "materials": [
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_CoolPlaster_BC.MI_LR_Scene_CoolPlaster_BC"
+        }
+      ]
+    },
+    {
+      "id": "SM_LR_BackWallFirePlace",
+      "bounds": {
+        "min": {
+          "x": -77,
+          "y": -5.000011444091797,
+          "z": -170
+        },
+        "max": {
+          "x": 77,
+          "y": 25.000011444091797,
+          "z": 170
+        },
+        "isValid": true
+      },
+      "triangles": 188,
+      "materials": [
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_CoolPlaster_BC.MI_LR_Scene_CoolPlaster_BC"
+        }
+      ]
+    },
+    {
+      "id": "SM_LR_WindowWallLeft",
+      "bounds": {
+        "min": {
+          "x": -30.999990463256836,
+          "y": -9.000007629394531,
+          "z": -170
+        },
+        "max": {
+          "x": 30.999990463256836,
+          "y": 9.000007629394531,
+          "z": 170
+        },
+        "isValid": true
+      },
+      "triangles": 188,
+      "materials": [
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_CoolPlaster_BC.MI_LR_Scene_CoolPlaster_BC"
+        }
+      ]
+    },
+    {
+      "id": "SM_LR_WindowWallRight",
+      "bounds": {
+        "min": {
+          "x": -30.999990463256836,
+          "y": -9.000007629394531,
+          "z": -170
+        },
+        "max": {
+          "x": 30.999990463256836,
+          "y": 9.000007629394531,
+          "z": 170
+        },
+        "isValid": true
+      },
+      "triangles": 188,
+      "materials": [
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_CoolPlaster_BC.MI_LR_Scene_CoolPlaster_BC"
+        }
+      ]
+    },
+    {
+      "id": "SM_LR_LeftWallBack",
+      "bounds": {
+        "min": {
+          "x": -9.000020980834961,
+          "y": -135,
+          "z": -170
+        },
+        "max": {
+          "x": 9.000020980834961,
+          "y": 134.99998474121094,
+          "z": 170
+        },
+        "isValid": true
+      },
+      "triangles": 188,
+      "materials": [
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_CoolPlaster_BC.MI_LR_Scene_CoolPlaster_BC"
+        }
+      ]
+    },
+    {
+      "id": "SM_LR_LeftWallCorner",
+      "bounds": {
+        "min": {
+          "x": -50.000064849853516,
+          "y": -9.000009536743164,
+          "z": -170
+        },
+        "max": {
+          "x": 50,
+          "y": 9.000005722045898,
+          "z": 170.00001525878906
+        },
+        "isValid": true
+      },
+      "triangles": 188,
+      "materials": [
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_CoolPlaster_BC.MI_LR_Scene_CoolPlaster_BC"
+        }
+      ]
+    },
+    {
+      "id": "SM_LR_Rug",
+      "bounds": {
+        "min": {
+          "x": -226.00001525878906,
+          "y": -206.00003051757812,
+          "z": 0
+        },
+        "max": {
+          "x": 192.00001525878906,
+          "y": 206.00003051757812,
+          "z": 2.4000000953674316
+        },
+        "isValid": true
+      },
+      "triangles": 156,
+      "materials": [
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_Rug_BC.MI_LR_Scene_Rug_BC"
+        }
+      ]
+    },
+    {
+      "id": "SM_LR_CoffeeTable",
+      "bounds": {
+        "min": {
+          "x": -62.500003814697266,
+          "y": -32.50000762939453,
+          "z": 0
+        },
+        "max": {
+          "x": 62.500003814697266,
+          "y": 32.50000762939453,
+          "z": 48
+        },
+        "isValid": true
+      },
+      "triangles": 2156,
+      "materials": [
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_Wood_BC.MI_LR_Scene_Wood_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_Wood_BC.MI_LR_Scene_Wood_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_Wood_BC.MI_LR_Scene_Wood_BC"
+        }
+      ]
+    },
+    {
+      "id": "SM_LR_CoffeeTable_Book_1",
+      "bounds": {
+        "min": {
+          "x": -13.50000286102295,
+          "y": -10.000001907348633,
+          "z": -1.5999999046325684
+        },
+        "max": {
+          "x": 13.500000953674316,
+          "y": 10.00000286102295,
+          "z": 1.6000028848648071
+        },
+        "isValid": true
+      },
+      "triangles": 752,
+      "materials": [
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_BookBlue_BC.MI_LR_Scene_BookBlue_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_BookPageBlock_BC.MI_LR_Scene_BookPageBlock_BC"
+        }
+      ]
+    },
+    {
+      "id": "SM_LR_CoffeeTable_Book_2",
+      "bounds": {
+        "min": {
+          "x": -12.600001335144043,
+          "y": -10.000001907348633,
+          "z": -1.5999999046325684
+        },
+        "max": {
+          "x": 12.600001335144043,
+          "y": 10.000001907348633,
+          "z": 1.5999999046325684
+        },
+        "isValid": true
+      },
+      "triangles": 752,
+      "materials": [
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_BookOchre_BC.MI_LR_Scene_BookOchre_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_BookPageBlock_BC.MI_LR_Scene_BookPageBlock_BC"
+        }
+      ]
+    },
+    {
+      "id": "SM_LR_CoffeeTable_Book_3",
+      "bounds": {
+        "min": {
+          "x": -11.700000762939453,
+          "y": -10.000001907348633,
+          "z": -1.5999999046325684
+        },
+        "max": {
+          "x": 11.70000171661377,
+          "y": 10.000001907348633,
+          "z": 1.5999999046325684
+        },
+        "isValid": true
+      },
+      "triangles": 752,
+      "materials": [
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_BookOlive_BC.MI_LR_Scene_BookOlive_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_BookPageBlock_BC.MI_LR_Scene_BookPageBlock_BC"
+        }
+      ]
+    },
+    {
+      "id": "SM_LR_CoffeeTableBouquet",
+      "bounds": {
+        "min": {
+          "x": -14.519440650939941,
+          "y": -9.958556175231934,
+          "z": 0
+        },
+        "max": {
+          "x": 10.54234504699707,
+          "y": 8.121773719787598,
+          "z": 47.10000228881836
+        },
+        "isValid": true
+      },
+      "triangles": 6394,
+      "materials": [
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_LeafLight_BC.MI_LR_Scene_LeafLight_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_Leaf_BC.MI_LR_Scene_Leaf_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_IvoryFlowerMass_BC.MI_LR_Scene_IvoryFlowerMass_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_VaseCeladon_BC.MI_LR_Scene_VaseCeladon_BC"
+        }
+      ]
+    },
+    {
+      "id": "SM_LR_CoffeeTableBowl",
+      "bounds": {
+        "min": {
+          "x": -8.199999809265137,
+          "y": -8.199999809265137,
+          "z": 0
+        },
+        "max": {
+          "x": 8.199999809265137,
+          "y": 8.199999809265137,
+          "z": 4.300000190734863
+        },
+        "isValid": true
+      },
+      "triangles": 336,
+      "materials": [
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_AgedBrass_BC.MI_LR_Scene_AgedBrass_BC"
+        }
+      ]
+    },
+    {
+      "id": "SM_LR_CoffeeTableSmallVessel",
+      "bounds": {
+        "min": {
+          "x": -6.250000476837158,
+          "y": -4.000000953674316,
+          "z": 7.916241884231567e-7
+        },
+        "max": {
+          "x": 6.250000476837158,
+          "y": 4.000000953674316,
+          "z": 7.800000190734863
+        },
+        "isValid": true
+      },
+      "triangles": 428,
+      "materials": [
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_BookPageBlock_BC.MI_LR_Scene_BookPageBlock_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_VaseCeladon_BC.MI_LR_Scene_VaseCeladon_BC"
+        }
+      ]
+    },
+    {
+      "id": "SM_LR_SideTableCup",
+      "bounds": {
+        "min": {
+          "x": -23.5,
+          "y": -23.5,
+          "z": 0
+        },
+        "max": {
+          "x": 23.5,
+          "y": 23.5,
+          "z": 56.04999923706055
+        },
+        "isValid": true
+      },
+      "triangles": 852,
+      "materials": [
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_Wood_BC.MI_LR_Scene_Wood_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_Wood_BC.MI_LR_Scene_Wood_BC"
+        }
+      ]
+    },
+    {
+      "id": "SM_LR_TeaCupAndSaucer",
+      "bounds": {
+        "min": {
+          "x": -9,
+          "y": -9,
+          "z": 0
+        },
+        "max": {
+          "x": 9,
+          "y": 9,
+          "z": 9
+        },
+        "isValid": true
+      },
+      "triangles": 1324,
+      "materials": [
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_IvoryPorcelain_BC.MI_LR_Scene_IvoryPorcelain_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_TeaSurface_BC.MI_LR_Scene_TeaSurface_BC"
+        }
+      ]
+    },
+    {
+      "id": "SM_LR_SideTableLamp",
+      "bounds": {
+        "min": {
+          "x": -24.5,
+          "y": -24.5,
+          "z": 0
+        },
+        "max": {
+          "x": 24.5,
+          "y": 24.5,
+          "z": 59.05000305175781
+        },
+        "isValid": true
+      },
+      "triangles": 852,
+      "materials": [
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_Wood_BC.MI_LR_Scene_Wood_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_Wood_BC.MI_LR_Scene_Wood_BC"
+        }
+      ]
+    },
+    {
+      "id": "SM_LR_SideTablePlant",
+      "bounds": {
+        "min": {
+          "x": -29,
+          "y": -29,
+          "z": 0
+        },
+        "max": {
+          "x": 29,
+          "y": 29,
+          "z": 70.04999542236328
+        },
+        "isValid": true
+      },
+      "triangles": 852,
+      "materials": [
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_Wood_BC.MI_LR_Scene_Wood_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_Wood_BC.MI_LR_Scene_Wood_BC"
+        }
+      ]
+    },
+    {
+      "id": "SM_LR_SideTableBouquet",
+      "bounds": {
+        "min": {
+          "x": -13.711973190307617,
+          "y": -9.423643112182617,
+          "z": 0
+        },
+        "max": {
+          "x": 10.070648193359375,
+          "y": 7.790680885314941,
+          "z": 41.218936920166016
+        },
+        "isValid": true
+      },
+      "triangles": 6058,
+      "materials": [
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_LeafLight_BC.MI_LR_Scene_LeafLight_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_Leaf_BC.MI_LR_Scene_Leaf_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_IvoryFlowerMass_BC.MI_LR_Scene_IvoryFlowerMass_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_VaseCeladon_BC.MI_LR_Scene_VaseCeladon_BC"
+        }
+      ]
+    },
+    {
+      "id": "SM_LR_WindowConsole",
+      "bounds": {
+        "min": {
+          "x": -90,
+          "y": -26.000001907348633,
+          "z": 0
+        },
+        "max": {
+          "x": 90,
+          "y": 24.000015258789062,
+          "z": 83
+        },
+        "isValid": true
+      },
+      "triangles": 10568,
+      "materials": [
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_Wood_BC.MI_LR_Scene_Wood_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_Interior_BC.MI_LR_Scene_Interior_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_Wood_BC.MI_LR_Scene_Wood_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_DetailAgedBrass_BC.MI_LR_Scene_DetailAgedBrass_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_Wood_BC.MI_LR_Scene_Wood_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_Wood_BC.MI_LR_Scene_Wood_BC"
+        }
+      ]
+    },
+    {
+      "id": "SM_LR_WindowConsole_Book_4",
+      "bounds": {
+        "min": {
+          "x": -13.500001907348633,
+          "y": -10.00001335144043,
+          "z": -1.600005865097046
+        },
+        "max": {
+          "x": 13.500004768371582,
+          "y": 9.999991416931152,
+          "z": 1.5999939441680908
+        },
+        "isValid": true
+      },
+      "triangles": 752,
+      "materials": [
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_BookBlue_BC.MI_LR_Scene_BookBlue_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_BookPageBlock_BC.MI_LR_Scene_BookPageBlock_BC"
+        }
+      ]
+    },
+    {
+      "id": "SM_LR_WindowConsole_Book_5",
+      "bounds": {
+        "min": {
+          "x": -12.59999942779541,
+          "y": -9.999998092651367,
+          "z": -1.5999999046325684
+        },
+        "max": {
+          "x": 12.600003242492676,
+          "y": 10.000018119812012,
+          "z": 1.5999999046325684
+        },
+        "isValid": true
+      },
+      "triangles": 752,
+      "materials": [
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_BookOchre_BC.MI_LR_Scene_BookOchre_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_BookPageBlock_BC.MI_LR_Scene_BookPageBlock_BC"
+        }
+      ]
+    },
+    {
+      "id": "SM_LR_WindowConsole_Book_6",
+      "bounds": {
+        "min": {
+          "x": -11.69999885559082,
+          "y": -10.000006675720215,
+          "z": -1.600005865097046
+        },
+        "max": {
+          "x": 11.700004577636719,
+          "y": 9.99999713897705,
+          "z": 1.5999939441680908
+        },
+        "isValid": true
+      },
+      "triangles": 752,
+      "materials": [
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_BookOlive_BC.MI_LR_Scene_BookOlive_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_BookPageBlock_BC.MI_LR_Scene_BookPageBlock_BC"
+        }
+      ]
+    },
+    {
+      "id": "SM_LR_Ottoman",
+      "bounds": {
+        "min": {
+          "x": -35.999996185302734,
+          "y": -32.49999237060547,
+          "z": 0
+        },
+        "max": {
+          "x": 36.00001525878906,
+          "y": 32.50001525878906,
+          "z": 53.54999923706055
+        },
+        "isValid": true
+      },
+      "triangles": 3052,
+      "materials": [
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_ROOT_Ottoman_Cloth_BC.MI_LR_Scene_ROOT_Ottoman_Cloth_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_Wood_BC.MI_LR_Scene_Wood_BC"
+        }
+      ]
+    },
+    {
+      "id": "SM_LR_Ottoman_Book_7",
+      "bounds": {
+        "min": {
+          "x": -13.500004768371582,
+          "y": -10.000000953674316,
+          "z": -1.5999999046325684
+        },
+        "max": {
+          "x": 13.500001907348633,
+          "y": 10.000003814697266,
+          "z": 1.5999999046325684
+        },
+        "isValid": true
+      },
+      "triangles": 752,
+      "materials": [
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_BookBlue_BC.MI_LR_Scene_BookBlue_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_BookPageBlock_BC.MI_LR_Scene_BookPageBlock_BC"
+        }
+      ]
+    },
+    {
+      "id": "SM_LR_Ottoman_Book_8",
+      "bounds": {
+        "min": {
+          "x": -12.599991798400879,
+          "y": -9.999991416931152,
+          "z": -1.5999999046325684
+        },
+        "max": {
+          "x": 12.600011825561523,
+          "y": 10.000024795532227,
+          "z": 1.5999999046325684
+        },
+        "isValid": true
+      },
+      "triangles": 752,
+      "materials": [
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_BookOchre_BC.MI_LR_Scene_BookOchre_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_BookPageBlock_BC.MI_LR_Scene_BookPageBlock_BC"
+        }
+      ]
+    },
+    {
+      "id": "SM_LR_Ottoman_Book_9",
+      "bounds": {
+        "min": {
+          "x": -11.70000171661377,
+          "y": -10.000006675720215,
+          "z": -1.5999999046325684
+        },
+        "max": {
+          "x": 11.70000171661377,
+          "y": 9.99999713897705,
+          "z": 1.5999999046325684
+        },
+        "isValid": true
+      },
+      "triangles": 752,
+      "materials": [
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_BookOlive_BC.MI_LR_Scene_BookOlive_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_BookPageBlock_BC.MI_LR_Scene_BookPageBlock_BC"
+        }
+      ]
+    },
+    {
+      "id": "SM_LR_WoodChair",
+      "bounds": {
+        "min": {
+          "x": -23.500003814697266,
+          "y": -24.000015258789062,
+          "z": 0
+        },
+        "max": {
+          "x": 23.500003814697266,
+          "y": 23.999990463256836,
+          "z": 102.5
+        },
+        "isValid": true
+      },
+      "triangles": 2720,
+      "materials": [
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_Wood_BC.MI_LR_Scene_Wood_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_Wood_BC.MI_LR_Scene_Wood_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_ROOT_WoodChair_Cloth_BC.MI_LR_Scene_ROOT_WoodChair_Cloth_BC"
+        }
+      ]
+    },
+    {
+      "id": "SM_LR_Fireplace",
+      "bounds": {
+        "min": {
+          "x": -92.50000762939453,
+          "y": -44.000003814697266,
+          "z": 0
+        },
+        "max": {
+          "x": 92.50000762939453,
+          "y": 34.00001907348633,
+          "z": 156
+        },
+        "isValid": true
+      },
+      "triangles": 8728,
+      "materials": [
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_DarkRecess_BC.MI_LR_Scene_DarkRecess_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_WarmStone_BC.MI_LR_Scene_WarmStone_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_Interior_BC.MI_LR_Scene_Interior_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_Iron_BC.MI_LR_Scene_Iron_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_Wood_BC.MI_LR_Scene_Wood_BC"
+        }
+      ]
+    },
+    {
+      "id": "SM_LR_MantelCandlestick1",
+      "bounds": {
+        "min": {
+          "x": -4.199997425079346,
+          "y": -4.199991703033447,
+          "z": 0
+        },
+        "max": {
+          "x": 4.200002670288086,
+          "y": 4.200007915496826,
+          "z": 34
+        },
+        "isValid": true
+      },
+      "triangles": 572,
+      "materials": [
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_IvoryPorcelain_BC.MI_LR_Scene_IvoryPorcelain_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_AgedBrass_BC.MI_LR_Scene_AgedBrass_BC"
+        }
+      ]
+    },
+    {
+      "id": "SM_LR_MantelCandlestick2",
+      "bounds": {
+        "min": {
+          "x": -4.199997425079346,
+          "y": -4.199993133544922,
+          "z": 0
+        },
+        "max": {
+          "x": 4.200002670288086,
+          "y": 4.200006484985352,
+          "z": 40.000003814697266
+        },
+        "isValid": true
+      },
+      "triangles": 572,
+      "materials": [
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_IvoryPorcelain_BC.MI_LR_Scene_IvoryPorcelain_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_AgedBrass_BC.MI_LR_Scene_AgedBrass_BC"
+        }
+      ]
+    },
+    {
+      "id": "SM_LR_MantelCandlestick3",
+      "bounds": {
+        "min": {
+          "x": -4.199997425079346,
+          "y": -4.1999945640563965,
+          "z": 0
+        },
+        "max": {
+          "x": 4.200002670288086,
+          "y": 4.200005054473877,
+          "z": 29.999998092651367
+        },
+        "isValid": true
+      },
+      "triangles": 572,
+      "materials": [
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_IvoryPorcelain_BC.MI_LR_Scene_IvoryPorcelain_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_AgedBrass_BC.MI_LR_Scene_AgedBrass_BC"
+        }
+      ]
+    },
+    {
+      "id": "SM_LR_MantelBouquet",
+      "bounds": {
+        "min": {
+          "x": -20.17169761657715,
+          "y": -13.702923774719238,
+          "z": 0
+        },
+        "max": {
+          "x": 15.450669288635254,
+          "y": 11.232295036315918,
+          "z": 41.20800018310547
+        },
+        "isValid": true
+      },
+      "triangles": 8178,
+      "materials": [
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_LeafLight_BC.MI_LR_Scene_LeafLight_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_Leaf_BC.MI_LR_Scene_Leaf_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_IvoryFlowerMass_BC.MI_LR_Scene_IvoryFlowerMass_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_VaseCeladon_BC.MI_LR_Scene_VaseCeladon_BC"
+        }
+      ]
+    },
+    {
+      "id": "SM_LR_MantelSmallVessel",
+      "bounds": {
+        "min": {
+          "x": -3.500000238418579,
+          "y": -3.5000035762786865,
+          "z": 0
+        },
+        "max": {
+          "x": 3.499999761581421,
+          "y": 3.4999964237213135,
+          "z": 14.5
+        },
+        "isValid": true
+      },
+      "triangles": 528,
+      "materials": [
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_VaseCeladon_BC.MI_LR_Scene_VaseCeladon_BC"
+        }
+      ]
+    },
+    {
+      "id": "SM_LR_MantelLowOrnament",
+      "bounds": {
+        "min": {
+          "x": -4.400000095367432,
+          "y": -4.399997711181641,
+          "z": 0
+        },
+        "max": {
+          "x": 4.399999618530273,
+          "y": 4.4000020027160645,
+          "z": 2.299999952316284
+        },
+        "isValid": true
+      },
+      "triangles": 336,
+      "materials": [
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_AgedBrass_BC.MI_LR_Scene_AgedBrass_BC"
+        }
+      ]
+    },
+    {
+      "id": "SM_LR_ArchBookcase",
+      "bounds": {
+        "min": {
+          "x": -40.00001525878906,
+          "y": -21.9999942779541,
+          "z": 0
+        },
+        "max": {
+          "x": 40.000003814697266,
+          "y": 19.00001335144043,
+          "z": 259
+        },
+        "isValid": true
+      },
+      "triangles": 7936,
+      "materials": [
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_Wood_BC.MI_LR_Scene_Wood_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_Wood_BC.MI_LR_Scene_Wood_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_DetailAgedBrass_BC.MI_LR_Scene_DetailAgedBrass_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_Wood_BC.MI_LR_Scene_Wood_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_Interior_BC.MI_LR_Scene_Interior_BC"
+        }
+      ]
+    },
+    {
+      "id": "SM_LR_ArchBookcase_Book_10",
+      "bounds": {
+        "min": {
+          "x": -3.1000046730041504,
+          "y": -7.499997615814209,
+          "z": -11
+        },
+        "max": {
+          "x": 3.100006341934204,
+          "y": 7.500005722045898,
+          "z": 11
+        },
+        "isValid": true
+      },
+      "triangles": 752,
+      "materials": [
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_BookBlue_BC.MI_LR_Scene_BookBlue_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_BookPageBlock_BC.MI_LR_Scene_BookPageBlock_BC"
+        }
+      ]
+    },
+    {
+      "id": "SM_LR_ArchBookcase_Book_11",
+      "bounds": {
+        "min": {
+          "x": -3.1000046730041504,
+          "y": -7.499997138977051,
+          "z": -12.300000190734863
+        },
+        "max": {
+          "x": 3.100006341934204,
+          "y": 7.500006675720215,
+          "z": 12.300000190734863
+        },
+        "isValid": true
+      },
+      "triangles": 752,
+      "materials": [
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_BookOchre_BC.MI_LR_Scene_BookOchre_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_BookPageBlock_BC.MI_LR_Scene_BookPageBlock_BC"
+        }
+      ]
+    },
+    {
+      "id": "SM_LR_ArchBookcase_Book_12",
+      "bounds": {
+        "min": {
+          "x": -3.1000046730041504,
+          "y": -7.499996185302734,
+          "z": -13.600000381469727
+        },
+        "max": {
+          "x": 3.100006341934204,
+          "y": 7.500007152557373,
+          "z": 13.600000381469727
+        },
+        "isValid": true
+      },
+      "triangles": 752,
+      "materials": [
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_BookOlive_BC.MI_LR_Scene_BookOlive_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_BookPageBlock_BC.MI_LR_Scene_BookPageBlock_BC"
+        }
+      ]
+    },
+    {
+      "id": "SM_LR_ArchBookcase_Book_13",
+      "bounds": {
+        "min": {
+          "x": -3.1000046730041504,
+          "y": -7.499995708465576,
+          "z": -11
+        },
+        "max": {
+          "x": 3.100006341934204,
+          "y": 7.5000081062316895,
+          "z": 11
+        },
+        "isValid": true
+      },
+      "triangles": 752,
+      "materials": [
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_BookRusset_BC.MI_LR_Scene_BookRusset_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_BookPageBlock_BC.MI_LR_Scene_BookPageBlock_BC"
+        }
+      ]
+    },
+    {
+      "id": "SM_LR_ArchBookcase_Book_14",
+      "bounds": {
+        "min": {
+          "x": -3.1000046730041504,
+          "y": -7.499997138977051,
+          "z": -11
+        },
+        "max": {
+          "x": 3.100006341934204,
+          "y": 7.500006198883057,
+          "z": 11
+        },
+        "isValid": true
+      },
+      "triangles": 752,
+      "materials": [
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_BookOchre_BC.MI_LR_Scene_BookOchre_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_BookPageBlock_BC.MI_LR_Scene_BookPageBlock_BC"
+        }
+      ]
+    },
+    {
+      "id": "SM_LR_ArchBookcase_Book_15",
+      "bounds": {
+        "min": {
+          "x": -3.0999927520751953,
+          "y": -7.499996185302734,
+          "z": -12.300000190734863
+        },
+        "max": {
+          "x": 3.100006341934204,
+          "y": 7.500007152557373,
+          "z": 12.300000190734863
+        },
+        "isValid": true
+      },
+      "triangles": 752,
+      "materials": [
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_BookOlive_BC.MI_LR_Scene_BookOlive_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_BookPageBlock_BC.MI_LR_Scene_BookPageBlock_BC"
+        }
+      ]
+    },
+    {
+      "id": "SM_LR_ArchBookcase_Book_16",
+      "bounds": {
+        "min": {
+          "x": -3.1000046730041504,
+          "y": -7.499995708465576,
+          "z": -13.600000381469727
+        },
+        "max": {
+          "x": 3.100006341934204,
+          "y": 7.500007629394531,
+          "z": 13.600000381469727
+        },
+        "isValid": true
+      },
+      "triangles": 752,
+      "materials": [
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_BookRusset_BC.MI_LR_Scene_BookRusset_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_BookPageBlock_BC.MI_LR_Scene_BookPageBlock_BC"
+        }
+      ]
+    },
+    {
+      "id": "SM_LR_ArchBookcase_Book_17",
+      "bounds": {
+        "min": {
+          "x": -3.1000046730041504,
+          "y": -7.49999475479126,
+          "z": -11
+        },
+        "max": {
+          "x": 3.100006341934204,
+          "y": 7.500008583068848,
+          "z": 11
+        },
+        "isValid": true
+      },
+      "triangles": 752,
+      "materials": [
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_BookBlue_BC.MI_LR_Scene_BookBlue_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_BookPageBlock_BC.MI_LR_Scene_BookPageBlock_BC"
+        }
+      ]
+    },
+    {
+      "id": "SM_LR_ArchBookcase_Book_18",
+      "bounds": {
+        "min": {
+          "x": -3.1000046730041504,
+          "y": -7.499997615814209,
+          "z": -11
+        },
+        "max": {
+          "x": 3.100006341934204,
+          "y": 7.500005722045898,
+          "z": 11
+        },
+        "isValid": true
+      },
+      "triangles": 752,
+      "materials": [
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_BookOlive_BC.MI_LR_Scene_BookOlive_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_BookPageBlock_BC.MI_LR_Scene_BookPageBlock_BC"
+        }
+      ]
+    },
+    {
+      "id": "SM_LR_ArchBookcase_Book_19",
+      "bounds": {
+        "min": {
+          "x": -3.1000046730041504,
+          "y": -7.499997138977051,
+          "z": -12.300000190734863
+        },
+        "max": {
+          "x": 3.100006341934204,
+          "y": 7.500006675720215,
+          "z": 12.300000190734863
+        },
+        "isValid": true
+      },
+      "triangles": 752,
+      "materials": [
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_BookRusset_BC.MI_LR_Scene_BookRusset_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_BookPageBlock_BC.MI_LR_Scene_BookPageBlock_BC"
+        }
+      ]
+    },
+    {
+      "id": "SM_LR_ArchBookcase_Book_20",
+      "bounds": {
+        "min": {
+          "x": -3.1000046730041504,
+          "y": -7.499996185302734,
+          "z": -13.600000381469727
+        },
+        "max": {
+          "x": 3.100006341934204,
+          "y": 7.500007152557373,
+          "z": 13.600000381469727
+        },
+        "isValid": true
+      },
+      "triangles": 752,
+      "materials": [
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_BookBlue_BC.MI_LR_Scene_BookBlue_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_BookPageBlock_BC.MI_LR_Scene_BookPageBlock_BC"
+        }
+      ]
+    },
+    {
+      "id": "SM_LR_ArchBookcase_Book_21",
+      "bounds": {
+        "min": {
+          "x": -3.1000046730041504,
+          "y": -7.499995708465576,
+          "z": -11
+        },
+        "max": {
+          "x": 3.100006341934204,
+          "y": 7.5000081062316895,
+          "z": 11
+        },
+        "isValid": true
+      },
+      "triangles": 752,
+      "materials": [
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_BookOchre_BC.MI_LR_Scene_BookOchre_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_BookPageBlock_BC.MI_LR_Scene_BookPageBlock_BC"
+        }
+      ]
+    },
+    {
+      "id": "SM_LR_SmallCabinet",
+      "bounds": {
+        "min": {
+          "x": -38.000003814697266,
+          "y": -27.000001907348633,
+          "z": 0
+        },
+        "max": {
+          "x": 38.000003814697266,
+          "y": 25.5000057220459,
+          "z": 90.5
+        },
+        "isValid": true
+      },
+      "triangles": 9164,
+      "materials": [
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_Wood_BC.MI_LR_Scene_Wood_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_Interior_BC.MI_LR_Scene_Interior_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_Wood_BC.MI_LR_Scene_Wood_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_DetailAgedBrass_BC.MI_LR_Scene_DetailAgedBrass_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_Wood_BC.MI_LR_Scene_Wood_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_Wood_BC.MI_LR_Scene_Wood_BC"
+        }
+      ]
+    },
+    {
+      "id": "SM_LR_CoatStand",
+      "bounds": {
+        "min": {
+          "x": -24.5,
+          "y": -24.499988555908203,
+          "z": 0
+        },
+        "max": {
+          "x": 24.5,
+          "y": 24.499988555908203,
+          "z": 181
+        },
+        "isValid": true
+      },
+      "triangles": 1448,
+      "materials": [
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_ROOT_CoatStand_Cloth_BC.MI_LR_Scene_ROOT_CoatStand_Cloth_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_Wood_BC.MI_LR_Scene_Wood_BC"
+        }
+      ]
+    },
+    {
+      "id": "SM_LR_LogBasket",
+      "bounds": {
+        "min": {
+          "x": -21.000001907348633,
+          "y": -17.500011444091797,
+          "z": 0.49999988079071045
+        },
+        "max": {
+          "x": 21.000001907348633,
+          "y": 17.500011444091797,
+          "z": 49.160484313964844
+        },
+        "isValid": true
+      },
+      "triangles": 1880,
+      "materials": [
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_Wood_BC.MI_LR_Scene_Wood_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_Wood_BC.MI_LR_Scene_Wood_BC"
+        }
+      ]
+    },
+    {
+      "id": "SM_LR_FireTools",
+      "bounds": {
+        "min": {
+          "x": -15.500001907348633,
+          "y": -12.500001907348633,
+          "z": 0
+        },
+        "max": {
+          "x": 15.500001907348633,
+          "y": 12.500001907348633,
+          "z": 50
+        },
+        "isValid": true
+      },
+      "triangles": 1692,
+      "materials": [
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_Iron_BC.MI_LR_Scene_Iron_BC"
+        }
+      ]
+    },
+    {
+      "id": "SM_LR_Window",
+      "bounds": {
+        "min": {
+          "x": -119.00000762939453,
+          "y": -11.50002670288086,
+          "z": 75
+        },
+        "max": {
+          "x": 119.00000762939453,
+          "y": 8.500009536743164,
+          "z": 323
+        },
+        "isValid": true
+      },
+      "triangles": 1328,
+      "materials": [
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_WarmStone_BC.MI_LR_Scene_WarmStone_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_WindowGlass.MI_LR_Scene_WindowGlass"
+        }
+      ]
+    },
+    {
+      "id": "SM_LR_Curtains",
+      "bounds": {
+        "min": {
+          "x": -145,
+          "y": -3.7846670150756836,
+          "z": 6.098897933959961
+        },
+        "max": {
+          "x": 145,
+          "y": 5.800021171569824,
+          "z": 329.0107116699219
+        },
+        "isValid": true
+      },
+      "triangles": 4400,
+      "materials": [
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_ROOT_Curtains_Cloth_BC.MI_LR_Scene_ROOT_Curtains_Cloth_BC"
+        }
+      ]
+    },
+    {
+      "id": "SM_LR_PaintingMantel",
+      "bounds": {
+        "min": {
+          "x": -60.000003814697266,
+          "y": -4.800004482269287,
+          "z": 167
+        },
+        "max": {
+          "x": 60,
+          "y": 3.750011444091797,
+          "z": 317
+        },
+        "isValid": true
+      },
+      "triangles": 952,
+      "materials": [
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_Wood_BC.MI_LR_Scene_Wood_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_ConceptArtworkSource.MI_LR_Scene_ConceptArtworkSource"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_DetailAgedBrass_BC.MI_LR_Scene_DetailAgedBrass_BC"
+        }
+      ]
+    },
+    {
+      "id": "SM_LR_PaintingBackSmall",
+      "bounds": {
+        "min": {
+          "x": -22.5,
+          "y": -4.800002574920654,
+          "z": 138.52139282226562
+        },
+        "max": {
+          "x": 22.5,
+          "y": 3.750001907348633,
+          "z": 206.5214080810547
+        },
+        "isValid": true
+      },
+      "triangles": 952,
+      "materials": [
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_Wood_BC.MI_LR_Scene_Wood_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_ConceptArtworkSource.MI_LR_Scene_ConceptArtworkSource"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_DetailAgedBrass_BC.MI_LR_Scene_DetailAgedBrass_BC"
+        }
+      ]
+    },
+    {
+      "id": "SM_LR_PaintingCorner",
+      "bounds": {
+        "min": {
+          "x": -29.720285415649414,
+          "y": -4.799991130828857,
+          "z": 113.94178771972656
+        },
+        "max": {
+          "x": 29.720304489135742,
+          "y": 3.7500152587890625,
+          "z": 194.44561767578125
+        },
+        "isValid": true
+      },
+      "triangles": 952,
+      "materials": [
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_Wood_BC.MI_LR_Scene_Wood_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_ConceptArtworkSource.MI_LR_Scene_ConceptArtworkSource"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_DetailAgedBrass_BC.MI_LR_Scene_DetailAgedBrass_BC"
+        }
+      ]
+    },
+    {
+      "id": "SM_LR_PaintingRight",
+      "bounds": {
+        "min": {
+          "x": -33.49999237060547,
+          "y": -4.800013065338135,
+          "z": 117.72990417480469
+        },
+        "max": {
+          "x": 33.5000114440918,
+          "y": 3.7499947547912598,
+          "z": 208.7299041748047
+        },
+        "isValid": true
+      },
+      "triangles": 952,
+      "materials": [
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_Wood_BC.MI_LR_Scene_Wood_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_ConceptArtworkSource.MI_LR_Scene_ConceptArtworkSource"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_DetailAgedBrass_BC.MI_LR_Scene_DetailAgedBrass_BC"
+        }
+      ]
+    },
+    {
+      "id": "SM_LR_PaintingLeft",
+      "bounds": {
+        "min": {
+          "x": -28.000003814697266,
+          "y": -4.800004005432129,
+          "z": 151.09909057617188
+        },
+        "max": {
+          "x": 27.999998092651367,
+          "y": 3.7500054836273193,
+          "z": 229.09909057617188
+        },
+        "isValid": true
+      },
+      "triangles": 952,
+      "materials": [
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_Wood_BC.MI_LR_Scene_Wood_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_ConceptArtworkSource.MI_LR_Scene_ConceptArtworkSource"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_DetailAgedBrass_BC.MI_LR_Scene_DetailAgedBrass_BC"
+        }
+      ]
+    },
+    {
+      "id": "SM_LR_Palm",
+      "bounds": {
+        "min": {
+          "x": -61.33421325683594,
+          "y": -62.821502685546875,
+          "z": 0
+        },
+        "max": {
+          "x": 62.39999771118164,
+          "y": 62.821502685546875,
+          "z": 144.52920532226562
+        },
+        "isValid": true
+      },
+      "triangles": 17532,
+      "materials": [
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_PotMass_BC.MI_LR_Scene_PotMass_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_Leaf_BC.MI_LR_Scene_Leaf_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_LeafLight_BC.MI_LR_Scene_LeafLight_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_Wood_BC.MI_LR_Scene_Wood_BC"
+        }
+      ]
+    },
+    {
+      "id": "SM_LR_ForegroundPlant",
+      "bounds": {
+        "min": {
+          "x": -23.633174896240234,
+          "y": -23.17728042602539,
+          "z": 0
+        },
+        "max": {
+          "x": 23.999998092651367,
+          "y": 23.908117294311523,
+          "z": 106.07999420166016
+        },
+        "isValid": true
+      },
+      "triangles": 3334,
+      "materials": [
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_PotMass_BC.MI_LR_Scene_PotMass_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_Leaf_BC.MI_LR_Scene_Leaf_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_LeafLight_BC.MI_LR_Scene_LeafLight_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_Wood_BC.MI_LR_Scene_Wood_BC"
+        }
+      ]
+    },
+    {
+      "id": "SM_LR_ConsolePlant",
+      "bounds": {
+        "min": {
+          "x": -13.047483444213867,
+          "y": -12.795790672302246,
+          "z": 83
+        },
+        "max": {
+          "x": 13.249999046325684,
+          "y": 13.199272155761719,
+          "z": 141.56500244140625
+        },
+        "isValid": true
+      },
+      "triangles": 4214,
+      "materials": [
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_PotMass_BC.MI_LR_Scene_PotMass_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_Leaf_BC.MI_LR_Scene_Leaf_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_LeafLight_BC.MI_LR_Scene_LeafLight_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_Wood_BC.MI_LR_Scene_Wood_BC"
+        }
+      ]
+    },
+    {
+      "id": "SM_LR_CabinetPlant",
+      "bounds": {
+        "min": {
+          "x": -11.324231147766113,
+          "y": -11.105781555175781,
+          "z": 91
+        },
+        "max": {
+          "x": 11.5,
+          "y": 11.455972671508789,
+          "z": 141.82998657226562
+        },
+        "isValid": true
+      },
+      "triangles": 2674,
+      "materials": [
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_PotMass_BC.MI_LR_Scene_PotMass_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_LeafLight_BC.MI_LR_Scene_LeafLight_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_Leaf_BC.MI_LR_Scene_Leaf_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_Wood_BC.MI_LR_Scene_Wood_BC"
+        }
+      ]
+    },
+    {
+      "id": "SM_LR_ConsoleLamp",
+      "bounds": {
+        "min": {
+          "x": -14.287090301513672,
+          "y": -14.287090301513672,
+          "z": 83
+        },
+        "max": {
+          "x": 14.287090301513672,
+          "y": 14.287090301513672,
+          "z": 133.9600067138672
+        },
+        "isValid": true
+      },
+      "triangles": 756,
+      "materials": [
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_Wood_BC.MI_LR_Scene_Wood_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_LampMass_BC.MI_LR_Scene_LampMass_BC"
+        }
+      ]
+    },
+    {
+      "id": "SM_LR_CabinetLamp",
+      "bounds": {
+        "min": {
+          "x": -14.287090301513672,
+          "y": -14.287090301513672,
+          "z": 91
+        },
+        "max": {
+          "x": 14.287090301513672,
+          "y": 14.287090301513672,
+          "z": 141.9600067138672
+        },
+        "isValid": true
+      },
+      "triangles": 756,
+      "materials": [
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_Wood_BC.MI_LR_Scene_Wood_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_LampMass_BC.MI_LR_Scene_LampMass_BC"
+        }
+      ]
+    },
+    {
+      "id": "SM_LR_SofaLamp",
+      "bounds": {
+        "min": {
+          "x": -10.647090911865234,
+          "y": -10.647090911865234,
+          "z": 59
+        },
+        "max": {
+          "x": 10.647090911865234,
+          "y": 10.647090911865234,
+          "z": 97.22000122070312
+        },
+        "isValid": true
+      },
+      "triangles": 756,
+      "materials": [
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_Wood_BC.MI_LR_Scene_Wood_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_LampMass_BC.MI_LR_Scene_LampMass_BC"
+        }
+      ]
+    },
+    {
+      "id": "SM_LR_WallLampLeft",
+      "bounds": {
+        "min": {
+          "x": -10.367090225219727,
+          "y": -10.367090225219727,
+          "z": 198.99269104003906
+        },
+        "max": {
+          "x": 10.367090225219727,
+          "y": 10.367090225219727,
+          "z": 236.2327117919922
+        },
+        "isValid": true
+      },
+      "triangles": 756,
+      "materials": [
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_Wood_BC.MI_LR_Scene_Wood_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_LampMass_BC.MI_LR_Scene_LampMass_BC"
+        }
+      ]
+    },
+    {
+      "id": "SM_LR_WallLampRight",
+      "bounds": {
+        "min": {
+          "x": -10.367090225219727,
+          "y": -10.367090225219727,
+          "z": 199.22830200195312
+        },
+        "max": {
+          "x": 10.367090225219727,
+          "y": 10.367090225219727,
+          "z": 236.46829223632812
+        },
+        "isValid": true
+      },
+      "triangles": 756,
+      "materials": [
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_Wood_BC.MI_LR_Scene_Wood_BC"
+        },
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_LampMass_BC.MI_LR_Scene_LampMass_BC"
+        }
+      ]
+    },
+    {
+      "id": "SM_LR_Rug_001",
+      "bounds": {
+        "min": {
+          "x": -63.939178466796875,
+          "y": -52.0081787109375,
+          "z": 0
+        },
+        "max": {
+          "x": 57.8882942199707,
+          "y": 52.0081787109375,
+          "z": 2.4000000953674316
+        },
+        "isValid": true
+      },
+      "triangles": 156,
+      "materials": [
+        {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_Rug_BC.MI_LR_Scene_Rug_BC"
+        }
+      ]
+    }
+  ],
+  "saved_paths": [
+    "/Game/LostRunic/Scene/Meshes/SM_LR_WindowWallRight",
+    "/Game/LostRunic/Scene/Meshes/SM_LR_WindowWallLeft",
+    "/Game/LostRunic/Scene/Meshes/SM_LR_WindowSillWall",
+    "/Game/LostRunic/Scene/Meshes/SM_LR_WindowLintel",
+    "/Game/LostRunic/Scene/Meshes/SM_LR_RightWallFront",
+    "/Game/LostRunic/Scene/Meshes/SM_LR_RightWallBack",
+    "/Game/LostRunic/Scene/Meshes/SM_LR_LeftWallCorner",
+    "/Game/LostRunic/Scene/Meshes/SM_LR_LeftWallBack",
+    "/Game/LostRunic/Scene/Meshes/SM_LR_BackWallMain",
+    "/Game/LostRunic/Scene/Meshes/SM_LR_BackWallLeft",
+    "/Game/LostRunic/Scene/Meshes/SM_LR_BackWallFirePlace",
+    "/Game/LostRunic/Scene/Meshes/SM_LR_BackWallDoorRight",
+    "/Game/LostRunic/Scene/Meshes/SM_LR_BackDoorLintel",
+    "/Game/LostRunic/Scene/Meshes/SM_LR_ArmchairRusset",
+    "/Game/LostRunic/Scene/Meshes/SM_LR_ArmchairOchre",
+    "/Game/LostRunic/Scene/Meshes/SM_LR_ArchBookcase_Book_19",
+    "/Game/LostRunic/Scene/Meshes/SM_LR_ArchBookcase_Book_16",
+    "/Game/LostRunic/Scene/Meshes/SM_LR_ArchBookcase_Book_13",
+    "/Game/LostRunic/Scene/Meshes/SM_LR_WindowConsole_Book_6",
+    "/Game/LostRunic/Scene/Meshes/SM_LR_Ottoman_Book_9",
+    "/Game/LostRunic/Scene/Meshes/SM_LR_CoffeeTable_Book_3",
+    "/Game/LostRunic/Scene/Meshes/SM_LR_ArchBookcase_Book_18",
+    "/Game/LostRunic/Scene/Meshes/SM_LR_ArchBookcase_Book_15",
+    "/Game/LostRunic/Scene/Meshes/SM_LR_ArchBookcase_Book_12",
+    "/Game/LostRunic/Scene/Meshes/SM_LR_WindowConsole_Book_5",
+    "/Game/LostRunic/Scene/Meshes/SM_LR_Ottoman_Book_8",
+    "/Game/LostRunic/Scene/Meshes/SM_LR_CoffeeTable_Book_2",
+    "/Game/LostRunic/Scene/Meshes/SM_LR_ArchBookcase_Book_21",
+    "/Game/LostRunic/Scene/Meshes/SM_LR_ArchBookcase_Book_14",
+    "/Game/LostRunic/Scene/Meshes/SM_LR_ArchBookcase_Book_11",
+    "/Game/LostRunic/Scene/Meshes/SM_LR_WindowConsole_Book_4",
+    "/Game/LostRunic/Scene/Meshes/SM_LR_Ottoman_Book_7",
+    "/Game/LostRunic/Scene/Meshes/SM_LR_CoffeeTable_Book_1",
+    "/Game/LostRunic/Scene/Meshes/SM_LR_ArchBookcase_Book_20",
+    "/Game/LostRunic/Scene/Meshes/SM_LR_ArchBookcase_Book_17",
+    "/Game/LostRunic/Scene/Meshes/SM_LR_ArchBookcase_Book_10",
+    "/Game/LostRunic/Scene/Meshes/SM_LR_WindowConsole",
+    "/Game/LostRunic/Scene/Meshes/SM_LR_SmallCabinet",
+    "/Game/LostRunic/Scene/Meshes/SM_LR_ArchBookcase",
+    "/Game/LostRunic/Scene/Meshes/SM_LR_SideTablePlant",
+    "/Game/LostRunic/Scene/Meshes/SM_LR_SideTableLamp",
+    "/Game/LostRunic/Scene/Meshes/SM_LR_SideTableCup",
+    "/Game/LostRunic/Scene/Meshes/SM_LR_LogBasket",
+    "/Game/LostRunic/Scene/Meshes/SM_LR_CoffeeTable",
+    "/Game/LostRunic/Scene/Meshes/SM_LR_BackDoor",
+    "/Game/LostRunic/Scene/Meshes/SM_LR_CabinetLamp",
+    "/Game/LostRunic/Scene/Meshes/SM_LR_ConsoleLamp",
+    "/Game/LostRunic/Scene/Meshes/SM_LR_SofaLamp",
+    "/Game/LostRunic/Scene/Meshes/SM_LR_WallLampLeft",
+    "/Game/LostRunic/Scene/Meshes/SM_LR_WallLampRight",
+    "/Game/LostRunic/Scene/Meshes/SM_LR_CabinetPlant",
+    "/Game/LostRunic/Scene/Meshes/SM_LR_ConsolePlant",
+    "/Game/LostRunic/Scene/Meshes/SM_LR_ForegroundPlant",
+    "/Game/LostRunic/Scene/Meshes/SM_LR_Palm",
+    "/Game/LostRunic/Scene/Meshes/SM_LR_CoatStand",
+    "/Game/LostRunic/Scene/Meshes/SM_LR_MantelSmallVessel",
+    "/Game/LostRunic/Scene/Meshes/SM_LR_CoffeeTableSmallVessel",
+    "/Game/LostRunic/Scene/Meshes/SM_LR_CoffeeTableBouquet",
+    "/Game/LostRunic/Scene/Meshes/SM_LR_MantelBouquet",
+    "/Game/LostRunic/Scene/Meshes/SM_LR_SideTableBouquet",
+    "/Game/LostRunic/Scene/Meshes/SM_LR_CoffeeTableBowl",
+    "/Game/LostRunic/Scene/Meshes/SM_LR_MantelLowOrnament",
+    "/Game/LostRunic/Scene/Meshes/SM_LR_Curtains",
+    "/Game/LostRunic/Scene/Meshes/SM_LR_FireTools",
+    "/Game/LostRunic/Scene/Meshes/SM_LR_Window",
+    "/Game/LostRunic/Scene/Meshes/SM_LR_Fireplace",
+    "/Game/LostRunic/Scene/Meshes/SM_LR_FloorEnvelope",
+    "/Game/LostRunic/Scene/Meshes/SM_LR_MantelCandlestick1",
+    "/Game/LostRunic/Scene/Meshes/SM_LR_MantelCandlestick2",
+    "/Game/LostRunic/Scene/Meshes/SM_LR_MantelCandlestick3",
+    "/Game/LostRunic/Scene/Meshes/SM_LR_Ottoman",
+    "/Game/LostRunic/Scene/Meshes/SM_LR_PaintingBackSmall",
+    "/Game/LostRunic/Scene/Meshes/SM_LR_PaintingCorner",
+    "/Game/LostRunic/Scene/Meshes/SM_LR_PaintingLeft",
+    "/Game/LostRunic/Scene/Meshes/SM_LR_PaintingMantel",
+    "/Game/LostRunic/Scene/Meshes/SM_LR_PaintingRight",
+    "/Game/LostRunic/Scene/Meshes/SM_LR_Rug",
+    "/Game/LostRunic/Scene/Meshes/SM_LR_Rug_001",
+    "/Game/LostRunic/Scene/Meshes/SM_LR_Sofa",
+    "/Game/LostRunic/Scene/Meshes/SM_LR_TeaCupAndSaucer",
+    "/Game/LostRunic/Scene/Meshes/SM_LR_WoodChair",
+    "/Game/LostRunic/Scene/Textures/T_LR_CoolPlaster_BC",
+    "/Game/LostRunic/Scene/Textures/T_LR_ROOT_ArmchairRusset_Cloth_BC",
+    "/Game/LostRunic/Scene/Textures/T_LR_ROOT_ArmchairOchre_Cloth_BC",
+    "/Game/LostRunic/Scene/Textures/T_LR_BookRusset_BC",
+    "/Game/LostRunic/Scene/Textures/T_LR_BookOlive_BC",
+    "/Game/LostRunic/Scene/Textures/T_LR_BookOchre_BC",
+    "/Game/LostRunic/Scene/Textures/T_LR_BookPageBlock_BC",
+    "/Game/LostRunic/Scene/Textures/T_LR_BookBlue_BC",
+    "/Game/LostRunic/Scene/Textures/T_LR_Wood_BC",
+    "/Game/LostRunic/Scene/Textures/T_LR_Interior_BC",
+    "/Game/LostRunic/Scene/Textures/T_LR_Neutral_SMK",
+    "/Game/LostRunic/Scene/Textures/T_LR_DetailAgedBrass_BC",
+    "/Game/LostRunic/Scene/Textures/T_LR_LampMass_BC",
+    "/Game/LostRunic/Scene/Textures/T_LR_Leaf_BC",
+    "/Game/LostRunic/Scene/Textures/T_LR_LeafLight_BC",
+    "/Game/LostRunic/Scene/Textures/T_LR_PotMass_BC",
+    "/Game/LostRunic/Scene/Textures/T_LR_ROOT_CoatStand_Cloth_BC",
+    "/Game/LostRunic/Scene/Textures/T_LR_IvoryFlowerMass_BC",
+    "/Game/LostRunic/Scene/Textures/T_LR_VaseCeladon_BC",
+    "/Game/LostRunic/Scene/Textures/T_LR_AgedBrass_BC",
+    "/Game/LostRunic/Scene/Textures/T_LR_ROOT_Curtains_Cloth_BC",
+    "/Game/LostRunic/Scene/Textures/T_LR_DarkRecess_BC",
+    "/Game/LostRunic/Scene/Textures/T_LR_Iron_BC",
+    "/Game/LostRunic/Scene/Textures/T_LR_WarmStone_BC",
+    "/Game/LostRunic/Scene/Textures/T_LR_FloorMass_BC",
+    "/Game/LostRunic/Scene/Textures/T_LR_IvoryPorcelain_BC",
+    "/Game/LostRunic/Scene/Textures/T_LR_ROOT_Ottoman_Cloth_BC",
+    "/Game/LostRunic/Scene/Textures/ConceptArtworkSource",
+    "/Game/LostRunic/Scene/Textures/T_LR_Rug_BC",
+    "/Game/LostRunic/Scene/Textures/T_LR_ROOT_Sofa_Cloth_BC",
+    "/Game/LostRunic/Scene/Textures/T_LR_TeaSurface_BC",
+    "/Game/LostRunic/Scene/Textures/T_LR_ROOT_WoodChair_Cloth_BC",
+    "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_CoolPlaster_BC",
+    "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_ROOT_ArmchairRusset_Cloth_BC",
+    "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_ROOT_ArmchairOchre_Cloth_BC",
+    "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_BookRusset_BC",
+    "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_BookOlive_BC",
+    "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_BookOchre_BC",
+    "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_BookPageBlock_BC",
+    "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_BookBlue_BC",
+    "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_Wood_BC",
+    "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_Interior_BC",
+    "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_DetailAgedBrass_BC",
+    "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_WindowGlass",
+    "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_LampMass_BC",
+    "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_Leaf_BC",
+    "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_LeafLight_BC",
+    "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_PotMass_BC",
+    "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_ROOT_CoatStand_Cloth_BC",
+    "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_IvoryFlowerMass_BC",
+    "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_VaseCeladon_BC",
+    "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_AgedBrass_BC",
+    "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_ROOT_Curtains_Cloth_BC",
+    "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_DarkRecess_BC",
+    "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_Iron_BC",
+    "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_WarmStone_BC",
+    "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_FloorMass_BC",
+    "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_IvoryPorcelain_BC",
+    "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_ROOT_Ottoman_Cloth_BC",
+    "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_ConceptArtworkSource",
+    "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_Rug_BC",
+    "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_ROOT_Sofa_Cloth_BC",
+    "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_TeaSurface_BC",
+    "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_ROOT_WoodChair_Cloth_BC",
+    "/Game/LostRunic/Materials/Instances/Scenes/MI_PP_LR_LivingRoomOutline",
+    "/Game/LostRunic/Levels/PIE_Test/L_Art_Demo"
+  ]
+}

@@ -1,0 +1,2638 @@
+{
+  "level": 3,
+  "units": "metres",
+  "layout_authority": "D:\\25DGame\\LostRunic\\ArtSource\\LivingRoom\\Approved\\LivingRoom_Level01_UserApproved.blend",
+  "assets": [
+    {
+      "id": "ROOT_BackDoor",
+      "mesh_count": 6,
+      "evaluated_triangles": 1128,
+      "world_matrix": [
+        [
+          -1.0,
+          8.742277657347586e-08,
+          0.0,
+          -2.5
+        ],
+        [
+          -8.742277657347586e-08,
+          -1.0,
+          0.0,
+          3.009999990463257
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "bounds_min_m": [
+        -3.055000066757202,
+        2.929999828338623,
+        0.0
+      ],
+      "bounds_max_m": [
+        -1.9449999332427979,
+        3.788116216659546,
+        2.3899998664855957
+      ],
+      "structure": "New frame fits existing approved doorway; approved wall meshes untouched",
+      "pivots": [
+        {
+          "name": "PIVOT_BackDoor_DoorLeaf",
+          "kind": "HINGE",
+          "axis": "Z",
+          "limit": -85,
+          "state": "Open 65 degrees as concept; hinge side/interior inferred; no animation"
+        }
+      ]
+    },
+    {
+      "id": "ROOT_Rug",
+      "mesh_count": 1,
+      "evaluated_triangles": 188,
+      "world_matrix": [
+        [
+          1.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          1.0,
+          0.0,
+          -0.05000000074505806
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "bounds_min_m": [
+        -2.259999990463257,
+        -2.109999895095825,
+        0.0
+      ],
+      "bounds_max_m": [
+        1.9199999570846558,
+        2.009999990463257,
+        0.024000000208616257
+      ],
+      "structure": "retained / dressing",
+      "pivots": []
+    },
+    {
+      "id": "ROOT_Sofa",
+      "mesh_count": 17,
+      "evaluated_triangles": 18216,
+      "world_matrix": [
+        [
+          1.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          1.0,
+          0.0,
+          -1.6399999856948853
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "bounds_min_m": [
+        -1.1150000095367432,
+        -2.201183795928955,
+        0.0
+      ],
+      "bounds_max_m": [
+        1.1150000095367432,
+        -1.1799999475479126,
+        1.1172736883163452
+      ],
+      "structure": "Frame, roll arms, shaped legs, separate seat/back cushions, loose cushions",
+      "pivots": []
+    },
+    {
+      "id": "ROOT_ArmchairOchre",
+      "mesh_count": 16,
+      "evaluated_triangles": 4360,
+      "world_matrix": [
+        [
+          -0.3420201241970062,
+          -0.9396926164627075,
+          0.0,
+          1.9579739570617676
+        ],
+        [
+          0.9396926164627075,
+          -0.3420201241970062,
+          0.0,
+          0.5486355423927307
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "bounds_min_m": [
+        1.4029854536056519,
+        -0.02428312599658966,
+        0.0
+      ],
+      "bounds_max_m": [
+        2.5279042720794678,
+        1.1078734397888184,
+        1.1213233470916748
+      ],
+      "structure": "Frame, roll arms, shaped legs, separate seat/back cushions, loose cushions",
+      "pivots": []
+    },
+    {
+      "id": "ROOT_ArmchairRusset",
+      "mesh_count": 13,
+      "evaluated_triangles": 3384,
+      "world_matrix": [
+        [
+          -4.371138828673793e-08,
+          1.0,
+          0.0,
+          -1.7999999523162842
+        ],
+        [
+          -1.0,
+          -4.371138828673793e-08,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "bounds_min_m": [
+        -2.2418007850646973,
+        -0.4150000214576721,
+        0.0
+      ],
+      "bounds_max_m": [
+        -1.3949999809265137,
+        0.4150000214576721,
+        1.0544453859329224
+      ],
+      "structure": "Frame, roll arms, shaped legs, separate seat/back cushions, loose cushions",
+      "pivots": []
+    },
+    {
+      "id": "ROOT_CoffeeTable",
+      "mesh_count": 101,
+      "evaluated_triangles": 12178,
+      "world_matrix": [
+        [
+          1.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          1.0,
+          0.0,
+          0.029999999329447746
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "bounds_min_m": [
+        -0.625,
+        -0.29499998688697815,
+        0.0
+      ],
+      "bounds_max_m": [
+        0.625,
+        0.35499998927116394,
+        0.9513710141181946
+      ],
+      "structure": "Separate tabletop, hollow apron frame and shaped legs",
+      "pivots": []
+    },
+    {
+      "id": "ROOT_SideTableCup",
+      "mesh_count": 9,
+      "evaluated_triangles": 2176,
+      "world_matrix": [
+        [
+          1.0,
+          0.0,
+          0.0,
+          -1.7999999523162842
+        ],
+        [
+          0.0,
+          1.0,
+          0.0,
+          -0.6964352130889893
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "bounds_min_m": [
+        -2.0349998474121094,
+        -0.931435227394104,
+        0.0
+      ],
+      "bounds_max_m": [
+        -1.5649999380111694,
+        -0.4614351987838745,
+        0.6499999761581421
+      ],
+      "structure": "retained / dressing",
+      "pivots": []
+    },
+    {
+      "id": "ROOT_SideTableLamp",
+      "mesh_count": 5,
+      "evaluated_triangles": 852,
+      "world_matrix": [
+        [
+          1.0,
+          0.0,
+          0.0,
+          -1.399999976158142
+        ],
+        [
+          0.0,
+          1.0,
+          0.0,
+          -1.8300000429153442
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "bounds_min_m": [
+        -1.6449999809265137,
+        -2.075000047683716,
+        0.0
+      ],
+      "bounds_max_m": [
+        -1.1549999713897705,
+        -1.5850000381469727,
+        0.590499997138977
+      ],
+      "structure": "retained / dressing",
+      "pivots": []
+    },
+    {
+      "id": "ROOT_SideTablePlant",
+      "mesh_count": 78,
+      "evaluated_triangles": 7470,
+      "world_matrix": [
+        [
+          1.0,
+          0.0,
+          0.0,
+          3.0989203453063965
+        ],
+        [
+          0.0,
+          1.0,
+          0.0,
+          -2.0775461196899414
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "bounds_min_m": [
+        2.808920383453369,
+        -2.3675460815429688,
+        0.0
+      ],
+      "bounds_max_m": [
+        3.388920307159424,
+        -1.787546157836914,
+        1.1123719215393066
+      ],
+      "structure": "retained / dressing",
+      "pivots": []
+    },
+    {
+      "id": "ROOT_WindowConsole",
+      "mesh_count": 67,
+      "evaluated_triangles": 12872,
+      "world_matrix": [
+        [
+          -4.371138828673793e-08,
+          -1.0,
+          0.0,
+          3.6463356018066406
+        ],
+        [
+          1.0,
+          -4.371138828673793e-08,
+          0.0,
+          0.695289134979248
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "bounds_min_m": [
+        3.386335611343384,
+        -0.20471085608005524,
+        0.0
+      ],
+      "bounds_max_m": [
+        3.886335611343384,
+        1.5952891111373901,
+        0.937999963760376
+      ],
+      "structure": "Separate tabletop, hollow apron frame and shaped legs",
+      "pivots": [
+        {
+          "name": "PIVOT_WindowConsole_Drawer1",
+          "kind": "SLIDE",
+          "axis": "+Y",
+          "limit": 0.195,
+          "state": "Closed; no keyframes. Final runtime animation is not implemented."
+        },
+        {
+          "name": "PIVOT_WindowConsole_Drawer2",
+          "kind": "SLIDE",
+          "axis": "+Y",
+          "limit": 0.195,
+          "state": "Closed; no keyframes. Final runtime animation is not implemented."
+        },
+        {
+          "name": "PIVOT_WindowConsole_Drawer3",
+          "kind": "SLIDE",
+          "axis": "+Y",
+          "limit": 0.195,
+          "state": "Closed; no keyframes. Final runtime animation is not implemented."
+        }
+      ]
+    },
+    {
+      "id": "ROOT_Ottoman",
+      "mesh_count": 21,
+      "evaluated_triangles": 5308,
+      "world_matrix": [
+        [
+          -4.371138828673793e-08,
+          -1.0,
+          0.0,
+          3.088797092437744
+        ],
+        [
+          1.0,
+          -4.371138828673793e-08,
+          0.0,
+          2.4293196201324463
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          7.450580596923828e-09
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "bounds_min_m": [
+        2.7637970447540283,
+        2.069319486618042,
+        7.450580596923828e-09
+      ],
+      "bounds_max_m": [
+        3.41379714012146,
+        2.7893197536468506,
+        0.6429999470710754
+      ],
+      "structure": "retained / dressing",
+      "pivots": []
+    },
+    {
+      "id": "ROOT_WoodChair",
+      "mesh_count": 16,
+      "evaluated_triangles": 2720,
+      "world_matrix": [
+        [
+          0.30901697278022766,
+          -0.9510565400123596,
+          0.0,
+          3.100888729095459
+        ],
+        [
+          0.9510565400123596,
+          0.30901697278022766,
+          0.0,
+          -2.7075653076171875
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "bounds_min_m": [
+        2.800016164779663,
+        -3.005227565765381,
+        0.0
+      ],
+      "bounds_max_m": [
+        3.401761293411255,
+        -2.409903049468994,
+        1.024999976158142
+      ],
+      "structure": "retained / dressing",
+      "pivots": []
+    },
+    {
+      "id": "ROOT_Fireplace",
+      "mesh_count": 149,
+      "evaluated_triangles": 20254,
+      "world_matrix": [
+        [
+          -1.0,
+          8.742277657347586e-08,
+          0.0,
+          -0.27000001072883606
+        ],
+        [
+          -8.742277657347586e-08,
+          -1.0,
+          0.0,
+          2.559999942779541
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "bounds_min_m": [
+        -1.1950000524520874,
+        2.119999885559082,
+        0.0
+      ],
+      "bounds_max_m": [
+        0.6550000309944153,
+        2.9000000953674316,
+        1.9720799922943115
+      ],
+      "structure": "retained / dressing",
+      "pivots": []
+    },
+    {
+      "id": "ROOT_ArchBookcase",
+      "mesh_count": 85,
+      "evaluated_triangles": 16992,
+      "world_matrix": [
+        [
+          -1.0,
+          8.742277657347586e-08,
+          0.0,
+          1.8679336309432983
+        ],
+        [
+          -8.742277657347586e-08,
+          -1.0,
+          0.0,
+          2.619999885559082
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "bounds_min_m": [
+        1.4679336547851562,
+        2.3999998569488525,
+        0.0
+      ],
+      "bounds_max_m": [
+        2.2679338455200195,
+        2.809999942779541,
+        2.5899999141693115
+      ],
+      "structure": "Arched open shelving; two inset doors and side-edge hinge pivots; closed pose",
+      "pivots": [
+        {
+          "name": "PIVOT_ArchBookcase_DoorLeft",
+          "kind": "HINGE",
+          "axis": "Z",
+          "limit": 90,
+          "state": "Closed; no keyframes. Final runtime animation is not implemented."
+        },
+        {
+          "name": "PIVOT_ArchBookcase_DoorRight",
+          "kind": "HINGE",
+          "axis": "Z",
+          "limit": -90,
+          "state": "Closed; no keyframes. Final runtime animation is not implemented."
+        }
+      ]
+    },
+    {
+      "id": "ROOT_SmallCabinet",
+      "mesh_count": 46,
+      "evaluated_triangles": 9212,
+      "world_matrix": [
+        [
+          -1.0,
+          8.742277657347586e-08,
+          0.0,
+          -4.337625980377197
+        ],
+        [
+          -8.742277657347586e-08,
+          -1.0,
+          0.0,
+          0.07227417826652527
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "bounds_min_m": [
+        -4.717626094818115,
+        -0.1977258324623108,
+        0.0
+      ],
+      "bounds_max_m": [
+        -3.9576258659362793,
+        0.3272742033004761,
+        0.9050000309944153
+      ],
+      "structure": "Three drawer interpretation from partly visible facade; hidden interior inferred",
+      "pivots": [
+        {
+          "name": "PIVOT_SmallCabinet_Drawer1",
+          "kind": "SLIDE",
+          "axis": "+Y",
+          "limit": 0.24,
+          "state": "Closed; no keyframes. Final runtime animation is not implemented."
+        },
+        {
+          "name": "PIVOT_SmallCabinet_Drawer2",
+          "kind": "SLIDE",
+          "axis": "+Y",
+          "limit": 0.24,
+          "state": "Closed; no keyframes. Final runtime animation is not implemented."
+        },
+        {
+          "name": "PIVOT_SmallCabinet_Drawer3",
+          "kind": "SLIDE",
+          "axis": "+Y",
+          "limit": 0.24,
+          "state": "Closed; no keyframes. Final runtime animation is not implemented."
+        }
+      ]
+    },
+    {
+      "id": "ROOT_CoatStand",
+      "mesh_count": 7,
+      "evaluated_triangles": 1448,
+      "world_matrix": [
+        [
+          1.0,
+          0.0,
+          0.0,
+          -1.7775866985321045
+        ],
+        [
+          0.0,
+          1.0,
+          0.0,
+          2.696633815765381
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "bounds_min_m": [
+        -2.0225868225097656,
+        2.451633930206299,
+        0.0
+      ],
+      "bounds_max_m": [
+        -1.532586693763733,
+        2.941633701324463,
+        1.809999942779541
+      ],
+      "structure": "retained / dressing",
+      "pivots": []
+    },
+    {
+      "id": "ROOT_LogBasket",
+      "mesh_count": 10,
+      "evaluated_triangles": 1880,
+      "world_matrix": [
+        [
+          1.0,
+          0.0,
+          0.0,
+          0.9211714863777161
+        ],
+        [
+          0.0,
+          1.0,
+          0.0,
+          2.6116526126861572
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "bounds_min_m": [
+        0.7111715078353882,
+        2.436652421951294,
+        0.004999998956918716
+      ],
+      "bounds_max_m": [
+        1.131171464920044,
+        2.7866528034210205,
+        0.49236178398132324
+      ],
+      "structure": "retained / dressing",
+      "pivots": []
+    },
+    {
+      "id": "ROOT_FireTools",
+      "mesh_count": 9,
+      "evaluated_triangles": 1692,
+      "world_matrix": [
+        [
+          1.0,
+          0.0,
+          0.0,
+          -1.3635122776031494
+        ],
+        [
+          0.0,
+          1.0,
+          0.0,
+          2.656534433364868
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "bounds_min_m": [
+        -1.51851224899292,
+        2.531534433364868,
+        0.0
+      ],
+      "bounds_max_m": [
+        -1.208512306213379,
+        2.781534433364868,
+        0.5
+      ],
+      "structure": "retained / dressing",
+      "pivots": []
+    },
+    {
+      "id": "ROOT_Window",
+      "mesh_count": 8,
+      "evaluated_triangles": 1328,
+      "world_matrix": [
+        [
+          -4.371138828673793e-08,
+          -1.0,
+          0.0,
+          4.0
+        ],
+        [
+          1.0,
+          -4.371138828673793e-08,
+          0.0,
+          0.5
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "bounds_min_m": [
+        3.8849997520446777,
+        -0.690000057220459,
+        0.75
+      ],
+      "bounds_max_m": [
+        4.085000038146973,
+        1.690000057220459,
+        3.2300000190734863
+      ],
+      "structure": "retained / dressing",
+      "pivots": []
+    },
+    {
+      "id": "ROOT_Curtains",
+      "mesh_count": 2,
+      "evaluated_triangles": 4400,
+      "world_matrix": [
+        [
+          -4.371138828673793e-08,
+          -1.0,
+          0.0,
+          3.309999942779541
+        ],
+        [
+          1.0,
+          -4.371138828673793e-08,
+          0.0,
+          0.5
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "bounds_min_m": [
+        3.272153377532959,
+        -0.9499999284744263,
+        0.060988981276750565
+      ],
+      "bounds_max_m": [
+        3.368000030517578,
+        1.9499999284744263,
+        3.290107250213623
+      ],
+      "structure": "retained / dressing",
+      "pivots": []
+    },
+    {
+      "id": "ROOT_PaintingMantel",
+      "mesh_count": 6,
+      "evaluated_triangles": 952,
+      "world_matrix": [
+        [
+          -1.0,
+          8.742277657347586e-08,
+          0.0,
+          -0.27000001072883606
+        ],
+        [
+          -8.742277657347586e-08,
+          -1.0,
+          0.0,
+          2.5199999809265137
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "bounds_min_m": [
+        -0.8700000643730164,
+        2.4719998836517334,
+        1.6700000762939453
+      ],
+      "bounds_max_m": [
+        0.33000001311302185,
+        2.557500123977661,
+        3.1700000762939453
+      ],
+      "structure": "retained / dressing",
+      "pivots": []
+    },
+    {
+      "id": "ROOT_PaintingBackSmall",
+      "mesh_count": 6,
+      "evaluated_triangles": 952,
+      "world_matrix": [
+        [
+          -1.0,
+          8.742277657347586e-08,
+          0.0,
+          2.9061367511749268
+        ],
+        [
+          -8.742277657347586e-08,
+          -1.0,
+          0.0,
+          2.7699999809265137
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "bounds_min_m": [
+        2.6811368465423584,
+        2.7219998836517334,
+        1.3852139711380005
+      ],
+      "bounds_max_m": [
+        3.131136655807495,
+        2.807499885559082,
+        2.065213918685913
+      ],
+      "structure": "retained / dressing",
+      "pivots": []
+    },
+    {
+      "id": "ROOT_PaintingCorner",
+      "mesh_count": 6,
+      "evaluated_triangles": 952,
+      "world_matrix": [
+        [
+          -4.371138828673793e-08,
+          -1.0,
+          0.0,
+          3.430000066757202
+        ],
+        [
+          1.0,
+          -4.371138828673793e-08,
+          0.0,
+          2.465526580810547
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "bounds_min_m": [
+        3.381999969482422,
+        2.168323516845703,
+        1.1394178867340088
+      ],
+      "bounds_max_m": [
+        3.4674999713897705,
+        2.7627296447753906,
+        1.9444561004638672
+      ],
+      "structure": "retained / dressing",
+      "pivots": []
+    },
+    {
+      "id": "ROOT_PaintingRight",
+      "mesh_count": 6,
+      "evaluated_triangles": 952,
+      "world_matrix": [
+        [
+          -4.371138828673793e-08,
+          -1.0,
+          0.0,
+          3.430000066757202
+        ],
+        [
+          1.0,
+          -4.371138828673793e-08,
+          0.0,
+          -2.3587310314178467
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "bounds_min_m": [
+        3.381999969482422,
+        -2.6937310695648193,
+        1.1772990226745605
+      ],
+      "bounds_max_m": [
+        3.4674999713897705,
+        -2.023730993270874,
+        2.087299108505249
+      ],
+      "structure": "retained / dressing",
+      "pivots": []
+    },
+    {
+      "id": "ROOT_PaintingLeft",
+      "mesh_count": 6,
+      "evaluated_triangles": 952,
+      "world_matrix": [
+        [
+          -1.0,
+          8.742277657347586e-08,
+          0.0,
+          -4.566989421844482
+        ],
+        [
+          -8.742277657347586e-08,
+          -1.0,
+          0.0,
+          0.3084244728088379
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "bounds_min_m": [
+        -4.846989631652832,
+        0.2604244351387024,
+        1.5109909772872925
+      ],
+      "bounds_max_m": [
+        -4.286989212036133,
+        0.3459244966506958,
+        2.2909908294677734
+      ],
+      "structure": "retained / dressing",
+      "pivots": []
+    },
+    {
+      "id": "ROOT_Palm",
+      "mesh_count": 200,
+      "evaluated_triangles": 17532,
+      "world_matrix": [
+        [
+          1.0,
+          0.0,
+          0.0,
+          3.018920421600342
+        ],
+        [
+          0.0,
+          1.0,
+          0.0,
+          -1.3315730094909668
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "bounds_min_m": [
+        2.405578374862671,
+        -1.9597880840301514,
+        0.0
+      ],
+      "bounds_max_m": [
+        3.64292049407959,
+        -0.703357994556427,
+        1.4456379413604736
+      ],
+      "structure": "retained / dressing",
+      "pivots": []
+    },
+    {
+      "id": "ROOT_ForegroundPlant",
+      "mesh_count": 32,
+      "evaluated_triangles": 3334,
+      "world_matrix": [
+        [
+          1.0,
+          0.0,
+          0.0,
+          1.847938060760498
+        ],
+        [
+          0.0,
+          1.0,
+          0.0,
+          -3.606553316116333
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "bounds_min_m": [
+        1.6116063594818115,
+        -3.8456344604492188,
+        0.0
+      ],
+      "bounds_max_m": [
+        2.087938070297241,
+        -3.3747804164886475,
+        1.0607999563217163
+      ],
+      "structure": "retained / dressing",
+      "pivots": []
+    },
+    {
+      "id": "ROOT_ConsolePlant",
+      "mesh_count": 32,
+      "evaluated_triangles": 4742,
+      "world_matrix": [
+        [
+          1.0,
+          0.0,
+          0.0,
+          3.6619553565979004
+        ],
+        [
+          0.0,
+          1.0,
+          0.0,
+          1.3994488716125488
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "bounds_min_m": [
+        3.531480550765991,
+        1.2674561738967896,
+        0.8299999833106995
+      ],
+      "bounds_max_m": [
+        3.7944552898406982,
+        1.5274068117141724,
+        1.4156500101089478
+      ],
+      "structure": "retained / dressing",
+      "pivots": []
+    },
+    {
+      "id": "ROOT_CabinetPlant",
+      "mesh_count": 32,
+      "evaluated_triangles": 3334,
+      "world_matrix": [
+        [
+          1.0,
+          0.0,
+          0.0,
+          -4.09266471862793
+        ],
+        [
+          0.0,
+          1.0,
+          0.0,
+          0.1738494634628296
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "bounds_min_m": [
+        -4.205906867980957,
+        0.059289731085300446,
+        0.9099999666213989
+      ],
+      "bounds_max_m": [
+        -3.9776647090911865,
+        0.2849072813987732,
+        1.418299913406372
+      ],
+      "structure": "retained / dressing",
+      "pivots": []
+    },
+    {
+      "id": "ROOT_ConsoleLamp",
+      "mesh_count": 3,
+      "evaluated_triangles": 756,
+      "world_matrix": [
+        [
+          1.0,
+          0.0,
+          0.0,
+          3.6363353729248047
+        ],
+        [
+          0.0,
+          1.0,
+          0.0,
+          0.038099050521850586
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "bounds_min_m": [
+        3.493464469909668,
+        -0.10477185249328613,
+        0.8300000429153442
+      ],
+      "bounds_max_m": [
+        3.7792062759399414,
+        0.1809699535369873,
+        1.3395999670028687
+      ],
+      "structure": "retained / dressing",
+      "pivots": []
+    },
+    {
+      "id": "ROOT_CabinetLamp",
+      "mesh_count": 3,
+      "evaluated_triangles": 756,
+      "world_matrix": [
+        [
+          1.0,
+          0.0,
+          0.0,
+          -4.465485572814941
+        ],
+        [
+          0.0,
+          1.0,
+          0.0,
+          0.1470387578010559
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "bounds_min_m": [
+        -4.608356475830078,
+        0.0041678547859191895,
+        0.9100000262260437
+      ],
+      "bounds_max_m": [
+        -4.322614669799805,
+        0.2899096608161926,
+        1.419600009918213
+      ],
+      "structure": "retained / dressing",
+      "pivots": []
+    },
+    {
+      "id": "ROOT_SofaLamp",
+      "mesh_count": 3,
+      "evaluated_triangles": 756,
+      "world_matrix": [
+        [
+          1.0,
+          0.0,
+          0.0,
+          -1.3287620544433594
+        ],
+        [
+          0.0,
+          1.0,
+          0.0,
+          -1.7395678758621216
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "bounds_min_m": [
+        -1.4352329969406128,
+        -1.846038818359375,
+        0.5900000333786011
+      ],
+      "bounds_max_m": [
+        -1.222291111946106,
+        -1.6330969333648682,
+        0.9722000360488892
+      ],
+      "structure": "retained / dressing",
+      "pivots": []
+    },
+    {
+      "id": "ROOT_WallLampLeft",
+      "mesh_count": 3,
+      "evaluated_triangles": 756,
+      "world_matrix": [
+        [
+          1.0,
+          0.0,
+          0.0,
+          -1.3576430082321167
+        ],
+        [
+          0.0,
+          1.0,
+          0.0,
+          2.6700000762939453
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "bounds_min_m": [
+        -1.4613139629364014,
+        2.56632924079895,
+        1.9899269342422485
+      ],
+      "bounds_max_m": [
+        -1.253972053527832,
+        2.7736709117889404,
+        2.3623270988464355
+      ],
+      "structure": "retained / dressing",
+      "pivots": []
+    },
+    {
+      "id": "ROOT_WallLampRight",
+      "mesh_count": 3,
+      "evaluated_triangles": 756,
+      "world_matrix": [
+        [
+          1.0,
+          0.0,
+          0.0,
+          0.7820187211036682
+        ],
+        [
+          0.0,
+          1.0,
+          0.0,
+          2.6700000762939453
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "bounds_min_m": [
+        0.6783478260040283,
+        2.56632924079895,
+        1.9922829866409302
+      ],
+      "bounds_max_m": [
+        0.8856896162033081,
+        2.7736709117889404,
+        2.364682912826538
+      ],
+      "structure": "retained / dressing",
+      "pivots": []
+    },
+    {
+      "id": "ROOT_Rug.001",
+      "mesh_count": 1,
+      "evaluated_triangles": 188,
+      "world_matrix": [
+        [
+          1.0,
+          0.0,
+          0.0,
+          0.9877796173095703
+        ],
+        [
+          0.0,
+          1.0,
+          0.0,
+          -3.4435715675354004
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "bounds_min_m": [
+        0.3483878970146179,
+        -3.963653326034546,
+        0.0
+      ],
+      "bounds_max_m": [
+        1.5666625499725342,
+        -2.923489809036255,
+        0.024000000208616257
+      ],
+      "structure": "retained / dressing",
+      "pivots": []
+    }
+  ],
+  "independent_props": [
+    {
+      "id": "PROP_CoffeeTable_Book_1",
+      "support": "ROOT_CoffeeTable",
+      "description": "Separate front/back covers, page block and spine; no printed detail",
+      "world_matrix": [
+        [
+          0.9961947202682495,
+          0.08715573698282242,
+          0.0,
+          0.30000001192092896
+        ],
+        [
+          -0.08715573698282242,
+          0.9961947202682495,
+          0.0,
+          0.019999999552965164
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          0.49799999594688416
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "mesh_count": 4,
+      "export_contract": "Independent static prop; local placement inherited from support; no animation"
+    },
+    {
+      "id": "PROP_CoffeeTable_Book_2",
+      "support": "ROOT_CoffeeTable",
+      "description": "Separate front/back covers, page block and spine; no printed detail",
+      "world_matrix": [
+        [
+          1.0,
+          0.0,
+          0.0,
+          0.30000001192092896
+        ],
+        [
+          0.0,
+          1.0,
+          0.0,
+          0.019999999552965164
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          0.5350000262260437
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "mesh_count": 4,
+      "export_contract": "Independent static prop; local placement inherited from support; no animation"
+    },
+    {
+      "id": "PROP_CoffeeTable_Book_3",
+      "support": "ROOT_CoffeeTable",
+      "description": "Separate front/back covers, page block and spine; no printed detail",
+      "world_matrix": [
+        [
+          0.9961947202682495,
+          -0.08715573698282242,
+          0.0,
+          0.30000001192092896
+        ],
+        [
+          0.08715573698282242,
+          0.9961947202682495,
+          0.0,
+          0.019999999552965164
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          0.5720000267028809
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "mesh_count": 4,
+      "export_contract": "Independent static prop; local placement inherited from support; no animation"
+    },
+    {
+      "id": "PROP_CoffeeTableBouquet",
+      "support": "ROOT_CoffeeTable",
+      "description": "Visible vase with branching bouquet; species and back branches inferred",
+      "world_matrix": [
+        [
+          1.0,
+          0.0,
+          0.0,
+          -0.2800000011920929
+        ],
+        [
+          0.0,
+          1.0,
+          0.0,
+          -0.005000000819563866
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          0.47999998927116394
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "mesh_count": 73,
+      "export_contract": "Independent static prop; local placement inherited from support; no animation"
+    },
+    {
+      "id": "PROP_CoffeeTableBowl",
+      "support": "ROOT_CoffeeTable",
+      "description": "Visible shallow dark bowl",
+      "world_matrix": [
+        [
+          1.0,
+          0.0,
+          0.0,
+          0.07999999821186066
+        ],
+        [
+          0.0,
+          1.0,
+          0.0,
+          0.21000000834465027
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          0.47999998927116394
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "mesh_count": 1,
+      "export_contract": "Independent static prop; local placement inherited from support; no animation"
+    },
+    {
+      "id": "PROP_CoffeeTableSmallVessel",
+      "support": "ROOT_CoffeeTable",
+      "description": "Small vessel on flat paper-like base; purpose uncertain",
+      "world_matrix": [
+        [
+          1.0,
+          0.0,
+          0.0,
+          -0.36000001430511475
+        ],
+        [
+          0.0,
+          1.0,
+          0.0,
+          0.23499999940395355
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          0.47999998927116394
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "mesh_count": 2,
+      "export_contract": "Independent static prop; local placement inherited from support; no animation"
+    },
+    {
+      "id": "PROP_TeaCupAndSaucer",
+      "support": "ROOT_SideTableCup",
+      "description": "Visible cup, open mouth, curved handle, saucer and dark liquid surface",
+      "world_matrix": [
+        [
+          1.0,
+          0.0,
+          0.0,
+          -1.7999999523162842
+        ],
+        [
+          0.0,
+          1.0,
+          0.0,
+          -0.6964352130889893
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          0.5600000023841858
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "mesh_count": 4,
+      "export_contract": "Independent static prop; local placement inherited from support; no animation"
+    },
+    {
+      "id": "PROP_SideTableBouquet",
+      "support": "ROOT_SideTablePlant",
+      "description": "Visible vase with branching bouquet; species and back branches inferred",
+      "world_matrix": [
+        [
+          1.0,
+          0.0,
+          0.0,
+          3.073920249938965
+        ],
+        [
+          0.0,
+          1.0,
+          0.0,
+          -2.0775461196899414
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          0.699999988079071
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "mesh_count": 73,
+      "export_contract": "Independent static prop; local placement inherited from support; no animation"
+    },
+    {
+      "id": "PROP_WindowConsole_Book_4",
+      "support": "ROOT_WindowConsole",
+      "description": "Separate front/back covers, page block and spine; no printed detail",
+      "world_matrix": [
+        [
+          0.08715569227933884,
+          -0.9961947202682495,
+          0.0,
+          3.6463356018066406
+        ],
+        [
+          0.9961947202682495,
+          0.08715569227933884,
+          0.0,
+          0.8752891421318054
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          0.8479999899864197
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "mesh_count": 4,
+      "export_contract": "Independent static prop; local placement inherited from support; no animation"
+    },
+    {
+      "id": "PROP_WindowConsole_Book_5",
+      "support": "ROOT_WindowConsole",
+      "description": "Separate front/back covers, page block and spine; no printed detail",
+      "world_matrix": [
+        [
+          -4.371138828673793e-08,
+          -1.0,
+          0.0,
+          3.6463356018066406
+        ],
+        [
+          1.0,
+          -4.371138828673793e-08,
+          0.0,
+          0.8752891421318054
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          0.8849999904632568
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "mesh_count": 4,
+      "export_contract": "Independent static prop; local placement inherited from support; no animation"
+    },
+    {
+      "id": "PROP_WindowConsole_Book_6",
+      "support": "ROOT_WindowConsole",
+      "description": "Separate front/back covers, page block and spine; no printed detail",
+      "world_matrix": [
+        [
+          -0.087155781686306,
+          -0.9961947202682495,
+          0.0,
+          3.6463356018066406
+        ],
+        [
+          0.9961947202682495,
+          -0.087155781686306,
+          0.0,
+          0.8752891421318054
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          0.921999990940094
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "mesh_count": 4,
+      "export_contract": "Independent static prop; local placement inherited from support; no animation"
+    },
+    {
+      "id": "PROP_Ottoman_Book_7",
+      "support": "ROOT_Ottoman",
+      "description": "Separate front/back covers, page block and spine; no printed detail",
+      "world_matrix": [
+        [
+          0.08715569227933884,
+          -0.9961947202682495,
+          0.0,
+          3.088797092437744
+        ],
+        [
+          0.9961947202682495,
+          0.08715569227933884,
+          0.0,
+          2.4293196201324463
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          0.5529999732971191
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "mesh_count": 4,
+      "export_contract": "Independent static prop; local placement inherited from support; no animation"
+    },
+    {
+      "id": "PROP_Ottoman_Book_8",
+      "support": "ROOT_Ottoman",
+      "description": "Separate front/back covers, page block and spine; no printed detail",
+      "world_matrix": [
+        [
+          -4.371138828673793e-08,
+          -1.0,
+          0.0,
+          3.088797092437744
+        ],
+        [
+          1.0,
+          -4.371138828673793e-08,
+          0.0,
+          2.4293196201324463
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          0.5899999737739563
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "mesh_count": 4,
+      "export_contract": "Independent static prop; local placement inherited from support; no animation"
+    },
+    {
+      "id": "PROP_Ottoman_Book_9",
+      "support": "ROOT_Ottoman",
+      "description": "Separate front/back covers, page block and spine; no printed detail",
+      "world_matrix": [
+        [
+          -0.087155781686306,
+          -0.9961947202682495,
+          0.0,
+          3.088797092437744
+        ],
+        [
+          0.9961947202682495,
+          -0.087155781686306,
+          0.0,
+          2.4293196201324463
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          0.6269999742507935
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "mesh_count": 4,
+      "export_contract": "Independent static prop; local placement inherited from support; no animation"
+    },
+    {
+      "id": "PROP_MantelCandlestick1",
+      "support": "ROOT_Fireplace",
+      "description": "Visible slender candlestick and candle; no engraved decoration",
+      "world_matrix": [
+        [
+          -1.0,
+          8.742277657347586e-08,
+          0.0,
+          -0.9300000667572021
+        ],
+        [
+          -8.742277657347586e-08,
+          -1.0,
+          0.0,
+          2.43999981880188
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          1.559999942779541
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "mesh_count": 2,
+      "export_contract": "Independent static prop; local placement inherited from support; no animation"
+    },
+    {
+      "id": "PROP_MantelCandlestick2",
+      "support": "ROOT_Fireplace",
+      "description": "Visible slender candlestick and candle; no engraved decoration",
+      "world_matrix": [
+        [
+          -1.0,
+          8.742277657347586e-08,
+          0.0,
+          -0.7599999904632568
+        ],
+        [
+          -8.742277657347586e-08,
+          -1.0,
+          0.0,
+          2.43999981880188
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          1.559999942779541
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "mesh_count": 2,
+      "export_contract": "Independent static prop; local placement inherited from support; no animation"
+    },
+    {
+      "id": "PROP_MantelCandlestick3",
+      "support": "ROOT_Fireplace",
+      "description": "Visible slender candlestick and candle; no engraved decoration",
+      "world_matrix": [
+        [
+          -1.0,
+          8.742277657347586e-08,
+          0.0,
+          -0.6100000143051147
+        ],
+        [
+          -8.742277657347586e-08,
+          -1.0,
+          0.0,
+          2.43999981880188
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          1.559999942779541
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "mesh_count": 2,
+      "export_contract": "Independent static prop; local placement inherited from support; no animation"
+    },
+    {
+      "id": "PROP_MantelBouquet",
+      "support": "ROOT_Fireplace",
+      "description": "Visible vase with branching bouquet; species and back branches inferred",
+      "world_matrix": [
+        [
+          -1.0,
+          8.742277657347586e-08,
+          0.0,
+          0.09000000357627869
+        ],
+        [
+          -8.742277657347586e-08,
+          -1.0,
+          0.0,
+          2.3899998664855957
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          1.559999942779541
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "mesh_count": 95,
+      "export_contract": "Independent static prop; local placement inherited from support; no animation"
+    },
+    {
+      "id": "PROP_MantelSmallVessel",
+      "support": "ROOT_Fireplace",
+      "description": "Small secondary vessel visible beside bouquet",
+      "world_matrix": [
+        [
+          -1.0,
+          8.742277657347586e-08,
+          0.0,
+          0.4000000059604645
+        ],
+        [
+          -8.742277657347586e-08,
+          -1.0,
+          0.0,
+          2.4200000762939453
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          1.559999942779541
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "mesh_count": 1,
+      "export_contract": "Independent static prop; local placement inherited from support; no animation"
+    },
+    {
+      "id": "PROP_MantelLowOrnament",
+      "support": "ROOT_Fireplace",
+      "description": "Low rounded tabletop mass; exact purpose unclear in concept",
+      "world_matrix": [
+        [
+          -1.0,
+          8.742277657347586e-08,
+          0.0,
+          -0.25
+        ],
+        [
+          -8.742277657347586e-08,
+          -1.0,
+          0.0,
+          2.3999998569488525
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          1.559999942779541
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "mesh_count": 1,
+      "export_contract": "Independent static prop; local placement inherited from support; no animation"
+    },
+    {
+      "id": "PROP_ArchBookcase_Book_10",
+      "support": "ROOT_ArchBookcase",
+      "description": "Separate front/back covers, page block and spine; no printed detail",
+      "world_matrix": [
+        [
+          -1.0,
+          8.742277657347586e-08,
+          0.0,
+          2.1279335021972656
+        ],
+        [
+          -8.742277657347586e-08,
+          -1.0,
+          0.0,
+          2.6449999809265137
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          1.1299999952316284
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "mesh_count": 4,
+      "export_contract": "Independent static prop; local placement inherited from support; no animation"
+    },
+    {
+      "id": "PROP_ArchBookcase_Book_11",
+      "support": "ROOT_ArchBookcase",
+      "description": "Separate front/back covers, page block and spine; no printed detail",
+      "world_matrix": [
+        [
+          -1.0,
+          8.742277657347586e-08,
+          0.0,
+          2.045933723449707
+        ],
+        [
+          -8.742277657347586e-08,
+          -1.0,
+          0.0,
+          2.6449999809265137
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          1.1430000066757202
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "mesh_count": 4,
+      "export_contract": "Independent static prop; local placement inherited from support; no animation"
+    },
+    {
+      "id": "PROP_ArchBookcase_Book_12",
+      "support": "ROOT_ArchBookcase",
+      "description": "Separate front/back covers, page block and spine; no printed detail",
+      "world_matrix": [
+        [
+          -1.0,
+          8.742277657347586e-08,
+          0.0,
+          1.9639335870742798
+        ],
+        [
+          -8.742277657347586e-08,
+          -1.0,
+          0.0,
+          2.6449999809265137
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          1.156000018119812
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "mesh_count": 4,
+      "export_contract": "Independent static prop; local placement inherited from support; no animation"
+    },
+    {
+      "id": "PROP_ArchBookcase_Book_13",
+      "support": "ROOT_ArchBookcase",
+      "description": "Separate front/back covers, page block and spine; no printed detail",
+      "world_matrix": [
+        [
+          -1.0,
+          8.742277657347586e-08,
+          0.0,
+          1.8819336891174316
+        ],
+        [
+          -8.742277657347586e-08,
+          -1.0,
+          0.0,
+          2.6449999809265137
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          1.1299999952316284
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "mesh_count": 4,
+      "export_contract": "Independent static prop; local placement inherited from support; no animation"
+    },
+    {
+      "id": "PROP_ArchBookcase_Book_14",
+      "support": "ROOT_ArchBookcase",
+      "description": "Separate front/back covers, page block and spine; no printed detail",
+      "world_matrix": [
+        [
+          -1.0,
+          8.742277657347586e-08,
+          0.0,
+          2.0579335689544678
+        ],
+        [
+          -8.742277657347586e-08,
+          -1.0,
+          0.0,
+          2.6449999809265137
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          1.5199999809265137
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "mesh_count": 4,
+      "export_contract": "Independent static prop; local placement inherited from support; no animation"
+    },
+    {
+      "id": "PROP_ArchBookcase_Book_15",
+      "support": "ROOT_ArchBookcase",
+      "description": "Separate front/back covers, page block and spine; no printed detail",
+      "world_matrix": [
+        [
+          -1.0,
+          8.742277657347586e-08,
+          0.0,
+          1.9759336709976196
+        ],
+        [
+          -8.742277657347586e-08,
+          -1.0,
+          0.0,
+          2.6449999809265137
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          1.5329999923706055
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "mesh_count": 4,
+      "export_contract": "Independent static prop; local placement inherited from support; no animation"
+    },
+    {
+      "id": "PROP_ArchBookcase_Book_16",
+      "support": "ROOT_ArchBookcase",
+      "description": "Separate front/back covers, page block and spine; no printed detail",
+      "world_matrix": [
+        [
+          -1.0,
+          8.742277657347586e-08,
+          0.0,
+          1.893933653831482
+        ],
+        [
+          -8.742277657347586e-08,
+          -1.0,
+          0.0,
+          2.6449999809265137
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          1.5460000038146973
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "mesh_count": 4,
+      "export_contract": "Independent static prop; local placement inherited from support; no animation"
+    },
+    {
+      "id": "PROP_ArchBookcase_Book_17",
+      "support": "ROOT_ArchBookcase",
+      "description": "Separate front/back covers, page block and spine; no printed detail",
+      "world_matrix": [
+        [
+          -1.0,
+          8.742277657347586e-08,
+          0.0,
+          1.8119336366653442
+        ],
+        [
+          -8.742277657347586e-08,
+          -1.0,
+          0.0,
+          2.6449999809265137
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          1.5199999809265137
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "mesh_count": 4,
+      "export_contract": "Independent static prop; local placement inherited from support; no animation"
+    },
+    {
+      "id": "PROP_ArchBookcase_Book_18",
+      "support": "ROOT_ArchBookcase",
+      "description": "Separate front/back covers, page block and spine; no printed detail",
+      "world_matrix": [
+        [
+          -1.0,
+          8.742277657347586e-08,
+          0.0,
+          2.1279335021972656
+        ],
+        [
+          -8.742277657347586e-08,
+          -1.0,
+          0.0,
+          2.6449999809265137
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          1.909999966621399
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "mesh_count": 4,
+      "export_contract": "Independent static prop; local placement inherited from support; no animation"
+    },
+    {
+      "id": "PROP_ArchBookcase_Book_19",
+      "support": "ROOT_ArchBookcase",
+      "description": "Separate front/back covers, page block and spine; no printed detail",
+      "world_matrix": [
+        [
+          -1.0,
+          8.742277657347586e-08,
+          0.0,
+          2.045933723449707
+        ],
+        [
+          -8.742277657347586e-08,
+          -1.0,
+          0.0,
+          2.6449999809265137
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          1.9229999780654907
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "mesh_count": 4,
+      "export_contract": "Independent static prop; local placement inherited from support; no animation"
+    },
+    {
+      "id": "PROP_ArchBookcase_Book_20",
+      "support": "ROOT_ArchBookcase",
+      "description": "Separate front/back covers, page block and spine; no printed detail",
+      "world_matrix": [
+        [
+          -1.0,
+          8.742277657347586e-08,
+          0.0,
+          1.9639335870742798
+        ],
+        [
+          -8.742277657347586e-08,
+          -1.0,
+          0.0,
+          2.6449999809265137
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          1.9359999895095825
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "mesh_count": 4,
+      "export_contract": "Independent static prop; local placement inherited from support; no animation"
+    },
+    {
+      "id": "PROP_ArchBookcase_Book_21",
+      "support": "ROOT_ArchBookcase",
+      "description": "Separate front/back covers, page block and spine; no printed detail",
+      "world_matrix": [
+        [
+          -1.0,
+          8.742277657347586e-08,
+          0.0,
+          1.8819336891174316
+        ],
+        [
+          -8.742277657347586e-08,
+          -1.0,
+          0.0,
+          2.6449999809265137
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          1.909999966621399
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "mesh_count": 4,
+      "export_contract": "Independent static prop; local placement inherited from support; no animation"
+    }
+  ],
+  "final_fbx": "not exported before gates"
+}

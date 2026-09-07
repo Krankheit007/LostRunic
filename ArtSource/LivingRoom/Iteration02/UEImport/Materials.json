@@ -1,0 +1,573 @@
+{
+  "S02_WoodPanel": {
+    "roughness": 0.6800000071525574,
+    "metallic": 0.0,
+    "color": [
+      0.800000011920929,
+      0.800000011920929,
+      0.800000011920929,
+      1.0
+    ],
+    "BC": "T_LR_Wood_BC.png"
+  },
+  "S02_Wood": {
+    "roughness": 0.6800000071525574,
+    "metallic": 0.0,
+    "color": [
+      0.800000011920929,
+      0.800000011920929,
+      0.800000011920929,
+      1.0
+    ],
+    "BC": "T_LR_Wood_BC.png"
+  },
+  "R02_ROOT_Sofa_S01_OliveCloth.003": {
+    "roughness": 0.9100000262260437,
+    "metallic": 0.0,
+    "color": [
+      0.800000011920929,
+      0.800000011920929,
+      0.800000011920929,
+      1.0
+    ],
+    "BC": "T_LR_ROOT_Sofa_Cloth_BC.png"
+  },
+  "R02_ROOT_ArmchairOchre_S01_OchreCloth.003": {
+    "roughness": 0.9100000262260437,
+    "metallic": 0.0,
+    "color": [
+      0.800000011920929,
+      0.800000011920929,
+      0.800000011920929,
+      1.0
+    ],
+    "BC": "T_LR_ROOT_ArmchairOchre_Cloth_BC.png"
+  },
+  "R02_ROOT_ArmchairRusset_S01_RussetCloth.003": {
+    "roughness": 0.9100000262260437,
+    "metallic": 0.0,
+    "color": [
+      0.800000011920929,
+      0.800000011920929,
+      0.800000011920929,
+      1.0
+    ],
+    "BC": "T_LR_ROOT_ArmchairRusset_Cloth_BC.png"
+  },
+  "S01_FloorMass.003": {
+    "roughness": 0.7599999904632568,
+    "metallic": 0.0,
+    "color": [
+      0.800000011920929,
+      0.800000011920929,
+      0.800000011920929,
+      1.0
+    ],
+    "BC": "T_LR_FloorMass_BC.png"
+  },
+  "S01_FloorMass.004": {
+    "roughness": 0.7599999904632568,
+    "metallic": 0.0,
+    "color": [
+      0.800000011920929,
+      0.800000011920929,
+      0.800000011920929,
+      1.0
+    ],
+    "BC": "T_LR_FloorMass_BC.png"
+  },
+  "S01_FloorMass.005": {
+    "roughness": 0.7599999904632568,
+    "metallic": 0.0,
+    "color": [
+      0.800000011920929,
+      0.800000011920929,
+      0.800000011920929,
+      1.0
+    ],
+    "BC": "T_LR_FloorMass_BC.png"
+  },
+  "S01_CoolPlaster.003": {
+    "roughness": 0.8199999928474426,
+    "metallic": 0.0,
+    "color": [
+      0.800000011920929,
+      0.800000011920929,
+      0.800000011920929,
+      1.0
+    ],
+    "BC": "T_LR_CoolPlaster_BC.png"
+  },
+  "S01_CoolPlaster.005": {
+    "roughness": 0.8199999928474426,
+    "metallic": 0.0,
+    "color": [
+      0.800000011920929,
+      0.800000011920929,
+      0.800000011920929,
+      1.0
+    ],
+    "BC": "T_LR_CoolPlaster_BC.png"
+  },
+  "S01_CoolPlaster.006": {
+    "roughness": 0.8199999928474426,
+    "metallic": 0.0,
+    "color": [
+      0.800000011920929,
+      0.800000011920929,
+      0.800000011920929,
+      1.0
+    ],
+    "BC": "T_LR_CoolPlaster_BC.png"
+  },
+  "S01_CoolPlaster.007": {
+    "roughness": 0.8199999928474426,
+    "metallic": 0.0,
+    "color": [
+      0.800000011920929,
+      0.800000011920929,
+      0.800000011920929,
+      1.0
+    ],
+    "BC": "T_LR_CoolPlaster_BC.png"
+  },
+  "S01_CoolPlaster.008": {
+    "roughness": 0.8199999928474426,
+    "metallic": 0.0,
+    "color": [
+      0.800000011920929,
+      0.800000011920929,
+      0.800000011920929,
+      1.0
+    ],
+    "BC": "T_LR_CoolPlaster_BC.png"
+  },
+  "S01_CoolPlaster.009": {
+    "roughness": 0.8199999928474426,
+    "metallic": 0.0,
+    "color": [
+      0.800000011920929,
+      0.800000011920929,
+      0.800000011920929,
+      1.0
+    ],
+    "BC": "T_LR_CoolPlaster_BC.png"
+  },
+  "S01_CoolPlaster.011": {
+    "roughness": 0.8199999928474426,
+    "metallic": 0.0,
+    "color": [
+      0.800000011920929,
+      0.800000011920929,
+      0.800000011920929,
+      1.0
+    ],
+    "BC": "T_LR_CoolPlaster_BC.png"
+  },
+  "S01_RugMass.003": {
+    "roughness": 0.5,
+    "metallic": 0.0,
+    "color": [
+      0.800000011920929,
+      0.800000011920929,
+      0.800000011920929,
+      1.0
+    ],
+    "BC": "T_LR_Rug_BC.png"
+  },
+  "R02_ROOT_Sofa_S02_CreamCloth": {
+    "roughness": 0.9100000262260437,
+    "metallic": 0.0,
+    "color": [
+      0.800000011920929,
+      0.800000011920929,
+      0.800000011920929,
+      1.0
+    ],
+    "BC": "T_LR_ROOT_Sofa_Cloth_BC.png"
+  },
+  "R02_ROOT_Sofa_S02_TerracottaThrow": {
+    "roughness": 0.9100000262260437,
+    "metallic": 0.0,
+    "color": [
+      0.800000011920929,
+      0.800000011920929,
+      0.800000011920929,
+      1.0
+    ],
+    "BC": "T_LR_ROOT_Sofa_Cloth_BC.png"
+  },
+  "R02_ROOT_ArmchairOchre_S02_CreamCloth": {
+    "roughness": 0.9100000262260437,
+    "metallic": 0.0,
+    "color": [
+      0.800000011920929,
+      0.800000011920929,
+      0.800000011920929,
+      1.0
+    ],
+    "BC": "T_LR_ROOT_ArmchairOchre_Cloth_BC.png"
+  },
+  "R02_ROOT_ArmchairRusset_S02_CreamCloth": {
+    "roughness": 0.9100000262260437,
+    "metallic": 0.0,
+    "color": [
+      0.800000011920929,
+      0.800000011920929,
+      0.800000011920929,
+      1.0
+    ],
+    "BC": "T_LR_ROOT_ArmchairRusset_Cloth_BC.png"
+  },
+  "S01_Wood.004": {
+    "roughness": 0.6800000071525574,
+    "metallic": 0.0,
+    "color": [
+      0.800000011920929,
+      0.800000011920929,
+      0.800000011920929,
+      1.0
+    ],
+    "BC": "T_LR_Wood_BC.png"
+  },
+  "S02_BookPageBlock": {
+    "roughness": 0.5,
+    "metallic": 0.0,
+    "color": [
+      0.800000011920929,
+      0.800000011920929,
+      0.800000011920929,
+      1.0
+    ],
+    "BC": "T_LR_BookPageBlock_BC.png"
+  },
+  "S02_BookBlue": {
+    "roughness": 0.5,
+    "metallic": 0.0,
+    "color": [
+      0.800000011920929,
+      0.800000011920929,
+      0.800000011920929,
+      1.0
+    ],
+    "BC": "T_LR_BookBlue_BC.png"
+  },
+  "S02_BookOchre": {
+    "roughness": 0.5,
+    "metallic": 0.0,
+    "color": [
+      0.800000011920929,
+      0.800000011920929,
+      0.800000011920929,
+      1.0
+    ],
+    "BC": "T_LR_BookOchre_BC.png"
+  },
+  "S02_BookOlive": {
+    "roughness": 0.5,
+    "metallic": 0.0,
+    "color": [
+      0.800000011920929,
+      0.800000011920929,
+      0.800000011920929,
+      1.0
+    ],
+    "BC": "T_LR_BookOlive_BC.png"
+  },
+  "S02_VaseCeladon": {
+    "roughness": 0.5,
+    "metallic": 0.0,
+    "color": [
+      0.800000011920929,
+      0.800000011920929,
+      0.800000011920929,
+      1.0
+    ],
+    "BC": "T_LR_VaseCeladon_BC.png"
+  },
+  "S02_Leaf": {
+    "roughness": 0.5,
+    "metallic": 0.0,
+    "color": [
+      0.800000011920929,
+      0.800000011920929,
+      0.800000011920929,
+      1.0
+    ],
+    "BC": "T_LR_Leaf_BC.png"
+  },
+  "S02_IvoryFlowerMass": {
+    "roughness": 0.5,
+    "metallic": 0.0,
+    "color": [
+      0.800000011920929,
+      0.800000011920929,
+      0.800000011920929,
+      1.0
+    ],
+    "BC": "T_LR_IvoryFlowerMass_BC.png"
+  },
+  "S02_LeafLight": {
+    "roughness": 0.5,
+    "metallic": 0.0,
+    "color": [
+      0.800000011920929,
+      0.800000011920929,
+      0.800000011920929,
+      1.0
+    ],
+    "BC": "T_LR_LeafLight_BC.png"
+  },
+  "S02_AgedBrass": {
+    "roughness": 0.5,
+    "metallic": 1.0,
+    "color": [
+      0.800000011920929,
+      0.800000011920929,
+      0.800000011920929,
+      1.0
+    ],
+    "BC": "T_LR_AgedBrass_BC.png"
+  },
+  "S02_DetailWood": {
+    "roughness": 0.6800000071525574,
+    "metallic": 0.0,
+    "color": [
+      0.800000011920929,
+      0.800000011920929,
+      0.800000011920929,
+      1.0
+    ],
+    "BC": "T_LR_Wood_BC.png"
+  },
+  "S02_IvoryPorcelain": {
+    "roughness": 0.5,
+    "metallic": 0.0,
+    "color": [
+      0.800000011920929,
+      0.800000011920929,
+      0.800000011920929,
+      1.0
+    ],
+    "BC": "T_LR_IvoryPorcelain_BC.png"
+  },
+  "S02_TeaSurface": {
+    "roughness": 0.5,
+    "metallic": 0.0,
+    "color": [
+      0.800000011920929,
+      0.800000011920929,
+      0.800000011920929,
+      1.0
+    ],
+    "BC": "T_LR_TeaSurface_BC.png"
+  },
+  "S02_Interior": {
+    "roughness": 0.5,
+    "metallic": 0.0,
+    "color": [
+      0.800000011920929,
+      0.800000011920929,
+      0.800000011920929,
+      1.0
+    ],
+    "BC": "T_LR_Interior_BC.png"
+  },
+  "S02_DetailAgedBrass": {
+    "roughness": 0.5,
+    "metallic": 1.0,
+    "color": [
+      0.800000011920929,
+      0.800000011920929,
+      0.800000011920929,
+      1.0
+    ],
+    "BC": "T_LR_DetailAgedBrass_BC.png"
+  },
+  "R02_ROOT_Ottoman_S01_OliveCloth.003": {
+    "roughness": 0.9100000262260437,
+    "metallic": 0.0,
+    "color": [
+      0.800000011920929,
+      0.800000011920929,
+      0.800000011920929,
+      1.0
+    ],
+    "BC": "T_LR_ROOT_Ottoman_Cloth_BC.png"
+  },
+  "R02_ROOT_WoodChair_S01_RussetCloth.003": {
+    "roughness": 0.9100000262260437,
+    "metallic": 0.0,
+    "color": [
+      0.800000011920929,
+      0.800000011920929,
+      0.800000011920929,
+      1.0
+    ],
+    "BC": "T_LR_ROOT_WoodChair_Cloth_BC.png"
+  },
+  "S01_WarmStone.003": {
+    "roughness": 0.5,
+    "metallic": 0.0,
+    "color": [
+      0.800000011920929,
+      0.800000011920929,
+      0.800000011920929,
+      1.0
+    ],
+    "BC": "T_LR_WarmStone_BC.png"
+  },
+  "S01_DarkRecess.003": {
+    "roughness": 0.5,
+    "metallic": 0.0,
+    "color": [
+      0.800000011920929,
+      0.800000011920929,
+      0.800000011920929,
+      1.0
+    ],
+    "BC": "T_LR_DarkRecess_BC.png"
+  },
+  "S02_Iron": {
+    "roughness": 0.5,
+    "metallic": 1.0,
+    "color": [
+      0.800000011920929,
+      0.800000011920929,
+      0.800000011920929,
+      1.0
+    ],
+    "BC": "T_LR_Iron_BC.png"
+  },
+  "S02_BookRusset": {
+    "roughness": 0.5,
+    "metallic": 0.0,
+    "color": [
+      0.800000011920929,
+      0.800000011920929,
+      0.800000011920929,
+      1.0
+    ],
+    "BC": "T_LR_BookRusset_BC.png"
+  },
+  "R02_ROOT_CoatStand_S01_RussetCloth.003": {
+    "roughness": 0.9100000262260437,
+    "metallic": 0.0,
+    "color": [
+      0.800000011920929,
+      0.800000011920929,
+      0.800000011920929,
+      1.0
+    ],
+    "BC": "T_LR_ROOT_CoatStand_Cloth_BC.png"
+  },
+  "S01_WindowPlaceholder.003": {
+    "roughness": 0.4000000059604645,
+    "metallic": 0.0,
+    "color": [
+      0.6100000143051147,
+      0.7200000286102295,
+      0.7300000190734863,
+      1.0
+    ]
+  },
+  "R02_ROOT_Curtains_S01_CurtainMass.003": {
+    "roughness": 0.9100000262260437,
+    "metallic": 0.0,
+    "color": [
+      0.800000011920929,
+      0.800000011920929,
+      0.800000011920929,
+      1.0
+    ],
+    "BC": "T_LR_ROOT_Curtains_Cloth_BC.png"
+  },
+  "M_LR_ReferencePainting_0": {
+    "roughness": 0.8999999761581421,
+    "metallic": 0.0,
+    "color": [
+      0.800000011920929,
+      0.800000011920929,
+      0.800000011920929,
+      1.0
+    ],
+    "BC": "ConceptArtworkSource.png"
+  },
+  "M_LR_ReferencePainting_1": {
+    "roughness": 0.8999999761581421,
+    "metallic": 0.0,
+    "color": [
+      0.800000011920929,
+      0.800000011920929,
+      0.800000011920929,
+      1.0
+    ],
+    "BC": "ConceptArtworkSource.png"
+  },
+  "M_LR_ReferencePainting_2": {
+    "roughness": 0.8999999761581421,
+    "metallic": 0.0,
+    "color": [
+      0.800000011920929,
+      0.800000011920929,
+      0.800000011920929,
+      1.0
+    ],
+    "BC": "ConceptArtworkSource.png"
+  },
+  "M_LR_ReferencePainting_3": {
+    "roughness": 0.8999999761581421,
+    "metallic": 0.0,
+    "color": [
+      0.800000011920929,
+      0.800000011920929,
+      0.800000011920929,
+      1.0
+    ],
+    "BC": "ConceptArtworkSource.png"
+  },
+  "M_LR_ReferencePainting_4": {
+    "roughness": 0.8999999761581421,
+    "metallic": 0.0,
+    "color": [
+      0.800000011920929,
+      0.800000011920929,
+      0.800000011920929,
+      1.0
+    ],
+    "BC": "ConceptArtworkSource.png"
+  },
+  "S01_PotMass.003": {
+    "roughness": 0.5,
+    "metallic": 0.0,
+    "color": [
+      0.800000011920929,
+      0.800000011920929,
+      0.800000011920929,
+      1.0
+    ],
+    "BC": "T_LR_PotMass_BC.png"
+  },
+  "S01_LampMass.003": {
+    "roughness": 0.5,
+    "metallic": 0.0,
+    "color": [
+      0.800000011920929,
+      0.800000011920929,
+      0.800000011920929,
+      1.0
+    ],
+    "BC": "T_LR_LampMass_BC.png"
+  },
+  "S01_RugMass.004": {
+    "roughness": 0.5,
+    "metallic": 0.0,
+    "color": [
+      0.800000011920929,
+      0.800000011920929,
+      0.800000011920929,
+      1.0
+    ],
+    "BC": "T_LR_Rug_BC.png"
+  }
+}

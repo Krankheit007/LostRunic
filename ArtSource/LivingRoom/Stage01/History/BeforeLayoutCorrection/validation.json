@@ -1,0 +1,14 @@
+{
+  "stage": "01_PRIMARY_MASSES",
+  "mesh_count_including_architecture": 156,
+  "checks": [
+    "finite transforms",
+    "closed primitive masses",
+    "nonzero face area"
+  ],
+  "issues": [],
+  "technical_status": "PASS",
+  "visual_status": "AWAITING_USER",
+  "fbx_roundtrip": "NOT_APPLICABLE_YET",
+  "uv_material_animation": "DEFERRED_TO_LATER_GATES"
+}

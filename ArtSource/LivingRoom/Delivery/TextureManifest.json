@@ -1,0 +1,422 @@
+{
+  "S01_CoolPlaster.003": {
+    "material": "M_LR_CoolPlaster",
+    "BC": "T_LR_CoolPlaster_BC.png",
+    "SMK": "T_LR_CoolPlaster_SMK.png",
+    "roughness": 0.82,
+    "metallic": 0.0,
+    "resolution": 512,
+    "SMK_semantics": "R DetailAmount; G artist-defined floor board seams only, otherwise zero; B MacroVariation; no Alpha",
+    "normal": "omitted: no justified medium-scale extra normal detail"
+  },
+  "S01_CoolPlaster.005": {
+    "material": "M_LR_CoolPlaster",
+    "BC": "T_LR_CoolPlaster_BC.png",
+    "SMK": "T_LR_CoolPlaster_SMK.png",
+    "roughness": 0.82,
+    "metallic": 0.0,
+    "resolution": 512,
+    "SMK_semantics": "R DetailAmount; G artist-defined floor board seams only, otherwise zero; B MacroVariation; no Alpha",
+    "normal": "omitted: no justified medium-scale extra normal detail"
+  },
+  "S01_CoolPlaster.006": {
+    "material": "M_LR_CoolPlaster",
+    "BC": "T_LR_CoolPlaster_BC.png",
+    "SMK": "T_LR_CoolPlaster_SMK.png",
+    "roughness": 0.82,
+    "metallic": 0.0,
+    "resolution": 512,
+    "SMK_semantics": "R DetailAmount; G artist-defined floor board seams only, otherwise zero; B MacroVariation; no Alpha",
+    "normal": "omitted: no justified medium-scale extra normal detail"
+  },
+  "S01_CoolPlaster.007": {
+    "material": "M_LR_CoolPlaster",
+    "BC": "T_LR_CoolPlaster_BC.png",
+    "SMK": "T_LR_CoolPlaster_SMK.png",
+    "roughness": 0.82,
+    "metallic": 0.0,
+    "resolution": 512,
+    "SMK_semantics": "R DetailAmount; G artist-defined floor board seams only, otherwise zero; B MacroVariation; no Alpha",
+    "normal": "omitted: no justified medium-scale extra normal detail"
+  },
+  "S01_CoolPlaster.008": {
+    "material": "M_LR_CoolPlaster",
+    "BC": "T_LR_CoolPlaster_BC.png",
+    "SMK": "T_LR_CoolPlaster_SMK.png",
+    "roughness": 0.82,
+    "metallic": 0.0,
+    "resolution": 512,
+    "SMK_semantics": "R DetailAmount; G artist-defined floor board seams only, otherwise zero; B MacroVariation; no Alpha",
+    "normal": "omitted: no justified medium-scale extra normal detail"
+  },
+  "S01_CoolPlaster.009": {
+    "material": "M_LR_CoolPlaster",
+    "BC": "T_LR_CoolPlaster_BC.png",
+    "SMK": "T_LR_CoolPlaster_SMK.png",
+    "roughness": 0.82,
+    "metallic": 0.0,
+    "resolution": 512,
+    "SMK_semantics": "R DetailAmount; G artist-defined floor board seams only, otherwise zero; B MacroVariation; no Alpha",
+    "normal": "omitted: no justified medium-scale extra normal detail"
+  },
+  "S01_CoolPlaster.011": {
+    "material": "M_LR_CoolPlaster",
+    "BC": "T_LR_CoolPlaster_BC.png",
+    "SMK": "T_LR_CoolPlaster_SMK.png",
+    "roughness": 0.82,
+    "metallic": 0.0,
+    "resolution": 512,
+    "SMK_semantics": "R DetailAmount; G artist-defined floor board seams only, otherwise zero; B MacroVariation; no Alpha",
+    "normal": "omitted: no justified medium-scale extra normal detail"
+  },
+  "S01_CurtainMass.003": {
+    "material": "M_LR_CurtainMass",
+    "BC": "T_LR_CurtainMass_BC.png",
+    "SMK": "T_LR_CurtainMass_SMK.png",
+    "roughness": 0.82,
+    "metallic": 0.0,
+    "resolution": 512,
+    "SMK_semantics": "R DetailAmount; G artist-defined floor board seams only, otherwise zero; B MacroVariation; no Alpha",
+    "normal": "omitted: no justified medium-scale extra normal detail"
+  },
+  "S01_DarkRecess.003": {
+    "material": "M_LR_DarkRecess",
+    "BC": "T_LR_DarkRecess_BC.png",
+    "SMK": "T_LR_DarkRecess_SMK.png",
+    "roughness": 0.82,
+    "metallic": 0.0,
+    "resolution": 512,
+    "SMK_semantics": "R DetailAmount; G artist-defined floor board seams only, otherwise zero; B MacroVariation; no Alpha",
+    "normal": "omitted: no justified medium-scale extra normal detail"
+  },
+  "S01_FloorMass.003": {
+    "material": "M_LR_FloorMass",
+    "BC": "T_LR_FloorMass_BC.png",
+    "SMK": "T_LR_FloorMass_SMK.png",
+    "roughness": 0.82,
+    "metallic": 0.0,
+    "resolution": 1024,
+    "SMK_semantics": "R DetailAmount; G artist-defined floor board seams only, otherwise zero; B MacroVariation; no Alpha",
+    "normal": "omitted: no justified medium-scale extra normal detail"
+  },
+  "S01_FloorMass.004": {
+    "material": "M_LR_FloorMass",
+    "BC": "T_LR_FloorMass_BC.png",
+    "SMK": "T_LR_FloorMass_SMK.png",
+    "roughness": 0.82,
+    "metallic": 0.0,
+    "resolution": 1024,
+    "SMK_semantics": "R DetailAmount; G artist-defined floor board seams only, otherwise zero; B MacroVariation; no Alpha",
+    "normal": "omitted: no justified medium-scale extra normal detail"
+  },
+  "S01_FloorMass.005": {
+    "material": "M_LR_FloorMass",
+    "BC": "T_LR_FloorMass_BC.png",
+    "SMK": "T_LR_FloorMass_SMK.png",
+    "roughness": 0.82,
+    "metallic": 0.0,
+    "resolution": 1024,
+    "SMK_semantics": "R DetailAmount; G artist-defined floor board seams only, otherwise zero; B MacroVariation; no Alpha",
+    "normal": "omitted: no justified medium-scale extra normal detail"
+  },
+  "S01_LampMass.003": {
+    "material": "M_LR_LampMass",
+    "BC": "T_LR_LampMass_BC.png",
+    "SMK": "T_LR_LampMass_SMK.png",
+    "roughness": 0.82,
+    "metallic": 0.0,
+    "resolution": 512,
+    "SMK_semantics": "R DetailAmount; G artist-defined floor board seams only, otherwise zero; B MacroVariation; no Alpha",
+    "normal": "omitted: no justified medium-scale extra normal detail"
+  },
+  "S01_OchreCloth.003": {
+    "material": "M_LR_OchreCloth",
+    "BC": "T_LR_OchreCloth_BC.png",
+    "SMK": "T_LR_OchreCloth_SMK.png",
+    "roughness": 0.82,
+    "metallic": 0.0,
+    "resolution": 512,
+    "SMK_semantics": "R DetailAmount; G artist-defined floor board seams only, otherwise zero; B MacroVariation; no Alpha",
+    "normal": "omitted: no justified medium-scale extra normal detail"
+  },
+  "S01_OliveCloth.003": {
+    "material": "M_LR_OliveCloth",
+    "BC": "T_LR_OliveCloth_BC.png",
+    "SMK": "T_LR_OliveCloth_SMK.png",
+    "roughness": 0.82,
+    "metallic": 0.0,
+    "resolution": 512,
+    "SMK_semantics": "R DetailAmount; G artist-defined floor board seams only, otherwise zero; B MacroVariation; no Alpha",
+    "normal": "omitted: no justified medium-scale extra normal detail"
+  },
+  "S01_PotMass.003": {
+    "material": "M_LR_PotMass",
+    "BC": "T_LR_PotMass_BC.png",
+    "SMK": "T_LR_PotMass_SMK.png",
+    "roughness": 0.82,
+    "metallic": 0.0,
+    "resolution": 512,
+    "SMK_semantics": "R DetailAmount; G artist-defined floor board seams only, otherwise zero; B MacroVariation; no Alpha",
+    "normal": "omitted: no justified medium-scale extra normal detail"
+  },
+  "S01_RugMass.003": {
+    "material": "M_LR_RugMass",
+    "BC": "T_LR_RugMass_BC.png",
+    "SMK": "T_LR_RugMass_SMK.png",
+    "roughness": 0.82,
+    "metallic": 0.0,
+    "resolution": 1024,
+    "SMK_semantics": "R DetailAmount; G artist-defined floor board seams only, otherwise zero; B MacroVariation; no Alpha",
+    "normal": "omitted: no justified medium-scale extra normal detail"
+  },
+  "S01_RugMass.004": {
+    "material": "M_LR_RugMass",
+    "BC": "T_LR_RugMass_BC.png",
+    "SMK": "T_LR_RugMass_SMK.png",
+    "roughness": 0.82,
+    "metallic": 0.0,
+    "resolution": 1024,
+    "SMK_semantics": "R DetailAmount; G artist-defined floor board seams only, otherwise zero; B MacroVariation; no Alpha",
+    "normal": "omitted: no justified medium-scale extra normal detail"
+  },
+  "S01_RussetCloth.003": {
+    "material": "M_LR_RussetCloth",
+    "BC": "T_LR_RussetCloth_BC.png",
+    "SMK": "T_LR_RussetCloth_SMK.png",
+    "roughness": 0.82,
+    "metallic": 0.0,
+    "resolution": 512,
+    "SMK_semantics": "R DetailAmount; G artist-defined floor board seams only, otherwise zero; B MacroVariation; no Alpha",
+    "normal": "omitted: no justified medium-scale extra normal detail"
+  },
+  "S01_WarmStone.003": {
+    "material": "M_LR_WarmStone",
+    "BC": "T_LR_WarmStone_BC.png",
+    "SMK": "T_LR_WarmStone_SMK.png",
+    "roughness": 0.82,
+    "metallic": 0.0,
+    "resolution": 512,
+    "SMK_semantics": "R DetailAmount; G artist-defined floor board seams only, otherwise zero; B MacroVariation; no Alpha",
+    "normal": "omitted: no justified medium-scale extra normal detail"
+  },
+  "S01_WindowPlaceholder.003": {
+    "material": "M_LR_WindowPlaceholder",
+    "BC": "T_LR_WindowPlaceholder_BC.png",
+    "SMK": "T_LR_WindowPlaceholder_SMK.png",
+    "roughness": 0.82,
+    "metallic": 0.0,
+    "resolution": 512,
+    "SMK_semantics": "R DetailAmount; G artist-defined floor board seams only, otherwise zero; B MacroVariation; no Alpha",
+    "normal": "omitted: no justified medium-scale extra normal detail"
+  },
+  "S01_Wood.004": {
+    "material": "M_LR_Wood",
+    "BC": "T_LR_Wood_BC.png",
+    "SMK": "T_LR_Wood_SMK.png",
+    "roughness": 0.82,
+    "metallic": 0.0,
+    "resolution": 512,
+    "SMK_semantics": "R DetailAmount; G artist-defined floor board seams only, otherwise zero; B MacroVariation; no Alpha",
+    "normal": "omitted: no justified medium-scale extra normal detail"
+  },
+  "S02_AgedBrass": {
+    "material": "M_LR_AgedBrass",
+    "BC": "T_LR_AgedBrass_BC.png",
+    "SMK": "T_LR_AgedBrass_SMK.png",
+    "roughness": 0.45,
+    "metallic": 1.0,
+    "resolution": 512,
+    "SMK_semantics": "R DetailAmount; G artist-defined floor board seams only, otherwise zero; B MacroVariation; no Alpha",
+    "normal": "omitted: no justified medium-scale extra normal detail"
+  },
+  "S02_BookBlue": {
+    "material": "M_LR_BookBlue",
+    "BC": "T_LR_BookBlue_BC.png",
+    "SMK": "T_LR_BookBlue_SMK.png",
+    "roughness": 0.82,
+    "metallic": 0.0,
+    "resolution": 512,
+    "SMK_semantics": "R DetailAmount; G artist-defined floor board seams only, otherwise zero; B MacroVariation; no Alpha",
+    "normal": "omitted: no justified medium-scale extra normal detail"
+  },
+  "S02_BookOchre": {
+    "material": "M_LR_BookOchre",
+    "BC": "T_LR_BookOchre_BC.png",
+    "SMK": "T_LR_BookOchre_SMK.png",
+    "roughness": 0.82,
+    "metallic": 0.0,
+    "resolution": 512,
+    "SMK_semantics": "R DetailAmount; G artist-defined floor board seams only, otherwise zero; B MacroVariation; no Alpha",
+    "normal": "omitted: no justified medium-scale extra normal detail"
+  },
+  "S02_BookOlive": {
+    "material": "M_LR_BookOlive",
+    "BC": "T_LR_BookOlive_BC.png",
+    "SMK": "T_LR_BookOlive_SMK.png",
+    "roughness": 0.82,
+    "metallic": 0.0,
+    "resolution": 512,
+    "SMK_semantics": "R DetailAmount; G artist-defined floor board seams only, otherwise zero; B MacroVariation; no Alpha",
+    "normal": "omitted: no justified medium-scale extra normal detail"
+  },
+  "S02_BookPageBlock": {
+    "material": "M_LR_BookPageBlock",
+    "BC": "T_LR_BookPageBlock_BC.png",
+    "SMK": "T_LR_BookPageBlock_SMK.png",
+    "roughness": 0.82,
+    "metallic": 0.0,
+    "resolution": 512,
+    "SMK_semantics": "R DetailAmount; G artist-defined floor board seams only, otherwise zero; B MacroVariation; no Alpha",
+    "normal": "omitted: no justified medium-scale extra normal detail"
+  },
+  "S02_BookRusset": {
+    "material": "M_LR_BookRusset",
+    "BC": "T_LR_BookRusset_BC.png",
+    "SMK": "T_LR_BookRusset_SMK.png",
+    "roughness": 0.82,
+    "metallic": 0.0,
+    "resolution": 512,
+    "SMK_semantics": "R DetailAmount; G artist-defined floor board seams only, otherwise zero; B MacroVariation; no Alpha",
+    "normal": "omitted: no justified medium-scale extra normal detail"
+  },
+  "S02_CreamCloth": {
+    "material": "M_LR_CreamCloth",
+    "BC": "T_LR_CreamCloth_BC.png",
+    "SMK": "T_LR_CreamCloth_SMK.png",
+    "roughness": 0.82,
+    "metallic": 0.0,
+    "resolution": 512,
+    "SMK_semantics": "R DetailAmount; G artist-defined floor board seams only, otherwise zero; B MacroVariation; no Alpha",
+    "normal": "omitted: no justified medium-scale extra normal detail"
+  },
+  "S02_DetailAgedBrass": {
+    "material": "M_LR_DetailAgedBrass",
+    "BC": "T_LR_DetailAgedBrass_BC.png",
+    "SMK": "T_LR_DetailAgedBrass_SMK.png",
+    "roughness": 0.45,
+    "metallic": 1.0,
+    "resolution": 512,
+    "SMK_semantics": "R DetailAmount; G artist-defined floor board seams only, otherwise zero; B MacroVariation; no Alpha",
+    "normal": "omitted: no justified medium-scale extra normal detail"
+  },
+  "S02_DetailWood": {
+    "material": "M_LR_DetailWood",
+    "BC": "T_LR_DetailWood_BC.png",
+    "SMK": "T_LR_DetailWood_SMK.png",
+    "roughness": 0.82,
+    "metallic": 0.0,
+    "resolution": 512,
+    "SMK_semantics": "R DetailAmount; G artist-defined floor board seams only, otherwise zero; B MacroVariation; no Alpha",
+    "normal": "omitted: no justified medium-scale extra normal detail"
+  },
+  "S02_Interior": {
+    "material": "M_LR_Interior",
+    "BC": "T_LR_Interior_BC.png",
+    "SMK": "T_LR_Interior_SMK.png",
+    "roughness": 0.82,
+    "metallic": 0.0,
+    "resolution": 512,
+    "SMK_semantics": "R DetailAmount; G artist-defined floor board seams only, otherwise zero; B MacroVariation; no Alpha",
+    "normal": "omitted: no justified medium-scale extra normal detail"
+  },
+  "S02_Iron": {
+    "material": "M_LR_Iron",
+    "BC": "T_LR_Iron_BC.png",
+    "SMK": "T_LR_Iron_SMK.png",
+    "roughness": 0.45,
+    "metallic": 1.0,
+    "resolution": 512,
+    "SMK_semantics": "R DetailAmount; G artist-defined floor board seams only, otherwise zero; B MacroVariation; no Alpha",
+    "normal": "omitted: no justified medium-scale extra normal detail"
+  },
+  "S02_IvoryFlowerMass": {
+    "material": "M_LR_IvoryFlowerMass",
+    "BC": "T_LR_IvoryFlowerMass_BC.png",
+    "SMK": "T_LR_IvoryFlowerMass_SMK.png",
+    "roughness": 0.82,
+    "metallic": 0.0,
+    "resolution": 512,
+    "SMK_semantics": "R DetailAmount; G artist-defined floor board seams only, otherwise zero; B MacroVariation; no Alpha",
+    "normal": "omitted: no justified medium-scale extra normal detail"
+  },
+  "S02_IvoryPorcelain": {
+    "material": "M_LR_IvoryPorcelain",
+    "BC": "T_LR_IvoryPorcelain_BC.png",
+    "SMK": "T_LR_IvoryPorcelain_SMK.png",
+    "roughness": 0.45,
+    "metallic": 0.0,
+    "resolution": 512,
+    "SMK_semantics": "R DetailAmount; G artist-defined floor board seams only, otherwise zero; B MacroVariation; no Alpha",
+    "normal": "omitted: no justified medium-scale extra normal detail"
+  },
+  "S02_Leaf": {
+    "material": "M_LR_Leaf",
+    "BC": "T_LR_Leaf_BC.png",
+    "SMK": "T_LR_Leaf_SMK.png",
+    "roughness": 0.82,
+    "metallic": 0.0,
+    "resolution": 512,
+    "SMK_semantics": "R DetailAmount; G artist-defined floor board seams only, otherwise zero; B MacroVariation; no Alpha",
+    "normal": "omitted: no justified medium-scale extra normal detail"
+  },
+  "S02_LeafLight": {
+    "material": "M_LR_LeafLight",
+    "BC": "T_LR_LeafLight_BC.png",
+    "SMK": "T_LR_LeafLight_SMK.png",
+    "roughness": 0.82,
+    "metallic": 0.0,
+    "resolution": 512,
+    "SMK_semantics": "R DetailAmount; G artist-defined floor board seams only, otherwise zero; B MacroVariation; no Alpha",
+    "normal": "omitted: no justified medium-scale extra normal detail"
+  },
+  "S02_TeaSurface": {
+    "material": "M_LR_TeaSurface",
+    "BC": "T_LR_TeaSurface_BC.png",
+    "SMK": "T_LR_TeaSurface_SMK.png",
+    "roughness": 0.82,
+    "metallic": 0.0,
+    "resolution": 512,
+    "SMK_semantics": "R DetailAmount; G artist-defined floor board seams only, otherwise zero; B MacroVariation; no Alpha",
+    "normal": "omitted: no justified medium-scale extra normal detail"
+  },
+  "S02_TerracottaThrow": {
+    "material": "M_LR_TerracottaThrow",
+    "BC": "T_LR_TerracottaThrow_BC.png",
+    "SMK": "T_LR_TerracottaThrow_SMK.png",
+    "roughness": 0.82,
+    "metallic": 0.0,
+    "resolution": 512,
+    "SMK_semantics": "R DetailAmount; G artist-defined floor board seams only, otherwise zero; B MacroVariation; no Alpha",
+    "normal": "omitted: no justified medium-scale extra normal detail"
+  },
+  "S02_VaseCeladon": {
+    "material": "M_LR_VaseCeladon",
+    "BC": "T_LR_VaseCeladon_BC.png",
+    "SMK": "T_LR_VaseCeladon_SMK.png",
+    "roughness": 0.82,
+    "metallic": 0.0,
+    "resolution": 512,
+    "SMK_semantics": "R DetailAmount; G artist-defined floor board seams only, otherwise zero; B MacroVariation; no Alpha",
+    "normal": "omitted: no justified medium-scale extra normal detail"
+  },
+  "S02_Wood": {
+    "material": "M_LR_Wood",
+    "BC": "T_LR_Wood_BC.png",
+    "SMK": "T_LR_Wood_SMK.png",
+    "roughness": 0.82,
+    "metallic": 0.0,
+    "resolution": 512,
+    "SMK_semantics": "R DetailAmount; G artist-defined floor board seams only, otherwise zero; B MacroVariation; no Alpha",
+    "normal": "omitted: no justified medium-scale extra normal detail"
+  },
+  "S02_WoodPanel": {
+    "material": "M_LR_WoodPanel",
+    "BC": "T_LR_WoodPanel_BC.png",
+    "SMK": "T_LR_WoodPanel_SMK.png",
+    "roughness": 0.82,
+    "metallic": 0.0,
+    "resolution": 512,
+    "SMK_semantics": "R DetailAmount; G artist-defined floor board seams only, otherwise zero; B MacroVariation; no Alpha",
+    "normal": "omitted: no justified medium-scale extra normal detail"
+  }
+}

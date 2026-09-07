@@ -1,0 +1,51 @@
+[
+  {
+    "root": "ROOT_Sofa",
+    "meshes": 17,
+    "BC": "T_LR_ROOT_Sofa_Cloth_BC.png",
+    "resolution": 2048,
+    "UV0": "packed group atlas; baked box mapping"
+  },
+  {
+    "root": "ROOT_ArmchairOchre",
+    "meshes": 14,
+    "BC": "T_LR_ROOT_ArmchairOchre_Cloth_BC.png",
+    "resolution": 2048,
+    "UV0": "packed group atlas; baked box mapping"
+  },
+  {
+    "root": "ROOT_ArmchairRusset",
+    "meshes": 11,
+    "BC": "T_LR_ROOT_ArmchairRusset_Cloth_BC.png",
+    "resolution": 2048,
+    "UV0": "packed group atlas; baked box mapping"
+  },
+  {
+    "root": "ROOT_Ottoman",
+    "meshes": 5,
+    "BC": "T_LR_ROOT_Ottoman_Cloth_BC.png",
+    "resolution": 2048,
+    "UV0": "packed group atlas; baked box mapping"
+  },
+  {
+    "root": "ROOT_WoodChair",
+    "meshes": 1,
+    "BC": "T_LR_ROOT_WoodChair_Cloth_BC.png",
+    "resolution": 2048,
+    "UV0": "packed group atlas; baked box mapping"
+  },
+  {
+    "root": "ROOT_CoatStand",
+    "meshes": 1,
+    "BC": "T_LR_ROOT_CoatStand_Cloth_BC.png",
+    "resolution": 2048,
+    "UV0": "packed group atlas; baked box mapping"
+  },
+  {
+    "root": "ROOT_Curtains",
+    "meshes": 2,
+    "BC": "T_LR_ROOT_Curtains_Cloth_BC.png",
+    "resolution": 2048,
+    "UV0": "packed group atlas; baked box mapping"
+  }
+]
