@@ -52,6 +52,14 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Presentation|Perception", meta = (ClampMin = "0.0", ClampMax = "5000.0", Units = "cm"))
 	float PerceptionFullRevealRadius = 400.0f;
 
+	/** Radius within which player-revealed surfaces retain their full palette contribution. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Presentation|Perception", meta = (ClampMin = "0.0", ClampMax = "5000.0", Units = "cm"))
+	float PerceptionColorFullRadius = 280.0f;
+
+	/** Radius within which player-revealed surfaces retain their full internal normal-edge detail. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Presentation|Perception", meta = (ClampMin = "0.0", ClampMax = "5000.0", Units = "cm"))
+	float PerceptionInternalEdgeFullRadius = 340.0f;
+
 	/** Time for a pulse wave to travel from its source to its visual radius. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Presentation|Perception", meta = (ClampMin = "0.001", ClampMax = "30.0", Units = "s"))
 	float EchoExpansionSeconds = 0.75f;

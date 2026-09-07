@@ -122,6 +122,10 @@ bool FLRPerceptionTuningContractTest::RunTest(const FString& parameters)
 		tuningSet->Presentation->PerceptionRevealRadius + 1.0f;
 	TestFalse(TEXT("Full reveal cannot exceed player reveal radius"), tuningSet->Validate(error));
 	tuningSet->Presentation->PerceptionFullRevealRadius = 400.0f;
+	tuningSet->Presentation->PerceptionColorFullRadius = 350.0f;
+	tuningSet->Presentation->PerceptionInternalEdgeFullRadius = 340.0f;
+	TestFalse(TEXT("Color detail must fade before internal edges"), tuningSet->Validate(error));
+	tuningSet->Presentation->PerceptionColorFullRadius = 280.0f;
 
 	tuningSet->Presentation->PerceptionCompositeMaterial = TSoftObjectPtr<UMaterialInterface>();
 	TestFalse(TEXT("Missing Perception composite material fails validation"),
@@ -149,8 +153,8 @@ bool FLRPerceptionTuningContractTest::RunTest(const FString& parameters)
 	TestFalse(TEXT("Wet interval must be positive"), tuningSet->Validate(error));
 	tuningSet->Presentation->EchoWetSeconds = 0.20f;
 
-	tuningSet->Interaction->ExecuteDistance = 401.0f;
-	TestFalse(TEXT("Interaction execute distance cannot exceed full reveal"), tuningSet->Validate(error));
+	tuningSet->Interaction->ExecuteDistance = 281.0f;
+	TestFalse(TEXT("Interaction execute distance cannot exceed full color reveal"), tuningSet->Validate(error));
 
 	return true;
 }

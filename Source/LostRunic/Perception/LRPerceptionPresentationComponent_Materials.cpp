@@ -33,6 +33,8 @@ void ULRPerceptionPresentationComponent::WriteStyleParameters()
 	if (PerceptionPostProcessMID && VisualStyle)
 	{
 		const float fullRevealRadius = Tuning ? Tuning->PerceptionFullRevealRadius : 400.0f;
+		const float colorFullRadius = Tuning ? Tuning->PerceptionColorFullRadius : 280.0f;
+		const float internalEdgeFullRadius = Tuning ? Tuning->PerceptionInternalEdgeFullRadius : 340.0f;
 		const float revealRadius = Tuning ? Tuning->PerceptionRevealRadius : 450.0f;
 		const float expansionSeconds = Tuning ? Tuning->EchoExpansionSeconds : 0.75f;
 		const float wetSeconds = Tuning ? Tuning->EchoWetSeconds : 0.20f;
@@ -50,6 +52,7 @@ void ULRPerceptionPresentationComponent::WriteStyleParameters()
 		PerceptionPostProcessMID->SetScalarParameterValue(FName(LRPerceptionMaterialParameters::ShapeLiftStrength), VisualStyle->ShapeLiftStrength);
 		PerceptionPostProcessMID->SetVectorParameterValue(FName(LRPerceptionMaterialParameters::ShapeDirection),
 			FLinearColor(VisualStyle->ShapeDirection.X, VisualStyle->ShapeDirection.Y, VisualStyle->ShapeDirection.Z, 0.0f));
+		PerceptionPostProcessMID->SetVectorParameterValue(FName(LRPerceptionMaterialParameters::InkEdgeTint), VisualStyle->InkEdgeTint);
 		PerceptionPostProcessMID->SetVectorParameterValue(FName(LRPerceptionMaterialParameters::EchoTint), VisualStyle->EchoTint);
 		PerceptionPostProcessMID->SetVectorParameterValue(FName(LRPerceptionMaterialParameters::WetTint), VisualStyle->WetTint);
 		PerceptionPostProcessMID->SetVectorParameterValue(FName(LRPerceptionMaterialParameters::NarrativeAccentTint), VisualStyle->NarrativeAccentTint);
@@ -58,6 +61,8 @@ void ULRPerceptionPresentationComponent::WriteStyleParameters()
 		PerceptionPostProcessMID->SetScalarParameterValue(FName(LRPerceptionMaterialParameters::DebugView),
 			static_cast<float>(DebugView));
 		PerceptionPostProcessMID->SetScalarParameterValue(FName(LRPerceptionMaterialParameters::PerceptionFullRevealRadius), fullRevealRadius);
+		PerceptionPostProcessMID->SetScalarParameterValue(FName(LRPerceptionMaterialParameters::PerceptionColorFullRadius), colorFullRadius);
+		PerceptionPostProcessMID->SetScalarParameterValue(FName(LRPerceptionMaterialParameters::PerceptionInternalEdgeFullRadius), internalEdgeFullRadius);
 		PerceptionPostProcessMID->SetScalarParameterValue(FName(LRPerceptionMaterialParameters::PerceptionRevealRadius), revealRadius);
 		PerceptionPostProcessMID->SetScalarParameterValue(FName(LRPerceptionMaterialParameters::EchoExpansionSeconds), expansionSeconds);
 		PerceptionPostProcessMID->SetScalarParameterValue(FName(LRPerceptionMaterialParameters::EchoWetSeconds), wetSeconds);

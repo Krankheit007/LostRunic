@@ -57,6 +57,10 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Perception|Surface")
 	FVector ShapeDirection = FVector(0.0f, 0.0f, 1.0f);
 
+	/** Stable dark ink used by revealed silhouette and internal art edges. Wet waves use WetTint instead. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Perception|Surface")
+	FLinearColor InkEdgeTint = FLinearColor(0.035f, 0.055f, 0.11f, 1.0f);
+
 	/** Tint mixed over the historical Echo residue contribution. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Perception|Echo")
 	FLinearColor EchoTint = FLinearColor(0.35f, 0.75f, 1.0f, 1.0f);

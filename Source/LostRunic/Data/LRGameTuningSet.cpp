@@ -65,10 +65,13 @@ bool ULRGameTuningSet::Validate(FString& outError) const
 		return false;
 	}
 
-	if (Presentation->PerceptionFullRevealRadius > Presentation->PerceptionRevealRadius)
+	if (Presentation->PerceptionColorFullRadius > Presentation->PerceptionInternalEdgeFullRadius
+		|| Presentation->PerceptionInternalEdgeFullRadius > Presentation->PerceptionFullRevealRadius
+		|| Presentation->PerceptionFullRevealRadius > Presentation->PerceptionRevealRadius)
 	{
-		outError = FString::Printf(TEXT("Presentation.PerceptionFullRevealRadius (%.3f) must be <= "
-			"Presentation.PerceptionRevealRadius (%.3f)."), Presentation->PerceptionFullRevealRadius,
+		outError = FString::Printf(TEXT("Perception paint radii must satisfy ColorFull (%.3f) <= InternalEdgeFull "
+			"(%.3f) <= SilhouetteFull (%.3f) <= Reveal (%.3f)."), Presentation->PerceptionColorFullRadius,
+			Presentation->PerceptionInternalEdgeFullRadius, Presentation->PerceptionFullRevealRadius,
 			Presentation->PerceptionRevealRadius);
 		return false;
 	}
@@ -116,11 +119,11 @@ bool ULRGameTuningSet::Validate(FString& outError) const
 			FMath::Min(Presentation->PerceptionEnterBlendSeconds, Presentation->PerceptionExitBlendSeconds));
 		return false;
 	}
-	if (Interaction->ExecuteDistance > Presentation->PerceptionFullRevealRadius)
+	if (Interaction->ExecuteDistance > Presentation->PerceptionColorFullRadius)
 	{
 		outError = FString::Printf(TEXT("Interaction.ExecuteDistance (%.3f) must be <= "
-			"Presentation.PerceptionFullRevealRadius (%.3f)."), Interaction->ExecuteDistance,
-			Presentation->PerceptionFullRevealRadius);
+			"Presentation.PerceptionColorFullRadius (%.3f)."), Interaction->ExecuteDistance,
+			Presentation->PerceptionColorFullRadius);
 		return false;
 	}
 	return true;

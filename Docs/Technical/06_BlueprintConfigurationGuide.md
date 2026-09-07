@@ -865,8 +865,8 @@ StringTable 的 `Source String` 只填写源语言（本项目约定为 `zh-Hans
 
 1. 打开 `/Game/LostRunic/Data/DA_LRGameContentSet`（若 Content Browser 显示的同名资产路径不同，以当前资产实际路径为准），在 **Content|Presentation → Default Visual Style** 指向项目默认 `ULRVisualStyleDefinition`。在每个 `FLRMapRegistration` 的 **Map|Presentation → Visual Style Override** 填写可选章节覆盖；未填写时回退到 Default Visual Style。
 2. 打开 `/Game/LostRunic/Data/Tuning/DA_LRPresentationTuning`，在 **Presentation|Perception|Assets** 绑定 `M_PP_LR_PerceptionComposite`（Before Tonemapping）、`MPC_LR_VisualStyle`、`MPC_LR_PerceptionRuntime` 和可选 `NS_LR_PerceptionPulse`。材质参数名必须与 `Source/LostRunic/Perception/LRPerceptionMaterialParameters.h` 保持一致。缺少 Niagara 只关闭装饰波壳，不关闭规则显影。
-3. 在同一资产设置：`PerceptionRevealRadius=450 cm`、`PerceptionFullRevealRadius=400 cm`、`NoiseRevealRadius=200 cm`、`NoiseRevealDurationSeconds=5 s`、`EchoExpansionSeconds=0.75 s`、`EchoWetSeconds=0.20 s`、`EchoDryFadeDurationSeconds=1.30 s`、`EchoWaveWidthCm=12.5 cm`、`EchoRefreshMergeDistanceCm=25 cm`、`AccentDepthToleranceCm=3 cm`、进入/退出 PP Blend 为 `0.30/0.20 s`。不要添加或保留 `EchoDryFadeStartSeconds`；3.70 s 只由 `5.0-1.3` 派生。
-4. `MPC_LR_VisualStyle` 只放全局状态参数：`LR_StateBlend`、`LR_PerceptionIntensity`、`LR_NormalOutlineGate`、`LR_InteractionPresentationGate`、`LR_PlayerOcclusionColor`。`MPC_LR_PerceptionRuntime` 只放 `LR_PlayerPosition` 以及 `LR_EchoCenterRadius0..7`、`LR_EchoTiming0..7`。Palette、HDR、Normal retention、Shape lift、Echo/Wet/Accent 外观及 Perception/Echo 半径时间参数由 PP MID 提供：`LR_PerceptionFullRevealRadius`、`LR_PerceptionRevealRadius`、`LR_EchoExpansionSeconds`、`LR_EchoWetSeconds`、`LR_EchoDryFadeDurationSeconds`、`LR_EchoWaveWidthCm`、`LR_PerceptionBoundaryNoiseCm`、`LR_AccentDepthToleranceCm`。
+3. 在同一资产设置：`PerceptionColorFullRadius=280 cm`、`PerceptionInternalEdgeFullRadius=340 cm`、`PerceptionFullRevealRadius=400 cm`、`PerceptionRevealRadius=450 cm`、`NoiseRevealRadius=200 cm`、`NoiseRevealDurationSeconds=5 s`、`EchoExpansionSeconds=0.75 s`、`EchoWetSeconds=0.20 s`、`EchoDryFadeDurationSeconds=1.30 s`、`EchoWaveWidthCm=12.5 cm`、`EchoRefreshMergeDistanceCm=25 cm`、`AccentDepthToleranceCm=3 cm`、进入/退出 PP Blend 为 `0.30/0.20 s`。四个玩家半径必须按 `280 <= 340 <= 400 <= 450` 排序；不要添加或保留 `EchoDryFadeStartSeconds`，3.70 s 只由 `5.0-1.3` 派生。
+4. `MPC_LR_VisualStyle` 只放全局状态参数：`LR_StateBlend`、`LR_PerceptionIntensity`、`LR_NormalOutlineGate`、`LR_InteractionPresentationGate`、`LR_PlayerOcclusionColor`。`MPC_LR_PerceptionRuntime` 只放 `LR_PlayerPosition` 以及 `LR_EchoCenterRadius0..7`、`LR_EchoTiming0..7`。Palette、HDR、Normal retention、Shape lift、Ink/Echo/Wet/Accent 外观及 Perception/Echo 半径时间参数由 PP MID 提供：`LR_PerceptionColorFullRadius`、`LR_PerceptionInternalEdgeFullRadius`、`LR_PerceptionFullRevealRadius`、`LR_PerceptionRevealRadius`、`LR_InkEdgeTint`、`LR_EchoExpansionSeconds`、`LR_EchoWetSeconds`、`LR_EchoDryFadeDurationSeconds`、`LR_EchoWaveWidthCm`、`LR_PerceptionBoundaryNoiseCm`、`LR_AccentDepthToleranceCm`。在 Visual Style 的 **Perception|Surface → Ink Edge Tint** 配置稳定深蓝紫/深青灰墨线；**Wet Tint** 只控制 0.20 s 声波亮边。
 
 ### 组件装配与事件语义
 
@@ -889,8 +889,10 @@ StringTable 的 `Source String` 只填写源语言（本项目约定为 `zh-Hans
 
 - Enter 后约 2 s 暂停游戏 5 s 再恢复，Echo 应继续约 2 s 年龄，不应立即过期；用 Time Dilation `0.5` 和 `2.0` 重复。
 - 验证 1、8、9 个事件的空槽/过期槽/最早 ExpireTime 选择、同源近距刷新、远距空间拆槽和刷新后 `FirstStartTime` 保留。
-- 验证 Player 400 cm 全显影、400–450 cm Wash 羽化、450 cm 外无 Player Reveal；Echo 不受 450 cm 玩家半径限制。
-- 验证 Perception 内物体存在清晰青蓝外轮廓/内部结构线，同时 450 cm 外没有任何由 Depth/Normal 引起的轮廓泄漏。
+- 验证 Player 的 Eligibility 仍为 400 cm 完整、400–450 cm Wash 羽化且 450 cm 外为零；同时确认综合色块从 280 cm、内部结构线从 340 cm 开始减弱，Silhouette 到 400 cm 后才消散。Echo 不受玩家 450 cm 半径限制。
+- 验证稳定 Perception 使用深蓝紫/深青灰 `InkEdge`；浅青 `WetEdge` 只在声音波前抵达后的约 0.20 s 出现。450 cm 外不得有任何由 Depth/Normal 引起的轮廓泄漏。
 - 验证 OpenEyes 长按滑开时露出 Normal；阈值前取消后恢复 Perception 且 Echo 历史仍在；成功、取消和拒绝的尾段结束后 Eye Overlay 均为透明且 `Collapsed`，HUD 始终绘制在眼睑之上。
 - 验证 Stencil 3 前景 Accent 可见、墙后 Accent 不泄漏，Stencil 2 Player Occlusion 仍按原规则工作；双角色 Interaction 在 Accent 生命周期内不恢复白色 Outline/FarHint，但 200 cm HUD 执行提示仍可读。
 - Normal Stable 时 GPU Visualizer/DumpGPU 不应出现 Perception Composite Pass；Candidate Development Budget（1080p 1.5 ms、1440p 2.5 ms）只作为当前开发 GPU 警戒线，目标硬件锁定后重新基准化。
+
+验证记录（2026-09-06）：`LostRunic.Perception` 定向自动化 4/4 通过；`LostRunicEditor Win64 Development` 完整 UHT/C++/链接构建成功；`L_PIE_Test` 已完成稳定 Player Reveal 冒烟，确认普通 ArtEdge 不再使用浅青 Wet 色，综合色/内部线/Silhouette 使用分级距离合同。测试关卡本轮未提供可控有声源波前，因此 `WetEdge` 的 0.20 s 动态观感、完整 Echo/暂停/Time Dilation、Stencil/透明对照与 GPU Profile 保持待验收。

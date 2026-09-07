@@ -13,6 +13,8 @@ namespace LRPerceptionMaterialParameters
 	inline constexpr TCHAR PlayerOcclusionColor[] = TEXT("LR_PlayerOcclusionColor");
 	inline constexpr TCHAR PlayerPosition[] = TEXT("LR_PlayerPosition");
 	inline constexpr TCHAR PerceptionFullRevealRadius[] = TEXT("LR_PerceptionFullRevealRadius");
+	inline constexpr TCHAR PerceptionColorFullRadius[] = TEXT("LR_PerceptionColorFullRadius");
+	inline constexpr TCHAR PerceptionInternalEdgeFullRadius[] = TEXT("LR_PerceptionInternalEdgeFullRadius");
 	inline constexpr TCHAR PerceptionRevealRadius[] = TEXT("LR_PerceptionRevealRadius");
 	inline constexpr TCHAR EchoExpansionSeconds[] = TEXT("LR_EchoExpansionSeconds");
 	inline constexpr TCHAR EchoWetSeconds[] = TEXT("LR_EchoWetSeconds");
@@ -31,6 +33,7 @@ namespace LRPerceptionMaterialParameters
 	inline constexpr TCHAR NormalColorRetention[] = TEXT("LR_NormalColorRetention");
 	inline constexpr TCHAR ShapeLiftStrength[] = TEXT("LR_ShapeLiftStrength");
 	inline constexpr TCHAR ShapeDirection[] = TEXT("LR_ShapeDirection");
+	inline constexpr TCHAR InkEdgeTint[] = TEXT("LR_InkEdgeTint");
 	inline constexpr TCHAR EchoTint[] = TEXT("LR_EchoTint");
 	inline constexpr TCHAR WetTint[] = TEXT("LR_WetTint");
 	inline constexpr TCHAR NarrativeAccentTint[] = TEXT("LR_NarrativeAccentTint");

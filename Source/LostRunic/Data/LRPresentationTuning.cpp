@@ -39,6 +39,8 @@ bool ULRPresentationTuning::Validate(FString& outError) const
 		&& LRValidation::RequireRange(TEXT("NoiseRevealRadius"), NoiseRevealRadius, 0.0f, 5000.0f, outError)
 		&& LRValidation::RequireRange(TEXT("NoiseRevealDurationSeconds"), NoiseRevealDurationSeconds, 0.0f, 30.0f, outError)
 		&& LRValidation::RequireRange(TEXT("PerceptionFullRevealRadius"), PerceptionFullRevealRadius, 0.0f, 5000.0f, outError)
+		&& LRValidation::RequireRange(TEXT("PerceptionColorFullRadius"), PerceptionColorFullRadius, 0.0f, 5000.0f, outError)
+		&& LRValidation::RequireRange(TEXT("PerceptionInternalEdgeFullRadius"), PerceptionInternalEdgeFullRadius, 0.0f, 5000.0f, outError)
 		&& LRValidation::RequireRange(TEXT("EchoExpansionSeconds"), EchoExpansionSeconds, 0.001f, 30.0f, outError)
 		&& LRValidation::RequireRange(TEXT("EchoWetSeconds"), EchoWetSeconds, 0.0f, 30.0f, outError)
 		&& LRValidation::RequireRange(TEXT("EchoDryFadeDurationSeconds"), EchoDryFadeDurationSeconds, 0.001f, 30.0f, outError)

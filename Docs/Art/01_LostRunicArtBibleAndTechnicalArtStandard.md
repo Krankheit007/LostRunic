@@ -941,8 +941,8 @@ Perception 的情绪是“在不确定中得到近处、可信、可读的线索
 
 ### 玩家显影与 ValidSceneSurface
 
-- 玩家位置使用世界空间厘米。`0–400 cm` 为完整 Player Reveal；`400–450 cm` 为带洗染（wash）的羽化带；`>450 cm` 不产生 Player Reveal。`PerceptionFullRevealRadius=400 cm`、`PerceptionRevealRadius=450 cm` 是调优资产的权威值，必须保持前者不大于后者。
-- 每像素只采样一次 `WorldWash`，并将该结果复用于本像素的候选形状/溶解计算；wash **只能扰动 Player 的 400–450 cm 羽化**，不能削弱或重新裁剪 `0–400 cm` 的完整显影。wash 绝不能成为全局屏幕 Clip，也不能以玩家最大半径限制远处 Echo：Echo 的资格、半径和抵达时间独立计算，远处 Echo 即使位于 `450 cm` 外仍可显现。
+- 玩家位置使用世界空间厘米。`RevealEligibility` 只回答玩家能否获得空间信息：`0–400 cm` 完整，`400–450 cm` 以洗染（wash）羽化，`>450 cm` 不产生 Player Reveal。`PaintStrength` 独立决定显影完整度：综合色块在 `280 cm` 后先衰减，WorldNormal 内部结构线在 `340 cm` 后衰减，SceneDepth Silhouette 保持到 `400 cm` 后才在外带消散。权威顺序必须满足 `PerceptionColorFullRadius <= PerceptionInternalEdgeFullRadius <= PerceptionFullRevealRadius <= PerceptionRevealRadius`，默认 `280/340/400/450 cm`。
+- 每像素只计算一次低频 `WorldWash`，并将同一扰动距离复用于 Eligibility、Color、InternalEdge 与 Silhouette；wash 可以在各自衰减带内改变消散形状，但不得把 Player Reveal 推到 `450 cm` 外。wash 绝不能成为全局屏幕 Clip，也不能以玩家最大半径限制远处 Echo：Echo 的资格、半径和抵达时间独立计算，远处 Echo 即使位于 `450 cm` 外仍可显现。
 - `ValidSceneSurface` 是所有 Player、Echo、Wet、Narrative Accent Reveal 的共同安全门：必须确认像素对应有效场景表面，并排除天空、背景/无场景深度和无效深度样本。无效表面输出 `BlindColor`，不得因 Stencil、wash 或颜色优先级绕过该门。该模式也必须能在 Debug View 中独立查看。
 
 ### 声音、Echo 槽与空间语义
@@ -991,7 +991,7 @@ Palette 必须是一张 **256×4** 纹理，四行固定为：Row 0 Player、Row
 
 ### Outline、Stencil 与材质边界
 
-艺术线必须 Reveal-gated：`FinalArtEdge = ArtEdgeMask × FinalRevealMask`，未知区域不能仅因几何边缘、Normal 或 Stencil 生成可见线。Perception Composite 使用相对 SceneDepth 梯度（避免线性厘米深度使斜面整片误判）与 WorldNormal 梯度合成 ArtEdge，并以 Echo/Wet Palette 派生的高对比青蓝色描画；不得只把暗部再次压黑而造成“实际有线、视觉不可读”。Perception 进入期间 `NormalOutlineGate = 1 - StateBlend`，稳定 Perception 时为 0；因此 Perception 关闭 Normal Outline，不得把 Normal 外轮廓作为感知内容。交互表现由 `InteractionPresentationGate` 在 Perception 活跃期间抑制，退出后重新应用。
+艺术线必须 Reveal-gated，未知区域不能仅因几何边缘、Normal 或 Stencil 生成可见线。Perception Composite 使用相对 SceneDepth 梯度（Silhouette）与 WorldNormal 梯度（InternalEdge）检测边缘，但必须拆成两个视觉层：稳定 `InkEdge` 使用 `ULRVisualStyleDefinition::InkEdgeTint` 的深蓝紫/深青灰墨线，并随 340/400 cm 两级结构强度衰减；`WetEdge = ArtEdge × WetRevealMask` 使用浅青亮边，只存在最新声波抵达后的 `EchoWetSeconds=0.20 s`。普通 ArtEdge 不得借用 Wet Palette。Perception 进入期间 `NormalOutlineGate = 1 - StateBlend`，稳定 Perception 时为 0；因此 Perception 关闭 Normal Outline，不得把 Normal 外轮廓作为感知内容。交互表现由 `InteractionPresentationGate` 在 Perception 活跃期间抑制，退出后重新应用。
 
 Stencil 值是互斥的固定语义，不使用位拼接：
 
@@ -1027,16 +1027,16 @@ VisibleAccent = (CustomStencil == 3)
 
 `NS_LR_PerceptionPulse` 只能是事件的装饰性脉冲外壳：可读取位置、半径、强度和扩散时长来画波纹，但不得写 Echo 槽、RevealMask、AI Hearing、StateComponent 或解锁。当前候选资产已使用 CPU 单粒子、世界空间 Sprite，读取 `User.Radius`、`User.ExpansionSeconds`、`User.WaveWidthCm`、`User.Intensity` 与 `User.Tint`；装饰遵守普通场景深度，不写 CustomDepth/Stencil，不承担遮挡例外。Niagara 缺失、加载失败或被平台禁用时，只移除装饰，不得关闭 C++ 规则、槽时间、Per-pixel reveal 合同；其最终材质/粒子成本仍须单独 Profile。
 
-### 实现状态（截至 2026-09-05）
+### 实现状态（截至 2026-09-06）
 
 | 范围 | 状态 | 证据与未完成项 |
 | --- | --- | --- |
 | C++ 状态边界、8 槽、三时间戳、刷新/移动声源、AI Hearing 分离、调优校验 | **已实现并通过定向测试** | `Source/LostRunic/Perception/`、`Source/LostRunic/Data/` 已提供运行时合同；2026-09-05 构建后 `LostRunic.Perception` 4 项与 `LostRunic.Tuning` 3 项自动化测试全部通过。 |
 | 眼睑 Widget、HUD Screen Class、`BP_Ruth` 单一 Complete 调用装配 | **已修正候选** | 稳定遮罩透明/折叠、OpenEyes Normal 预览、取消恢复 Perception 与显式 HUD Z-order 已进入代码；Blueprint 已编译/保存，仍需在 `L_PIE_Test` 完成最终视觉验收。 |
 | `MPC_LR_VisualStyle`、`MPC_LR_PerceptionRuntime` 文件 | **已装配候选资产** | Runtime MPC 为 `PlayerPosition + 8×(CenterRadius/Timing)` 共 17 个 Vector；VisualStyle MPC 为四个状态/门控 Scalar 与 `PlayerOcclusionColor`。`DA_LRPresentationTuning` 已绑定两套 MPC；实际 PIE 写值仍待验证。 |
-| `M_PP_LR_PerceptionComposite`、256×4 Palette、Reveal/Outline 材质图 | **已修正候选资产** | Composite 为 UE 5.8 `MD_PostProcess / BL_SceneColorAfterDOF`（Before Tonemapping 当前枚举），单 Emissive 输出已连接；8 槽、HDR/Palette、Reveal、可见 Stencil 3 与 Stencil 2 例外已进入 Custom HLSL。ArtEdge 已改为 Reveal-gated 相对深度/Normal 检测和高对比青蓝线；材质已重编译保存，仍需 PIE/GPU 视觉签字。 |
+| `M_PP_LR_PerceptionComposite`、256×4 Palette、Reveal/Outline 材质图 | **已修正候选资产** | Composite 为 UE 5.8 `MD_PostProcess / BL_SceneColorAfterDOF`（Before Tonemapping 当前枚举），单 Emissive 输出已连接；8 槽、HDR/Palette、Reveal、可见 Stencil 3 与 Stencil 2 例外已进入 Custom HLSL。玩家场已拆为 280/340/400/450 cm 的 Color/Internal/Silhouette/Eligibility 层级，稳定 ArtEdge 使用深色 InkEdge，浅青亮边只属于 Wet Wave；2026-09-06 已完成材质编译、`LostRunic.Perception` 4/4 定向自动化、完整 Editor 构建与 `L_PIE_Test` 稳定 Player Reveal 冒烟。Wet Wave 有声源主观观感及 GPU Profile 仍待签字。 |
 | Niagara pulse | **已装配候选资产** | `NS_LR_PerceptionPulse` 与 `M_LR_PerceptionPulse` 已编译、保存并绑定 Presentation Tuning；Niagara Stack 为 0 error/0 warning。它仍是可选装饰，PIE 观感与 GPU Profile 待验证。 |
-| PIE（距离、Echo、Pause/Time Dilation、Stencil、透明/Decal、唯一解锁） | **待验证** | 尚未取得本章 Gate 证据。 |
+| PIE（距离、Echo、Pause/Time Dilation、Stencil、透明/Decal、唯一解锁） | **部分验证** | `L_PIE_Test` 已确认稳定 Perception 可进入、综合色按距离分级且普通边缘不再使用浅青 Wet 语言；完整 Echo、暂停/Time Dilation、Stencil/透明对照和 Wet Wave 动态签字仍待验证。 |
 | GPU Visualizer / `stat GPU` | **待验证** | 尚未锁定目标最低配置 GPU，也未取得 Normal 零权重与 Perception Composite 分项 Profile。 |
 
 ### Candidate 性能预算与 Gate 0–3 验收
