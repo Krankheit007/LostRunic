@@ -1,0 +1,292 @@
+{
+  "assetName": "MI_LR_Ruth_Child",
+  "assetPath": "/Game/LostRunic/Materials/Instances/Characters/MI_LR_Ruth_Child.MI_LR_Ruth_Child",
+  "parent": {
+    "refPath": "/Game/LostRunic/Materials/Master/M_LR_StylizedCharacter.M_LR_StylizedCharacter"
+  },
+  "parameterList": [
+    {
+      "type": "Scalar",
+      "name": "BaseColorSaturation"
+    },
+    {
+      "type": "Scalar",
+      "name": "BaseColorContrast"
+    },
+    {
+      "type": "Scalar",
+      "name": "PainterlyTiling"
+    },
+    {
+      "type": "Scalar",
+      "name": "PainterlyStrength"
+    },
+    {
+      "type": "Scalar",
+      "name": "RoughnessScale"
+    },
+    {
+      "type": "Scalar",
+      "name": "MetallicScale"
+    },
+    {
+      "type": "Scalar",
+      "name": "NormalStrength"
+    },
+    {
+      "type": "Vector",
+      "name": "BaseColorTint"
+    },
+    {
+      "type": "Vector",
+      "name": "PainterlyTint"
+    },
+    {
+      "type": "Texture",
+      "name": "BaseColorTexture"
+    },
+    {
+      "type": "Texture",
+      "name": "RoughnessTexture"
+    },
+    {
+      "type": "Texture",
+      "name": "MetallicTexture"
+    },
+    {
+      "type": "Texture",
+      "name": "NormalTexture"
+    },
+    {
+      "type": "Texture",
+      "name": "PainterlyWashTexture"
+    }
+  ],
+  "currentParameters": [
+    {
+      "name": "BaseColorSaturation",
+      "type": "Scalar",
+      "currentValue": 0.9200000166893005
+    },
+    {
+      "name": "BaseColorContrast",
+      "type": "Scalar",
+      "currentValue": 1.0299999713897705
+    },
+    {
+      "name": "PainterlyTiling",
+      "type": "Scalar",
+      "currentValue": 0.44999998807907104
+    },
+    {
+      "name": "PainterlyStrength",
+      "type": "Scalar",
+      "currentValue": 0.014999999664723873
+    },
+    {
+      "name": "RoughnessScale",
+      "type": "Scalar",
+      "currentValue": 1
+    },
+    {
+      "name": "MetallicScale",
+      "type": "Scalar",
+      "currentValue": 1
+    },
+    {
+      "name": "NormalStrength",
+      "type": "Scalar",
+      "currentValue": 0.23999999463558197
+    },
+    {
+      "name": "BaseColorTint",
+      "type": "Vector",
+      "currentValue": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      }
+    },
+    {
+      "name": "PainterlyTint",
+      "type": "Vector",
+      "currentValue": {
+        "r": 0.9800000190734863,
+        "g": 0.9599999785423279,
+        "b": 1,
+        "a": 1
+      }
+    },
+    {
+      "name": "BaseColorTexture",
+      "type": "Texture",
+      "currentValue": {
+        "refPath": "/Game/LostRunic/Characters/Textures/Ruth1Tex.Ruth1Tex"
+      }
+    },
+    {
+      "name": "RoughnessTexture",
+      "type": "Texture",
+      "currentValue": {
+        "refPath": "/Game/LostRunic/Characters/Textures/Ruth1TexRoughness.Ruth1TexRoughness"
+      }
+    },
+    {
+      "name": "MetallicTexture",
+      "type": "Texture",
+      "currentValue": {
+        "refPath": "/Game/LostRunic/Characters/Textures/Ruth1TexMetallic.Ruth1TexMetallic"
+      }
+    },
+    {
+      "name": "NormalTexture",
+      "type": "Texture",
+      "currentValue": {
+        "refPath": "/Game/LostRunic/Characters/Textures/Ruth1TexNormal.Ruth1TexNormal"
+      }
+    },
+    {
+      "name": "PainterlyWashTexture",
+      "type": "Texture",
+      "currentValue": {
+        "refPath": "/Game/LostRunic/Materials/SharedTextures/T_LR_Shared_PainterlyWash_A.T_LR_Shared_PainterlyWash_A"
+      }
+    }
+  ],
+  "serializedOverrides": {
+    "scalarParameterValues": [
+      {
+        "atlasData": {
+          "bIsUsedAsAtlasPosition": false,
+          "curve": "None",
+          "atlas": "None"
+        },
+        "parameterInfo": {
+          "name": "PainterlyStrength",
+          "association": "GlobalParameter",
+          "index": -1
+        },
+        "parameterValue": 0.014999999664723873,
+        "expressionGUId": "B3387A56-42E8-56BB-2316-EFAEFD5228E1"
+      },
+      {
+        "atlasData": {
+          "bIsUsedAsAtlasPosition": false,
+          "curve": "None",
+          "atlas": "None"
+        },
+        "parameterInfo": {
+          "name": "PainterlyTiling",
+          "association": "GlobalParameter",
+          "index": -1
+        },
+        "parameterValue": 0.44999998807907104,
+        "expressionGUId": "ED10EE75-4F32-D8F2-20DF-7DB06D59953C"
+      },
+      {
+        "atlasData": {
+          "bIsUsedAsAtlasPosition": false,
+          "curve": "None",
+          "atlas": "None"
+        },
+        "parameterInfo": {
+          "name": "NormalStrength",
+          "association": "GlobalParameter",
+          "index": -1
+        },
+        "parameterValue": 0.23999999463558197,
+        "expressionGUId": "B5B5859E-4266-D9B9-0B56-CEA05CF8E6B3"
+      },
+      {
+        "atlasData": {
+          "bIsUsedAsAtlasPosition": false,
+          "curve": "None",
+          "atlas": "None"
+        },
+        "parameterInfo": {
+          "name": "RoughnessScale",
+          "association": "GlobalParameter",
+          "index": -1
+        },
+        "parameterValue": 1,
+        "expressionGUId": "D059554B-4FB0-D9D4-1C2F-A8B060EB91E4"
+      },
+      {
+        "atlasData": {
+          "bIsUsedAsAtlasPosition": false,
+          "curve": "None",
+          "atlas": "None"
+        },
+        "parameterInfo": {
+          "name": "MetallicScale",
+          "association": "GlobalParameter",
+          "index": -1
+        },
+        "parameterValue": 1,
+        "expressionGUId": "079E606D-43FF-DF04-AA24-E0A478916FBA"
+      }
+    ],
+    "vectorParameterValues": [],
+    "textureParameterValues": [],
+    "basePropertyOverrides": {
+      "bOverride_OpacityMaskClipValue": false,
+      "bOverride_BlendMode": false,
+      "bOverride_ShadingModel": false,
+      "bOverride_DitheredLODTransition": false,
+      "bOverride_CastDynamicShadowAsMasked": false,
+      "bOverride_TwoSided": false,
+      "bOverride_bIsThinSurface": false,
+      "bOverride_OutputTranslucentVelocity": false,
+      "bOverride_bHasPixelAnimation": false,
+      "bOverride_bEnableTessellation": false,
+      "bOverride_DisplacementScaling": false,
+      "bOverride_bEnableDisplacementFade": false,
+      "bOverride_DisplacementFadeRange": false,
+      "bOverride_MaxWorldPositionOffsetDisplacement": false,
+      "bOverride_CompatibleWithLumenCardSharing": false,
+      "bOverride_UsageFlags": 0,
+      "twoSided": false,
+      "bIsThinSurface": false,
+      "ditheredLODTransition": false,
+      "bCastDynamicShadowAsMasked": false,
+      "bOutputTranslucentVelocity": false,
+      "bHasPixelAnimation": false,
+      "bEnableTessellation": false,
+      "bEnableDisplacementFade": false,
+      "bCompatibleWithLumenCardSharing": false,
+      "blendMode": "BLEND_Opaque",
+      "shadingModel": "MSM_DefaultLit",
+      "opacityMaskClipValue": 0.33329999446868896,
+      "displacementScaling": {
+        "magnitude": 4,
+        "center": 0.5
+      },
+      "displacementFadeRange": {
+        "startSizePixels": 4,
+        "endSizePixels": 1
+      },
+      "maxWorldPositionOffsetDisplacement": 0,
+      "usageFlags": 4194305
+    },
+    "blendableLocationOverride": "BL_SceneColorAfterTonemapping",
+    "blendablePriorityOverride": 0
+  },
+  "dependencies": [
+    "/Game/LostRunic/Materials/Master/M_LR_StylizedCharacter"
+  ],
+  "skeletalMesh": {
+    "assetPath": "/Game/LostRunic/Characters/Mesh/Ruth1.Ruth1",
+    "slots": [
+      "Material_001"
+    ],
+    "slotMaterials": [
+      {
+        "slot": "Material_001",
+        "material": {
+          "refPath": "/Game/LostRunic/Characters/Materials/Ruth1Mat.Ruth1Mat"
+        }
+      }
+    ]
+  }
+}

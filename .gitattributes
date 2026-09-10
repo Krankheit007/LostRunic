@@ -1,5 +1,8 @@
 * text=auto
 
+# Preserve immutable baseline hashes across checkouts.
+ArtSource/Baselines/** -text
+
 # Unreal Engine binary assets
 *.uasset filter=lfs diff=lfs merge=lfs -text
 *.umap filter=lfs diff=lfs merge=lfs -text

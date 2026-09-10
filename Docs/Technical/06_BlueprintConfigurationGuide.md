@@ -175,6 +175,12 @@
 5. `BP_LRHomePickup` 与 `BP_LRHomeDoor` 的可交互碰撞必须为 Query Only，并将 Object Type 设为项目 `Interaction` 通道；其余交互规则、距离和执行合法性由 C++ 处理。
 6. `MI_PP_LR_InteractionOutline_Diag100` 与 `MI_PP_LR_InteractionOutline_Diag0707` 位于 `/Game/LostRunic/Materials/Benchmark/Instances/`，只用于 A/B；正式默认使用 0.707，不按资产另建交互描边实例。
 
+#### L_Art_Demo 风格描边参数
+
+**L_Art_Demo 风格描边观察版（2026-09-09）**：本轮美术专用关卡使用 `LRScene_PostProcess`（Priority 20、Unbound 开启），其中场景 StyleOutline 与独立 InteractionOutline 各一项、权重1；不要用上面的通用测试关卡体积名称覆盖此实例。打开 Content Browser 中 `/Game/LostRunic/Materials/Instances/Scenes/MI_PP_LR_LivingRoomOutline`，在 Material Instance Editor 的 Details 参数列表搜索 `OutlineWidthPx`，开启该标量覆盖并设为 `2`。`StructureWidthScale` 有效值保持 `0.5`，`InternalEdgeStrength` 保持 `0.45`；保存 MI 后可再次打开检查。结构采样邻域为主轮廓的一半，不保证最终栅格线宽恰好1px。亮暗层级由 `OutlineLightDarkStrength=0.15`、`OutlineLumaReference=1`、`OutlineLumaLow=0.2`、`OutlineLumaHigh=0.7` 控制，Low 必须小于 High；这些是风格材质候选参数，不是交互状态参数。
+
+该设置仅改变 Normal 风格描边；不要修改交互 MI 的 `InteractionOutlineWidthPx=1` 或以此代替 `InteractionOutline` Component Tag。root 已回读2px并审查 `ArtSource/Evidence/ArtPipeline_20260909/After_P4_2px_PIE_Center.png`；本次使用美术内容相关的 `L_Art_Demo`，临时 PIE 出生位置 `(-150,180,100)`、yaw0，保存的 PlayerStart 和500cm/-52°/68°镜头未改。单帧验证通过，移动稳定性及 Interaction/Perception/Cutaway 状态往返尚未验收；既有 Cutaway 配置 Warning 仍见美术验证记录。
+
 #### Normal Material Coverage G–L 资产配置
 
 1. 环境 Opaque 打开 `/Game/LostRunic/Materials/Master/M_LR_StylizedOpaque`。所有 MI 都能看到 `SurfaceUTiling` / `SurfaceVTiling`，但只有 Wood、Wallpaper、Tile 等方向性/可平铺环境家族可按批准规则修改；Plaster、Metal、Cloth 保持 `1.0`。墙体长度必须由 Mesh UV/Trim UV 维持物理尺度，不按墙长派生 MI。
@@ -896,3 +902,13 @@ StringTable 的 `Source String` 只填写源语言（本项目约定为 `zh-Hans
 - Normal Stable 时 GPU Visualizer/DumpGPU 不应出现 Perception Composite Pass；Candidate Development Budget（1080p 1.5 ms、1440p 2.5 ms）只作为当前开发 GPU 警戒线，目标硬件锁定后重新基准化。
 
 验证记录（2026-09-06）：`LostRunic.Perception` 定向自动化 4/4 通过；`LostRunicEditor Win64 Development` 完整 UHT/C++/链接构建成功；`L_PIE_Test` 已完成稳定 Player Reveal 冒烟，确认普通 ArtEdge 不再使用浅青 Wet 色，综合色/内部线/Silhouette 使用分级距离合同。测试关卡本轮未提供可控有声源波前，因此 `WetEdge` 的 0.20 s 动态观感、完整 Echo/暂停/Time Dilation、Stencil/透明对照与 GPU Profile 保持待验收。
+
+### 水彩灯光与阴影积色（2026-09-10）
+
+已在 L_Art_Demo 配置，完整路径、参数及回退见 [水彩光照与积色](../Art/07_WatercolorLightAndPigment.md)。
+
+1. Content Browser 打开 `/Game/LostRunic/Materials/Lighting/MI_LR_WatercolorLocalLight`。Material Instance Editor 的 Scalar Parameter Values 勾选 PatchSizeCm=24、Strength=0.50。方向光使用 `/Game/LostRunic/Materials/Instances/Scenes/MI_LR_WatercolorDirectional`，继承 65 / 0.65。
+2. 选择目标 LightComponent，Details 搜索 Light Function Material 绑定实例。六个 LRScene 点光源已配置 Movable，并关闭各灯 Allow Mega Lights；不改全局设置。SconceLeft 原为 Static，其余已为 Movable。
+3. 打开 `/Game/LostRunic/Materials/Instances/Scenes/MI_PP_LR_WatercolorPigment`，Scalar Parameter Values 可覆盖 Strength=1、PatchSizeCm=65、RimStrength=0.35、BleedStrength=0.35、RimWidthPx=2、SoftWidthPx=10、DebugView=0。Strength=0 用于旁路对照，DebugView=1 为诊断，之后恢复 0。
+4. 选择 LRScene_PostProcess，Details 搜索 Post Process Materials / Weighted Blendables，原两项 Style/Interaction 保留，新增积色实例 Weight=1。当前已加入，不要重复追加。母材质 After DOF、Priority=-10，以现有 LR_NormalOutlineGate 门控，不增加 MPC 写入者。
+5. 在受影响地图 PIE 检查壁灯外圈、桌椅硬阴影暗侧、窗影柔边。已完成静态 PIE/Simulate、最终编译和保存；移动时序、Perception 往返、透明物体及 1080p/60fps GPU 验收待完成。算法估计光照，不是真实阴影缓冲，可能误识别材质变化。

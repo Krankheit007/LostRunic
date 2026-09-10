@@ -1,0 +1,229 @@
+{
+  "schemaVersion": "1.0",
+  "baselineId": "ArtBaseline_20260907",
+  "immutable": true,
+  "overwritePolicy": "Refuse overwrite after sealing; create a new suffixed baseline if another archive exists",
+  "captureDate": "2026-09-08",
+  "capturedAtLocal": "2026-09-08T12:43:04.7986901+08:00",
+  "captureTimezone": "Asia/Shanghai",
+  "captureKind": "P0 bounded render baseline",
+  "source": "Unreal MCP read-only inspection plus local file/Git/log evidence",
+  "fileCount": 28,
+  "detachedIntegrity": {
+    "algorithm": "SHA256",
+    "subject": "Manifest.json",
+    "record": "Manifest.sha256"
+  },
+  "coverage": {
+    "camera": "Authored BP + actual PIE after user DA edit + editor viewport distinction",
+    "lighting": "Named 14 living-room lights",
+    "postProcess": "2 PPV stacks and selected override fields",
+    "materials": "3 outline MIs + character MI + 5 representative Scene MIs",
+    "renderCVars": "Explicit Lumen/VSM/AA/TSR/screen percentage/exposure/fog/quality whitelist",
+    "userOverrideCopies": "BP, map, DA and 11 outline material/function/parameter assets"
+  },
+  "missingEvidence": [
+    "Clean Gameplay/PIE screenshot",
+    "GPU profile/visualizer capture",
+    "Final effective runtime blended PP stack",
+    "Exhaustive 81 geometry / 32 Scene MI inventory",
+    "Transitive parent graph beyond direct reads",
+    "Actual texture blob backups"
+  ],
+  "files": [
+    {
+      "path": "CameraTransform.json",
+      "bytes": 7847,
+      "sha256": "0CDCF66A9F9667F3FFFDCE225C6425AAAAEC7E1A2BA08657D9EE88576F2CFA31",
+      "integrityMode": "sha256"
+    },
+    {
+      "path": "CaptureNotes.md",
+      "bytes": 4159,
+      "sha256": "6B03C51B92A5210915314B0534E71636F9EB96CC1932519599CB101121A4CE39",
+      "integrityMode": "sha256"
+    },
+    {
+      "path": "CharacterMaterial.json",
+      "bytes": 7774,
+      "sha256": "961EA070FA4FEC17CA234B617665750B50122828DAEA3769E2F776042CA43262",
+      "integrityMode": "sha256"
+    },
+    {
+      "path": "Diff-Preview.ps1",
+      "bytes": 1167,
+      "sha256": "A97C5EECB1C7741BD69AEAECA9F97630A1197196CDD335A58AD83800D909E008",
+      "integrityMode": "sha256"
+    },
+    {
+      "path": "Environment.json",
+      "bytes": 31469,
+      "sha256": "6C3CA3974510062DEF0F1BB8CC6EA91B6BCB00BA8280878B4FE4CA49F7572B6C",
+      "integrityMode": "sha256"
+    },
+    {
+      "path": "LightingAndPostProcess.json",
+      "bytes": 78057,
+      "sha256": "B8BF3F6847310311752AFD036B53A2E77C985FFB49357FCEA8EB3F4A6A79C2B1",
+      "integrityMode": "sha256"
+    },
+    {
+      "path": "MaterialInstances.json",
+      "bytes": 26896,
+      "sha256": "F1AAFC832990B45FB593579CF61C338E661B8C8A80BE8245F25BFB390431E464",
+      "integrityMode": "sha256"
+    },
+    {
+      "path": "OriginalScreenshot_EditorViewport.png",
+      "bytes": 2811475,
+      "sha256": "ED871578A79D42979061ECB353A212B1BBBC3B8E5E5609E29A4CBACD7F6B8413",
+      "integrityMode": "sha256"
+    },
+    {
+      "path": "RenderingCVars.json",
+      "bytes": 81406,
+      "sha256": "1A239E55C4338BB3C1C3086EE6F665CD520596C92115DCDA7451CAA499842B5B",
+      "integrityMode": "sha256"
+    },
+    {
+      "path": "Restore-Preview.ps1",
+      "bytes": 939,
+      "sha256": "8F6D8539850B48F70B33BC4075E302675C93975838B53643041C1787F3817939",
+      "integrityMode": "sha256"
+    },
+    {
+      "path": "SceneMaterialCoverage.json",
+      "bytes": 68744,
+      "sha256": "A28147ABA5983BCB46C650CC2D9ECE50E8A473374F89219F32D46A7D1CE642FA",
+      "integrityMode": "sha256"
+    },
+    {
+      "path": "Verify-Baseline.ps1",
+      "bytes": 1573,
+      "sha256": "F8EDEFC25457BABC1ED4525A524B11331401EEB14F285BB85DF11D0FDF41269C",
+      "integrityMode": "sha256"
+    },
+    {
+      "path": "WorkspaceOverrides/BP_Ruth.uasset",
+      "bytes": 64912,
+      "sha256": "61FA8D14CF5366E747124BE960D99899A40DB9F3AE69DA7D0441764076A4E7FE",
+      "integrityMode": "sha256",
+      "workspaceRelativePath": "Content/LostRunic/Blueprints/Character/BP_Ruth.uasset",
+      "restoreTarget": "User-confirmed existing BP edit"
+    },
+    {
+      "path": "WorkspaceOverrides/Content/LostRunic/Materials/Benchmark/Instances/MI_PP_LR_InteractionOutline_Diag0707.uasset",
+      "bytes": 9773,
+      "sha256": "9EC5193F0DD25DC8854944C419EC4A8AFD9EDB50A62354CA933E969488E8E444",
+      "integrityMode": "sha256",
+      "workspaceRelativePath": "Content/LostRunic/Materials/Benchmark/Instances/MI_PP_LR_InteractionOutline_Diag0707.uasset",
+      "restoreTarget": "P0 outline dependency backup"
+    },
+    {
+      "path": "WorkspaceOverrides/Content/LostRunic/Materials/Benchmark/Instances/MI_PP_LR_StyleOutline_Benchmark.uasset",
+      "bytes": 11825,
+      "sha256": "63A6ED11204F69AB5D2325E0536E7BB65DAB40F7A07DA977F989B05A9A85091E",
+      "integrityMode": "sha256",
+      "workspaceRelativePath": "Content/LostRunic/Materials/Benchmark/Instances/MI_PP_LR_StyleOutline_Benchmark.uasset",
+      "restoreTarget": "P0 outline dependency backup"
+    },
+    {
+      "path": "WorkspaceOverrides/Content/LostRunic/Materials/Functions/MF_LR_ArtEdgeDetector.uasset",
+      "bytes": 21604,
+      "sha256": "720AB5BB83249830B99935F4391A87F5ECF978DF69E20A7CC2B5E85614DFC12A",
+      "integrityMode": "sha256",
+      "workspaceRelativePath": "Content/LostRunic/Materials/Functions/MF_LR_ArtEdgeDetector.uasset",
+      "restoreTarget": "P0 outline dependency backup"
+    },
+    {
+      "path": "WorkspaceOverrides/Content/LostRunic/Materials/Functions/MF_LR_CutawayRadialShape.uasset",
+      "bytes": 28601,
+      "sha256": "DD8C219EFE4905949B240CFC85B7CC74482208A9FD4F55B8F44D494858AAC740",
+      "integrityMode": "sha256",
+      "workspaceRelativePath": "Content/LostRunic/Materials/Functions/MF_LR_CutawayRadialShape.uasset",
+      "restoreTarget": "P0 outline dependency backup"
+    },
+    {
+      "path": "WorkspaceOverrides/Content/LostRunic/Materials/Functions/MF_LR_InteractionEdgeDetector.uasset",
+      "bytes": 17347,
+      "sha256": "4A43D6E1F5D642C06E8E34FC4A799860B0ABD64266AA5B82E17F0B1FAA2A5AD2",
+      "integrityMode": "sha256",
+      "workspaceRelativePath": "Content/LostRunic/Materials/Functions/MF_LR_InteractionEdgeDetector.uasset",
+      "restoreTarget": "P0 outline dependency backup"
+    },
+    {
+      "path": "WorkspaceOverrides/Content/LostRunic/Materials/Functions/MF_LR_OutlineKernel.uasset",
+      "bytes": 16252,
+      "sha256": "05B80128448A7B0B4A529DD31717EC4A8A6242D422AE0A6D64A9E95674EB658F",
+      "integrityMode": "sha256",
+      "workspaceRelativePath": "Content/LostRunic/Materials/Functions/MF_LR_OutlineKernel.uasset",
+      "restoreTarget": "P0 outline dependency backup"
+    },
+    {
+      "path": "WorkspaceOverrides/Content/LostRunic/Materials/Instances/Scenes/MI_PP_LR_LivingRoomOutline.uasset",
+      "bytes": 11983,
+      "sha256": "224A5BC0A02C7AFD827697819DA4935B1F45EFF07EB76D9C3FAD613CB2C5B443",
+      "integrityMode": "sha256",
+      "workspaceRelativePath": "Content/LostRunic/Materials/Instances/Scenes/MI_PP_LR_LivingRoomOutline.uasset",
+      "restoreTarget": "P0 outline dependency backup"
+    },
+    {
+      "path": "WorkspaceOverrides/Content/LostRunic/Materials/M_PP_InteractionOutline.uasset",
+      "bytes": 66869,
+      "sha256": "39E970668EDFA97FE9C5E223FF1C5FB618CF95B498A66F8EBF9E6131BD06ED70",
+      "integrityMode": "sha256",
+      "workspaceRelativePath": "Content/LostRunic/Materials/M_PP_InteractionOutline.uasset",
+      "restoreTarget": "P0 outline dependency backup"
+    },
+    {
+      "path": "WorkspaceOverrides/Content/LostRunic/Materials/Parameters/MPC_LR_CutawayView.uasset",
+      "bytes": 2817,
+      "sha256": "D1F5A55E3B84DCAEC404E883240E4FBAA61E5538342D985A025DAB95DA1323BE",
+      "integrityMode": "sha256",
+      "workspaceRelativePath": "Content/LostRunic/Materials/Parameters/MPC_LR_CutawayView.uasset",
+      "restoreTarget": "P0 outline dependency backup"
+    },
+    {
+      "path": "WorkspaceOverrides/Content/LostRunic/Materials/Parameters/MPC_LR_VisualStyle.uasset",
+      "bytes": 2556,
+      "sha256": "4F23ABA767B5048727C3053CCBE98ABFF1A44984CE26E513720EEE67704F2C71",
+      "integrityMode": "sha256",
+      "workspaceRelativePath": "Content/LostRunic/Materials/Parameters/MPC_LR_VisualStyle.uasset",
+      "restoreTarget": "P0 outline dependency backup"
+    },
+    {
+      "path": "WorkspaceOverrides/Content/LostRunic/Materials/PostProcess/M_PP_LR_StyleOutline.uasset",
+      "bytes": 110472,
+      "sha256": "1CFE2E5C477549174603404CF517B2B5C2BBE29A46D33D181F0770FB370C2AF4",
+      "integrityMode": "sha256",
+      "workspaceRelativePath": "Content/LostRunic/Materials/PostProcess/M_PP_LR_StyleOutline.uasset",
+      "restoreTarget": "P0 outline dependency backup"
+    },
+    {
+      "path": "WorkspaceOverrides/DA_LRPresentationTuning.uasset",
+      "bytes": 3155,
+      "sha256": "6F54C08522F91121F3DE6226392255EDD505CE26D1CBE94C02F94801AC455371",
+      "integrityMode": "sha256",
+      "workspaceRelativePath": "Content/LostRunic/Data/Tuning/DA_LRPresentationTuning.uasset",
+      "restoreTarget": "User-confirmed current camera tuning edit"
+    },
+    {
+      "path": "WorkspaceOverrides/L_Art_Demo.umap",
+      "bytes": 351301,
+      "sha256": "5FC64DA6C7539D511F2E055F2D319528E2C670369023BA5871125326586E36C8",
+      "integrityMode": "sha256",
+      "workspaceRelativePath": "Content/LostRunic/Levels/PIE_Test/L_Art_Demo.umap",
+      "restoreTarget": "User-confirmed existing level layout/camera edit"
+    },
+    {
+      "path": "Manifest.json",
+      "integrityMode": "detached",
+      "note": "Self hash is stored in Manifest.sha256; entry is listed but not self-rehashed."
+    },
+    {
+      "path": "Manifest.sha256",
+      "integrityMode": "detached",
+      "note": "Detached SHA256 record for Manifest.json; its own hash is not self-referential."
+    }
+  ]
+}

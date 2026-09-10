@@ -1,0 +1,2225 @@
+{
+  "schemaVersion": "1.0",
+  "captureDate": "2026-09-08",
+  "capturedAtLocal": "2026-09-08T12:17:07.0656183+08:00",
+  "captureSource": "UE MCP over localhost / read-only",
+  "scope": "Representative living-room scene meshes: floor envelope, back wall, sofa, rug",
+  "coverageNote": "Bounded P0 sample coverage because the current read-only tool path did not complete an exhaustive level-wide inventory; full living-room geometry and all 32 Scene MI values remain NOT_CAPTURED.",
+  "meshAssignments": [
+    {
+      "sample": "floor",
+      "mesh": "/Game/LostRunic/Scene/Meshes/SM_LR_FloorEnvelope.SM_LR_FloorEnvelope",
+      "component": "/Game/LostRunic/Levels/PIE_Test/L_Art_Demo.L_Art_Demo:PersistentLevel.StaticMeshActor_7.StaticMeshComponent0",
+      "slots": [
+        {
+          "slot": "S01_FloorMass_010",
+          "material": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_FloorMass_BC.MI_LR_Scene_FloorMass_BC"
+        }
+      ]
+    },
+    {
+      "sample": "backWall",
+      "mesh": "/Game/LostRunic/Scene/Meshes/SM_LR_BackWallMain.SM_LR_BackWallMain",
+      "component": "/Game/LostRunic/Levels/PIE_Test/L_Art_Demo.L_Art_Demo:PersistentLevel.StaticMeshActor_9.StaticMeshComponent0",
+      "slots": [
+        {
+          "slot": "S01_CoolPlaster_038",
+          "material": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_CoolPlaster_BC.MI_LR_Scene_CoolPlaster_BC"
+        }
+      ]
+    },
+    {
+      "sample": "sofa",
+      "mesh": "/Game/LostRunic/Scene/Meshes/SM_LR_Sofa.SM_LR_Sofa",
+      "component": "/Game/LostRunic/Levels/PIE_Test/L_Art_Demo.L_Art_Demo:PersistentLevel.StaticMeshActor_4.StaticMeshComponent0",
+      "slots": [
+        {
+          "slot": "R02_ROOT_Sofa_S01_OliveCloth_004",
+          "material": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_ROOT_Sofa_Cloth_BC.MI_LR_Scene_ROOT_Sofa_Cloth_BC"
+        },
+        {
+          "slot": "R02_ROOT_Sofa_S02_TerracottaThrow_003",
+          "material": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_ROOT_Sofa_Cloth_BC.MI_LR_Scene_ROOT_Sofa_Cloth_BC"
+        },
+        {
+          "slot": "S02_Wood_052",
+          "material": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_Wood_BC.MI_LR_Scene_Wood_BC"
+        },
+        {
+          "slot": "R02_ROOT_Sofa_S02_CreamCloth_003",
+          "material": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_ROOT_Sofa_Cloth_BC.MI_LR_Scene_ROOT_Sofa_Cloth_BC"
+        }
+      ]
+    },
+    {
+      "sample": "rug",
+      "mesh": "/Game/LostRunic/Scene/Meshes/SM_LR_Rug.SM_LR_Rug",
+      "component": "/Game/LostRunic/Levels/PIE_Test/L_Art_Demo.L_Art_Demo:PersistentLevel.StaticMeshActor_85.StaticMeshComponent0",
+      "slots": [
+        {
+          "slot": "S01_RugMass_007",
+          "material": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_Rug_BC.MI_LR_Scene_Rug_BC"
+        }
+      ]
+    }
+  ],
+  "materials": [
+    {
+      "assetPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_FloorMass_BC.MI_LR_Scene_FloorMass_BC",
+      "parameterList": [
+        {
+          "type": "Scalar",
+          "name": "BaseColorSaturation"
+        },
+        {
+          "type": "Scalar",
+          "name": "BaseColorContrast"
+        },
+        {
+          "type": "Scalar",
+          "name": "StructureCavityStrength"
+        },
+        {
+          "type": "Scalar",
+          "name": "PainterlyTiling"
+        },
+        {
+          "type": "Scalar",
+          "name": "PainterlyStrength"
+        },
+        {
+          "type": "Scalar",
+          "name": "DetailTiling"
+        },
+        {
+          "type": "Scalar",
+          "name": "DetailStrength"
+        },
+        {
+          "type": "Scalar",
+          "name": "RoughnessBase"
+        },
+        {
+          "type": "Scalar",
+          "name": "RoughnessVariation"
+        },
+        {
+          "type": "Scalar",
+          "name": "RoughnessMin"
+        },
+        {
+          "type": "Scalar",
+          "name": "RoughnessMax"
+        },
+        {
+          "type": "Scalar",
+          "name": "NormalStrength"
+        },
+        {
+          "type": "Scalar",
+          "name": "Metallic"
+        },
+        {
+          "type": "Scalar",
+          "name": "SurfaceDebugView"
+        },
+        {
+          "type": "Scalar",
+          "name": "SurfaceUTiling"
+        },
+        {
+          "type": "Scalar",
+          "name": "SurfaceVTiling"
+        },
+        {
+          "type": "Scalar",
+          "name": "CutawayLocalAmount"
+        },
+        {
+          "type": "Scalar",
+          "name": "CutawayGroupAmount"
+        },
+        {
+          "type": "Scalar",
+          "name": "CutawayForegroundAmount"
+        },
+        {
+          "type": "Scalar",
+          "name": "CutawayCenterUVX"
+        },
+        {
+          "type": "Scalar",
+          "name": "CutawayCenterUVY"
+        },
+        {
+          "type": "Scalar",
+          "name": "CutawayRadiusRefPx"
+        },
+        {
+          "type": "Scalar",
+          "name": "CutawayRootOverrideAmount"
+        },
+        {
+          "type": "Scalar",
+          "name": "CutawayRootHeight01"
+        },
+        {
+          "type": "Scalar",
+          "name": "CutawayRootFeather01"
+        },
+        {
+          "type": "Scalar",
+          "name": "RootPreserveEnabled"
+        },
+        {
+          "type": "Scalar",
+          "name": "DefaultRootHeightCm"
+        },
+        {
+          "type": "Scalar",
+          "name": "DefaultRootFeatherCm"
+        },
+        {
+          "type": "Scalar",
+          "name": "ForegroundFullyCutDistanceCm"
+        },
+        {
+          "type": "Scalar",
+          "name": "ForegroundVisibleDistanceCm"
+        },
+        {
+          "type": "Vector",
+          "name": "BaseColorTint"
+        },
+        {
+          "type": "Vector",
+          "name": "StructureCavityTint"
+        },
+        {
+          "type": "Vector",
+          "name": "PainterlyTint"
+        },
+        {
+          "type": "Texture",
+          "name": "BaseColorTexture"
+        },
+        {
+          "type": "Texture",
+          "name": "StylizedMaskTexture"
+        },
+        {
+          "type": "Texture",
+          "name": "DetailTexture"
+        },
+        {
+          "type": "Texture",
+          "name": "PainterlyWashTexture"
+        },
+        {
+          "type": "Texture",
+          "name": "NormalTexture"
+        }
+      ],
+      "serializedOverrides": {
+        "parent": {
+          "refPath": "/Game/LostRunic/Materials/Master/M_LR_StylizedOpaque.M_LR_StylizedOpaque"
+        },
+        "scalarParameterValues": [
+          {
+            "atlasData": {
+              "bIsUsedAsAtlasPosition": false,
+              "curve": "None",
+              "atlas": "None"
+            },
+            "parameterInfo": {
+              "name": "BaseColorSaturation",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": 1,
+            "expressionGUId": "CD646AE5-4C6E-B228-9ABA-B6A3CDE23C88"
+          },
+          {
+            "atlasData": {
+              "bIsUsedAsAtlasPosition": false,
+              "curve": "None",
+              "atlas": "None"
+            },
+            "parameterInfo": {
+              "name": "BaseColorContrast",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": 1,
+            "expressionGUId": "0116820E-4804-6A54-29DD-A6AC7C378BA6"
+          },
+          {
+            "atlasData": {
+              "bIsUsedAsAtlasPosition": false,
+              "curve": "None",
+              "atlas": "None"
+            },
+            "parameterInfo": {
+              "name": "RoughnessBase",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": 0.7599999904632568,
+            "expressionGUId": "B4F652FC-465E-CF2F-6B62-958495CD1CE2"
+          },
+          {
+            "atlasData": {
+              "bIsUsedAsAtlasPosition": false,
+              "curve": "None",
+              "atlas": "None"
+            },
+            "parameterInfo": {
+              "name": "RoughnessMin",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": 0.25,
+            "expressionGUId": "1C62F2E6-4C04-FAB0-FE51-59936F8CA1BF"
+          },
+          {
+            "atlasData": {
+              "bIsUsedAsAtlasPosition": false,
+              "curve": "None",
+              "atlas": "None"
+            },
+            "parameterInfo": {
+              "name": "RoughnessMax",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": 0.949999988079071,
+            "expressionGUId": "C2C52966-4A2C-9D01-A343-65855AFD31A5"
+          },
+          {
+            "atlasData": {
+              "bIsUsedAsAtlasPosition": false,
+              "curve": "None",
+              "atlas": "None"
+            },
+            "parameterInfo": {
+              "name": "RoughnessVariation",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": 0.03999999910593033,
+            "expressionGUId": "23D56E7B-4A04-2500-7495-4DAB59E07AE1"
+          },
+          {
+            "atlasData": {
+              "bIsUsedAsAtlasPosition": false,
+              "curve": "None",
+              "atlas": "None"
+            },
+            "parameterInfo": {
+              "name": "Metallic",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": 0,
+            "expressionGUId": "99153AA9-4717-4184-3A6E-26852C21167E"
+          },
+          {
+            "atlasData": {
+              "bIsUsedAsAtlasPosition": false,
+              "curve": "None",
+              "atlas": "None"
+            },
+            "parameterInfo": {
+              "name": "NormalStrength",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": 0,
+            "expressionGUId": "E6C39548-4183-BB2C-4CE2-67BE98909BB0"
+          },
+          {
+            "atlasData": {
+              "bIsUsedAsAtlasPosition": false,
+              "curve": "None",
+              "atlas": "None"
+            },
+            "parameterInfo": {
+              "name": "PainterlyStrength",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": 0.02500000037252903,
+            "expressionGUId": "550C824C-457E-1FE4-CE10-028690C133CF"
+          },
+          {
+            "atlasData": {
+              "bIsUsedAsAtlasPosition": false,
+              "curve": "None",
+              "atlas": "None"
+            },
+            "parameterInfo": {
+              "name": "StructureCavityStrength",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": 0,
+            "expressionGUId": "5C52B4FB-4EDD-8D39-324C-69B9422FF336"
+          },
+          {
+            "atlasData": {
+              "bIsUsedAsAtlasPosition": false,
+              "curve": "None",
+              "atlas": "None"
+            },
+            "parameterInfo": {
+              "name": "DetailStrength",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": 0,
+            "expressionGUId": "4BFA85D7-4946-F015-09F2-F8937C9B4629"
+          },
+          {
+            "atlasData": {
+              "bIsUsedAsAtlasPosition": false,
+              "curve": "None",
+              "atlas": "None"
+            },
+            "parameterInfo": {
+              "name": "SurfaceUTiling",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": 1,
+            "expressionGUId": "58626BCC-44B3-59F3-A8F2-13A09417344A"
+          },
+          {
+            "atlasData": {
+              "bIsUsedAsAtlasPosition": false,
+              "curve": "None",
+              "atlas": "None"
+            },
+            "parameterInfo": {
+              "name": "SurfaceVTiling",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": 1,
+            "expressionGUId": "713D5A31-4C9D-852B-087E-F1A384B7C420"
+          }
+        ],
+        "vectorParameterValues": [
+          {
+            "parameterInfo": {
+              "name": "BaseColorTint",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": {
+              "r": 1,
+              "g": 1,
+              "b": 1,
+              "a": 1
+            },
+            "expressionGUId": "2A5DC1DA-40FD-CBCF-55BA-2CA16E9E2BFA"
+          }
+        ],
+        "textureParameterValues": [
+          {
+            "parameterInfo": {
+              "name": "BaseColorTexture",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": {
+              "refPath": "/Game/LostRunic/Scene/Textures/T_LR_FloorMass_BC.T_LR_FloorMass_BC"
+            },
+            "expressionGUId": "63A6173C-4D29-2FFB-CE90-8C92F6C6932C"
+          },
+          {
+            "parameterInfo": {
+              "name": "StylizedMaskTexture",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": {
+              "refPath": "/Game/LostRunic/Scene/Textures/T_LR_Neutral_SMK.T_LR_Neutral_SMK"
+            },
+            "expressionGUId": "E6541331-420A-3122-8404-12B1799BD5D7"
+          }
+        ],
+        "basePropertyOverrides": {
+          "bOverride_OpacityMaskClipValue": false,
+          "bOverride_BlendMode": false,
+          "bOverride_ShadingModel": false,
+          "bOverride_DitheredLODTransition": false,
+          "bOverride_CastDynamicShadowAsMasked": false,
+          "bOverride_TwoSided": false,
+          "bOverride_bIsThinSurface": false,
+          "bOverride_OutputTranslucentVelocity": false,
+          "bOverride_bHasPixelAnimation": false,
+          "bOverride_bEnableTessellation": false,
+          "bOverride_DisplacementScaling": false,
+          "bOverride_bEnableDisplacementFade": false,
+          "bOverride_DisplacementFadeRange": false,
+          "bOverride_MaxWorldPositionOffsetDisplacement": false,
+          "bOverride_CompatibleWithLumenCardSharing": false,
+          "bOverride_UsageFlags": 0,
+          "twoSided": false,
+          "bIsThinSurface": false,
+          "ditheredLODTransition": false,
+          "bCastDynamicShadowAsMasked": false,
+          "bOutputTranslucentVelocity": false,
+          "bHasPixelAnimation": false,
+          "bEnableTessellation": false,
+          "bEnableDisplacementFade": false,
+          "bCompatibleWithLumenCardSharing": false,
+          "blendMode": "BLEND_Opaque",
+          "shadingModel": "MSM_DefaultLit",
+          "opacityMaskClipValue": 0.33329999446868896,
+          "displacementScaling": {
+            "magnitude": 4,
+            "center": 0.5
+          },
+          "displacementFadeRange": {
+            "startSizePixels": 4,
+            "endSizePixels": 1
+          },
+          "maxWorldPositionOffsetDisplacement": 0,
+          "usageFlags": 4194304
+        },
+        "blendableLocationOverride": "BL_SceneColorAfterTonemapping",
+        "blendablePriorityOverride": 0
+      },
+      "inheritanceStatus": "direct parent captured; parent asset internals not recursively expanded by bounded P0 capture"
+    },
+    {
+      "assetPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_CoolPlaster_BC.MI_LR_Scene_CoolPlaster_BC",
+      "parameterList": [
+        {
+          "type": "Scalar",
+          "name": "BaseColorSaturation"
+        },
+        {
+          "type": "Scalar",
+          "name": "BaseColorContrast"
+        },
+        {
+          "type": "Scalar",
+          "name": "StructureCavityStrength"
+        },
+        {
+          "type": "Scalar",
+          "name": "PainterlyTiling"
+        },
+        {
+          "type": "Scalar",
+          "name": "PainterlyStrength"
+        },
+        {
+          "type": "Scalar",
+          "name": "DetailTiling"
+        },
+        {
+          "type": "Scalar",
+          "name": "DetailStrength"
+        },
+        {
+          "type": "Scalar",
+          "name": "RoughnessBase"
+        },
+        {
+          "type": "Scalar",
+          "name": "RoughnessVariation"
+        },
+        {
+          "type": "Scalar",
+          "name": "RoughnessMin"
+        },
+        {
+          "type": "Scalar",
+          "name": "RoughnessMax"
+        },
+        {
+          "type": "Scalar",
+          "name": "NormalStrength"
+        },
+        {
+          "type": "Scalar",
+          "name": "Metallic"
+        },
+        {
+          "type": "Scalar",
+          "name": "SurfaceDebugView"
+        },
+        {
+          "type": "Scalar",
+          "name": "SurfaceUTiling"
+        },
+        {
+          "type": "Scalar",
+          "name": "SurfaceVTiling"
+        },
+        {
+          "type": "Scalar",
+          "name": "CutawayLocalAmount"
+        },
+        {
+          "type": "Scalar",
+          "name": "CutawayGroupAmount"
+        },
+        {
+          "type": "Scalar",
+          "name": "CutawayForegroundAmount"
+        },
+        {
+          "type": "Scalar",
+          "name": "CutawayCenterUVX"
+        },
+        {
+          "type": "Scalar",
+          "name": "CutawayCenterUVY"
+        },
+        {
+          "type": "Scalar",
+          "name": "CutawayRadiusRefPx"
+        },
+        {
+          "type": "Scalar",
+          "name": "CutawayRootOverrideAmount"
+        },
+        {
+          "type": "Scalar",
+          "name": "CutawayRootHeight01"
+        },
+        {
+          "type": "Scalar",
+          "name": "CutawayRootFeather01"
+        },
+        {
+          "type": "Scalar",
+          "name": "RootPreserveEnabled"
+        },
+        {
+          "type": "Scalar",
+          "name": "DefaultRootHeightCm"
+        },
+        {
+          "type": "Scalar",
+          "name": "DefaultRootFeatherCm"
+        },
+        {
+          "type": "Scalar",
+          "name": "ForegroundFullyCutDistanceCm"
+        },
+        {
+          "type": "Scalar",
+          "name": "ForegroundVisibleDistanceCm"
+        },
+        {
+          "type": "Vector",
+          "name": "BaseColorTint"
+        },
+        {
+          "type": "Vector",
+          "name": "StructureCavityTint"
+        },
+        {
+          "type": "Vector",
+          "name": "PainterlyTint"
+        },
+        {
+          "type": "Texture",
+          "name": "BaseColorTexture"
+        },
+        {
+          "type": "Texture",
+          "name": "StylizedMaskTexture"
+        },
+        {
+          "type": "Texture",
+          "name": "DetailTexture"
+        },
+        {
+          "type": "Texture",
+          "name": "PainterlyWashTexture"
+        },
+        {
+          "type": "Texture",
+          "name": "NormalTexture"
+        }
+      ],
+      "serializedOverrides": {
+        "parent": {
+          "refPath": "/Game/LostRunic/Materials/Master/M_LR_StylizedOpaque.M_LR_StylizedOpaque"
+        },
+        "scalarParameterValues": [
+          {
+            "atlasData": {
+              "bIsUsedAsAtlasPosition": false,
+              "curve": "None",
+              "atlas": "None"
+            },
+            "parameterInfo": {
+              "name": "BaseColorSaturation",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": 1,
+            "expressionGUId": "CD646AE5-4C6E-B228-9ABA-B6A3CDE23C88"
+          },
+          {
+            "atlasData": {
+              "bIsUsedAsAtlasPosition": false,
+              "curve": "None",
+              "atlas": "None"
+            },
+            "parameterInfo": {
+              "name": "BaseColorContrast",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": 1,
+            "expressionGUId": "0116820E-4804-6A54-29DD-A6AC7C378BA6"
+          },
+          {
+            "atlasData": {
+              "bIsUsedAsAtlasPosition": false,
+              "curve": "None",
+              "atlas": "None"
+            },
+            "parameterInfo": {
+              "name": "RoughnessBase",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": 0.8199999928474426,
+            "expressionGUId": "B4F652FC-465E-CF2F-6B62-958495CD1CE2"
+          },
+          {
+            "atlasData": {
+              "bIsUsedAsAtlasPosition": false,
+              "curve": "None",
+              "atlas": "None"
+            },
+            "parameterInfo": {
+              "name": "RoughnessMin",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": 0.25,
+            "expressionGUId": "1C62F2E6-4C04-FAB0-FE51-59936F8CA1BF"
+          },
+          {
+            "atlasData": {
+              "bIsUsedAsAtlasPosition": false,
+              "curve": "None",
+              "atlas": "None"
+            },
+            "parameterInfo": {
+              "name": "RoughnessMax",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": 0.949999988079071,
+            "expressionGUId": "C2C52966-4A2C-9D01-A343-65855AFD31A5"
+          },
+          {
+            "atlasData": {
+              "bIsUsedAsAtlasPosition": false,
+              "curve": "None",
+              "atlas": "None"
+            },
+            "parameterInfo": {
+              "name": "RoughnessVariation",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": 0.03999999910593033,
+            "expressionGUId": "23D56E7B-4A04-2500-7495-4DAB59E07AE1"
+          },
+          {
+            "atlasData": {
+              "bIsUsedAsAtlasPosition": false,
+              "curve": "None",
+              "atlas": "None"
+            },
+            "parameterInfo": {
+              "name": "Metallic",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": 0,
+            "expressionGUId": "99153AA9-4717-4184-3A6E-26852C21167E"
+          },
+          {
+            "atlasData": {
+              "bIsUsedAsAtlasPosition": false,
+              "curve": "None",
+              "atlas": "None"
+            },
+            "parameterInfo": {
+              "name": "NormalStrength",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": 0,
+            "expressionGUId": "E6C39548-4183-BB2C-4CE2-67BE98909BB0"
+          },
+          {
+            "atlasData": {
+              "bIsUsedAsAtlasPosition": false,
+              "curve": "None",
+              "atlas": "None"
+            },
+            "parameterInfo": {
+              "name": "PainterlyStrength",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": 0.02500000037252903,
+            "expressionGUId": "550C824C-457E-1FE4-CE10-028690C133CF"
+          },
+          {
+            "atlasData": {
+              "bIsUsedAsAtlasPosition": false,
+              "curve": "None",
+              "atlas": "None"
+            },
+            "parameterInfo": {
+              "name": "StructureCavityStrength",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": 0,
+            "expressionGUId": "5C52B4FB-4EDD-8D39-324C-69B9422FF336"
+          },
+          {
+            "atlasData": {
+              "bIsUsedAsAtlasPosition": false,
+              "curve": "None",
+              "atlas": "None"
+            },
+            "parameterInfo": {
+              "name": "DetailStrength",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": 0,
+            "expressionGUId": "4BFA85D7-4946-F015-09F2-F8937C9B4629"
+          },
+          {
+            "atlasData": {
+              "bIsUsedAsAtlasPosition": false,
+              "curve": "None",
+              "atlas": "None"
+            },
+            "parameterInfo": {
+              "name": "SurfaceUTiling",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": 1,
+            "expressionGUId": "58626BCC-44B3-59F3-A8F2-13A09417344A"
+          },
+          {
+            "atlasData": {
+              "bIsUsedAsAtlasPosition": false,
+              "curve": "None",
+              "atlas": "None"
+            },
+            "parameterInfo": {
+              "name": "SurfaceVTiling",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": 1,
+            "expressionGUId": "713D5A31-4C9D-852B-087E-F1A384B7C420"
+          }
+        ],
+        "vectorParameterValues": [
+          {
+            "parameterInfo": {
+              "name": "BaseColorTint",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": {
+              "r": 1,
+              "g": 1,
+              "b": 1,
+              "a": 1
+            },
+            "expressionGUId": "2A5DC1DA-40FD-CBCF-55BA-2CA16E9E2BFA"
+          }
+        ],
+        "textureParameterValues": [
+          {
+            "parameterInfo": {
+              "name": "BaseColorTexture",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": {
+              "refPath": "/Game/LostRunic/Scene/Textures/T_LR_CoolPlaster_BC.T_LR_CoolPlaster_BC"
+            },
+            "expressionGUId": "63A6173C-4D29-2FFB-CE90-8C92F6C6932C"
+          },
+          {
+            "parameterInfo": {
+              "name": "StylizedMaskTexture",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": {
+              "refPath": "/Game/LostRunic/Scene/Textures/T_LR_Neutral_SMK.T_LR_Neutral_SMK"
+            },
+            "expressionGUId": "E6541331-420A-3122-8404-12B1799BD5D7"
+          }
+        ],
+        "basePropertyOverrides": {
+          "bOverride_OpacityMaskClipValue": false,
+          "bOverride_BlendMode": false,
+          "bOverride_ShadingModel": false,
+          "bOverride_DitheredLODTransition": false,
+          "bOverride_CastDynamicShadowAsMasked": false,
+          "bOverride_TwoSided": false,
+          "bOverride_bIsThinSurface": false,
+          "bOverride_OutputTranslucentVelocity": false,
+          "bOverride_bHasPixelAnimation": false,
+          "bOverride_bEnableTessellation": false,
+          "bOverride_DisplacementScaling": false,
+          "bOverride_bEnableDisplacementFade": false,
+          "bOverride_DisplacementFadeRange": false,
+          "bOverride_MaxWorldPositionOffsetDisplacement": false,
+          "bOverride_CompatibleWithLumenCardSharing": false,
+          "bOverride_UsageFlags": 0,
+          "twoSided": false,
+          "bIsThinSurface": false,
+          "ditheredLODTransition": false,
+          "bCastDynamicShadowAsMasked": false,
+          "bOutputTranslucentVelocity": false,
+          "bHasPixelAnimation": false,
+          "bEnableTessellation": false,
+          "bEnableDisplacementFade": false,
+          "bCompatibleWithLumenCardSharing": false,
+          "blendMode": "BLEND_Opaque",
+          "shadingModel": "MSM_DefaultLit",
+          "opacityMaskClipValue": 0.33329999446868896,
+          "displacementScaling": {
+            "magnitude": 4,
+            "center": 0.5
+          },
+          "displacementFadeRange": {
+            "startSizePixels": 4,
+            "endSizePixels": 1
+          },
+          "maxWorldPositionOffsetDisplacement": 0,
+          "usageFlags": 4194304
+        },
+        "blendableLocationOverride": "BL_SceneColorAfterTonemapping",
+        "blendablePriorityOverride": 0
+      },
+      "inheritanceStatus": "direct parent captured; parent asset internals not recursively expanded by bounded P0 capture"
+    },
+    {
+      "assetPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_ROOT_Sofa_Cloth_BC.MI_LR_Scene_ROOT_Sofa_Cloth_BC",
+      "parameterList": [
+        {
+          "type": "Scalar",
+          "name": "BaseColorSaturation"
+        },
+        {
+          "type": "Scalar",
+          "name": "BaseColorContrast"
+        },
+        {
+          "type": "Scalar",
+          "name": "StructureCavityStrength"
+        },
+        {
+          "type": "Scalar",
+          "name": "PainterlyTiling"
+        },
+        {
+          "type": "Scalar",
+          "name": "PainterlyStrength"
+        },
+        {
+          "type": "Scalar",
+          "name": "DetailTiling"
+        },
+        {
+          "type": "Scalar",
+          "name": "DetailStrength"
+        },
+        {
+          "type": "Scalar",
+          "name": "RoughnessBase"
+        },
+        {
+          "type": "Scalar",
+          "name": "RoughnessVariation"
+        },
+        {
+          "type": "Scalar",
+          "name": "RoughnessMin"
+        },
+        {
+          "type": "Scalar",
+          "name": "RoughnessMax"
+        },
+        {
+          "type": "Scalar",
+          "name": "NormalStrength"
+        },
+        {
+          "type": "Scalar",
+          "name": "Metallic"
+        },
+        {
+          "type": "Scalar",
+          "name": "SurfaceDebugView"
+        },
+        {
+          "type": "Scalar",
+          "name": "SurfaceUTiling"
+        },
+        {
+          "type": "Scalar",
+          "name": "SurfaceVTiling"
+        },
+        {
+          "type": "Scalar",
+          "name": "CutawayLocalAmount"
+        },
+        {
+          "type": "Scalar",
+          "name": "CutawayGroupAmount"
+        },
+        {
+          "type": "Scalar",
+          "name": "CutawayForegroundAmount"
+        },
+        {
+          "type": "Scalar",
+          "name": "CutawayCenterUVX"
+        },
+        {
+          "type": "Scalar",
+          "name": "CutawayCenterUVY"
+        },
+        {
+          "type": "Scalar",
+          "name": "CutawayRadiusRefPx"
+        },
+        {
+          "type": "Scalar",
+          "name": "CutawayRootOverrideAmount"
+        },
+        {
+          "type": "Scalar",
+          "name": "CutawayRootHeight01"
+        },
+        {
+          "type": "Scalar",
+          "name": "CutawayRootFeather01"
+        },
+        {
+          "type": "Scalar",
+          "name": "RootPreserveEnabled"
+        },
+        {
+          "type": "Scalar",
+          "name": "DefaultRootHeightCm"
+        },
+        {
+          "type": "Scalar",
+          "name": "DefaultRootFeatherCm"
+        },
+        {
+          "type": "Scalar",
+          "name": "ForegroundFullyCutDistanceCm"
+        },
+        {
+          "type": "Scalar",
+          "name": "ForegroundVisibleDistanceCm"
+        },
+        {
+          "type": "Vector",
+          "name": "BaseColorTint"
+        },
+        {
+          "type": "Vector",
+          "name": "StructureCavityTint"
+        },
+        {
+          "type": "Vector",
+          "name": "PainterlyTint"
+        },
+        {
+          "type": "Texture",
+          "name": "BaseColorTexture"
+        },
+        {
+          "type": "Texture",
+          "name": "StylizedMaskTexture"
+        },
+        {
+          "type": "Texture",
+          "name": "DetailTexture"
+        },
+        {
+          "type": "Texture",
+          "name": "PainterlyWashTexture"
+        },
+        {
+          "type": "Texture",
+          "name": "NormalTexture"
+        }
+      ],
+      "serializedOverrides": {
+        "parent": {
+          "refPath": "/Game/LostRunic/Materials/Master/M_LR_StylizedOpaque.M_LR_StylizedOpaque"
+        },
+        "scalarParameterValues": [
+          {
+            "atlasData": {
+              "bIsUsedAsAtlasPosition": false,
+              "curve": "None",
+              "atlas": "None"
+            },
+            "parameterInfo": {
+              "name": "BaseColorSaturation",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": 1,
+            "expressionGUId": "CD646AE5-4C6E-B228-9ABA-B6A3CDE23C88"
+          },
+          {
+            "atlasData": {
+              "bIsUsedAsAtlasPosition": false,
+              "curve": "None",
+              "atlas": "None"
+            },
+            "parameterInfo": {
+              "name": "BaseColorContrast",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": 1,
+            "expressionGUId": "0116820E-4804-6A54-29DD-A6AC7C378BA6"
+          },
+          {
+            "atlasData": {
+              "bIsUsedAsAtlasPosition": false,
+              "curve": "None",
+              "atlas": "None"
+            },
+            "parameterInfo": {
+              "name": "RoughnessBase",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": 0.9100000262260437,
+            "expressionGUId": "B4F652FC-465E-CF2F-6B62-958495CD1CE2"
+          },
+          {
+            "atlasData": {
+              "bIsUsedAsAtlasPosition": false,
+              "curve": "None",
+              "atlas": "None"
+            },
+            "parameterInfo": {
+              "name": "RoughnessMin",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": 0.25,
+            "expressionGUId": "1C62F2E6-4C04-FAB0-FE51-59936F8CA1BF"
+          },
+          {
+            "atlasData": {
+              "bIsUsedAsAtlasPosition": false,
+              "curve": "None",
+              "atlas": "None"
+            },
+            "parameterInfo": {
+              "name": "RoughnessMax",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": 0.949999988079071,
+            "expressionGUId": "C2C52966-4A2C-9D01-A343-65855AFD31A5"
+          },
+          {
+            "atlasData": {
+              "bIsUsedAsAtlasPosition": false,
+              "curve": "None",
+              "atlas": "None"
+            },
+            "parameterInfo": {
+              "name": "RoughnessVariation",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": 0.03999999910593033,
+            "expressionGUId": "23D56E7B-4A04-2500-7495-4DAB59E07AE1"
+          },
+          {
+            "atlasData": {
+              "bIsUsedAsAtlasPosition": false,
+              "curve": "None",
+              "atlas": "None"
+            },
+            "parameterInfo": {
+              "name": "Metallic",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": 0,
+            "expressionGUId": "99153AA9-4717-4184-3A6E-26852C21167E"
+          },
+          {
+            "atlasData": {
+              "bIsUsedAsAtlasPosition": false,
+              "curve": "None",
+              "atlas": "None"
+            },
+            "parameterInfo": {
+              "name": "NormalStrength",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": 0,
+            "expressionGUId": "E6C39548-4183-BB2C-4CE2-67BE98909BB0"
+          },
+          {
+            "atlasData": {
+              "bIsUsedAsAtlasPosition": false,
+              "curve": "None",
+              "atlas": "None"
+            },
+            "parameterInfo": {
+              "name": "PainterlyStrength",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": 0.02500000037252903,
+            "expressionGUId": "550C824C-457E-1FE4-CE10-028690C133CF"
+          },
+          {
+            "atlasData": {
+              "bIsUsedAsAtlasPosition": false,
+              "curve": "None",
+              "atlas": "None"
+            },
+            "parameterInfo": {
+              "name": "StructureCavityStrength",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": 0,
+            "expressionGUId": "5C52B4FB-4EDD-8D39-324C-69B9422FF336"
+          },
+          {
+            "atlasData": {
+              "bIsUsedAsAtlasPosition": false,
+              "curve": "None",
+              "atlas": "None"
+            },
+            "parameterInfo": {
+              "name": "DetailStrength",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": 0,
+            "expressionGUId": "4BFA85D7-4946-F015-09F2-F8937C9B4629"
+          },
+          {
+            "atlasData": {
+              "bIsUsedAsAtlasPosition": false,
+              "curve": "None",
+              "atlas": "None"
+            },
+            "parameterInfo": {
+              "name": "SurfaceUTiling",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": 1,
+            "expressionGUId": "58626BCC-44B3-59F3-A8F2-13A09417344A"
+          },
+          {
+            "atlasData": {
+              "bIsUsedAsAtlasPosition": false,
+              "curve": "None",
+              "atlas": "None"
+            },
+            "parameterInfo": {
+              "name": "SurfaceVTiling",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": 1,
+            "expressionGUId": "713D5A31-4C9D-852B-087E-F1A384B7C420"
+          }
+        ],
+        "vectorParameterValues": [
+          {
+            "parameterInfo": {
+              "name": "BaseColorTint",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": {
+              "r": 1,
+              "g": 1,
+              "b": 1,
+              "a": 1
+            },
+            "expressionGUId": "2A5DC1DA-40FD-CBCF-55BA-2CA16E9E2BFA"
+          }
+        ],
+        "textureParameterValues": [
+          {
+            "parameterInfo": {
+              "name": "BaseColorTexture",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": {
+              "refPath": "/Game/LostRunic/Scene/Textures/T_LR_ROOT_Sofa_Cloth_BC.T_LR_ROOT_Sofa_Cloth_BC"
+            },
+            "expressionGUId": "63A6173C-4D29-2FFB-CE90-8C92F6C6932C"
+          },
+          {
+            "parameterInfo": {
+              "name": "StylizedMaskTexture",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": {
+              "refPath": "/Game/LostRunic/Scene/Textures/T_LR_Neutral_SMK.T_LR_Neutral_SMK"
+            },
+            "expressionGUId": "E6541331-420A-3122-8404-12B1799BD5D7"
+          }
+        ],
+        "basePropertyOverrides": {
+          "bOverride_OpacityMaskClipValue": false,
+          "bOverride_BlendMode": false,
+          "bOverride_ShadingModel": false,
+          "bOverride_DitheredLODTransition": false,
+          "bOverride_CastDynamicShadowAsMasked": false,
+          "bOverride_TwoSided": false,
+          "bOverride_bIsThinSurface": false,
+          "bOverride_OutputTranslucentVelocity": false,
+          "bOverride_bHasPixelAnimation": false,
+          "bOverride_bEnableTessellation": false,
+          "bOverride_DisplacementScaling": false,
+          "bOverride_bEnableDisplacementFade": false,
+          "bOverride_DisplacementFadeRange": false,
+          "bOverride_MaxWorldPositionOffsetDisplacement": false,
+          "bOverride_CompatibleWithLumenCardSharing": false,
+          "bOverride_UsageFlags": 0,
+          "twoSided": false,
+          "bIsThinSurface": false,
+          "ditheredLODTransition": false,
+          "bCastDynamicShadowAsMasked": false,
+          "bOutputTranslucentVelocity": false,
+          "bHasPixelAnimation": false,
+          "bEnableTessellation": false,
+          "bEnableDisplacementFade": false,
+          "bCompatibleWithLumenCardSharing": false,
+          "blendMode": "BLEND_Opaque",
+          "shadingModel": "MSM_DefaultLit",
+          "opacityMaskClipValue": 0.33329999446868896,
+          "displacementScaling": {
+            "magnitude": 4,
+            "center": 0.5
+          },
+          "displacementFadeRange": {
+            "startSizePixels": 4,
+            "endSizePixels": 1
+          },
+          "maxWorldPositionOffsetDisplacement": 0,
+          "usageFlags": 4194304
+        },
+        "blendableLocationOverride": "BL_SceneColorAfterTonemapping",
+        "blendablePriorityOverride": 0
+      },
+      "inheritanceStatus": "direct parent captured; parent asset internals not recursively expanded by bounded P0 capture"
+    },
+    {
+      "assetPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_Wood_BC.MI_LR_Scene_Wood_BC",
+      "parameterList": [
+        {
+          "type": "Scalar",
+          "name": "BaseColorSaturation"
+        },
+        {
+          "type": "Scalar",
+          "name": "BaseColorContrast"
+        },
+        {
+          "type": "Scalar",
+          "name": "StructureCavityStrength"
+        },
+        {
+          "type": "Scalar",
+          "name": "PainterlyTiling"
+        },
+        {
+          "type": "Scalar",
+          "name": "PainterlyStrength"
+        },
+        {
+          "type": "Scalar",
+          "name": "DetailTiling"
+        },
+        {
+          "type": "Scalar",
+          "name": "DetailStrength"
+        },
+        {
+          "type": "Scalar",
+          "name": "RoughnessBase"
+        },
+        {
+          "type": "Scalar",
+          "name": "RoughnessVariation"
+        },
+        {
+          "type": "Scalar",
+          "name": "RoughnessMin"
+        },
+        {
+          "type": "Scalar",
+          "name": "RoughnessMax"
+        },
+        {
+          "type": "Scalar",
+          "name": "NormalStrength"
+        },
+        {
+          "type": "Scalar",
+          "name": "Metallic"
+        },
+        {
+          "type": "Scalar",
+          "name": "SurfaceDebugView"
+        },
+        {
+          "type": "Scalar",
+          "name": "SurfaceUTiling"
+        },
+        {
+          "type": "Scalar",
+          "name": "SurfaceVTiling"
+        },
+        {
+          "type": "Scalar",
+          "name": "CutawayLocalAmount"
+        },
+        {
+          "type": "Scalar",
+          "name": "CutawayGroupAmount"
+        },
+        {
+          "type": "Scalar",
+          "name": "CutawayForegroundAmount"
+        },
+        {
+          "type": "Scalar",
+          "name": "CutawayCenterUVX"
+        },
+        {
+          "type": "Scalar",
+          "name": "CutawayCenterUVY"
+        },
+        {
+          "type": "Scalar",
+          "name": "CutawayRadiusRefPx"
+        },
+        {
+          "type": "Scalar",
+          "name": "CutawayRootOverrideAmount"
+        },
+        {
+          "type": "Scalar",
+          "name": "CutawayRootHeight01"
+        },
+        {
+          "type": "Scalar",
+          "name": "CutawayRootFeather01"
+        },
+        {
+          "type": "Scalar",
+          "name": "RootPreserveEnabled"
+        },
+        {
+          "type": "Scalar",
+          "name": "DefaultRootHeightCm"
+        },
+        {
+          "type": "Scalar",
+          "name": "DefaultRootFeatherCm"
+        },
+        {
+          "type": "Scalar",
+          "name": "ForegroundFullyCutDistanceCm"
+        },
+        {
+          "type": "Scalar",
+          "name": "ForegroundVisibleDistanceCm"
+        },
+        {
+          "type": "Vector",
+          "name": "BaseColorTint"
+        },
+        {
+          "type": "Vector",
+          "name": "StructureCavityTint"
+        },
+        {
+          "type": "Vector",
+          "name": "PainterlyTint"
+        },
+        {
+          "type": "Texture",
+          "name": "BaseColorTexture"
+        },
+        {
+          "type": "Texture",
+          "name": "StylizedMaskTexture"
+        },
+        {
+          "type": "Texture",
+          "name": "DetailTexture"
+        },
+        {
+          "type": "Texture",
+          "name": "PainterlyWashTexture"
+        },
+        {
+          "type": "Texture",
+          "name": "NormalTexture"
+        }
+      ],
+      "serializedOverrides": {
+        "parent": {
+          "refPath": "/Game/LostRunic/Materials/Master/M_LR_StylizedOpaque.M_LR_StylizedOpaque"
+        },
+        "scalarParameterValues": [
+          {
+            "atlasData": {
+              "bIsUsedAsAtlasPosition": false,
+              "curve": "None",
+              "atlas": "None"
+            },
+            "parameterInfo": {
+              "name": "BaseColorSaturation",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": 1,
+            "expressionGUId": "CD646AE5-4C6E-B228-9ABA-B6A3CDE23C88"
+          },
+          {
+            "atlasData": {
+              "bIsUsedAsAtlasPosition": false,
+              "curve": "None",
+              "atlas": "None"
+            },
+            "parameterInfo": {
+              "name": "BaseColorContrast",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": 1,
+            "expressionGUId": "0116820E-4804-6A54-29DD-A6AC7C378BA6"
+          },
+          {
+            "atlasData": {
+              "bIsUsedAsAtlasPosition": false,
+              "curve": "None",
+              "atlas": "None"
+            },
+            "parameterInfo": {
+              "name": "RoughnessBase",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": 0.6800000071525574,
+            "expressionGUId": "B4F652FC-465E-CF2F-6B62-958495CD1CE2"
+          },
+          {
+            "atlasData": {
+              "bIsUsedAsAtlasPosition": false,
+              "curve": "None",
+              "atlas": "None"
+            },
+            "parameterInfo": {
+              "name": "RoughnessMin",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": 0.25,
+            "expressionGUId": "1C62F2E6-4C04-FAB0-FE51-59936F8CA1BF"
+          },
+          {
+            "atlasData": {
+              "bIsUsedAsAtlasPosition": false,
+              "curve": "None",
+              "atlas": "None"
+            },
+            "parameterInfo": {
+              "name": "RoughnessMax",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": 0.949999988079071,
+            "expressionGUId": "C2C52966-4A2C-9D01-A343-65855AFD31A5"
+          },
+          {
+            "atlasData": {
+              "bIsUsedAsAtlasPosition": false,
+              "curve": "None",
+              "atlas": "None"
+            },
+            "parameterInfo": {
+              "name": "RoughnessVariation",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": 0.03999999910593033,
+            "expressionGUId": "23D56E7B-4A04-2500-7495-4DAB59E07AE1"
+          },
+          {
+            "atlasData": {
+              "bIsUsedAsAtlasPosition": false,
+              "curve": "None",
+              "atlas": "None"
+            },
+            "parameterInfo": {
+              "name": "Metallic",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": 0,
+            "expressionGUId": "99153AA9-4717-4184-3A6E-26852C21167E"
+          },
+          {
+            "atlasData": {
+              "bIsUsedAsAtlasPosition": false,
+              "curve": "None",
+              "atlas": "None"
+            },
+            "parameterInfo": {
+              "name": "NormalStrength",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": 0,
+            "expressionGUId": "E6C39548-4183-BB2C-4CE2-67BE98909BB0"
+          },
+          {
+            "atlasData": {
+              "bIsUsedAsAtlasPosition": false,
+              "curve": "None",
+              "atlas": "None"
+            },
+            "parameterInfo": {
+              "name": "PainterlyStrength",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": 0.02500000037252903,
+            "expressionGUId": "550C824C-457E-1FE4-CE10-028690C133CF"
+          },
+          {
+            "atlasData": {
+              "bIsUsedAsAtlasPosition": false,
+              "curve": "None",
+              "atlas": "None"
+            },
+            "parameterInfo": {
+              "name": "StructureCavityStrength",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": 0,
+            "expressionGUId": "5C52B4FB-4EDD-8D39-324C-69B9422FF336"
+          },
+          {
+            "atlasData": {
+              "bIsUsedAsAtlasPosition": false,
+              "curve": "None",
+              "atlas": "None"
+            },
+            "parameterInfo": {
+              "name": "DetailStrength",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": 0,
+            "expressionGUId": "4BFA85D7-4946-F015-09F2-F8937C9B4629"
+          },
+          {
+            "atlasData": {
+              "bIsUsedAsAtlasPosition": false,
+              "curve": "None",
+              "atlas": "None"
+            },
+            "parameterInfo": {
+              "name": "SurfaceUTiling",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": 1,
+            "expressionGUId": "58626BCC-44B3-59F3-A8F2-13A09417344A"
+          },
+          {
+            "atlasData": {
+              "bIsUsedAsAtlasPosition": false,
+              "curve": "None",
+              "atlas": "None"
+            },
+            "parameterInfo": {
+              "name": "SurfaceVTiling",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": 1,
+            "expressionGUId": "713D5A31-4C9D-852B-087E-F1A384B7C420"
+          }
+        ],
+        "vectorParameterValues": [
+          {
+            "parameterInfo": {
+              "name": "BaseColorTint",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": {
+              "r": 1,
+              "g": 1,
+              "b": 1,
+              "a": 1
+            },
+            "expressionGUId": "2A5DC1DA-40FD-CBCF-55BA-2CA16E9E2BFA"
+          }
+        ],
+        "textureParameterValues": [
+          {
+            "parameterInfo": {
+              "name": "BaseColorTexture",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": {
+              "refPath": "/Game/LostRunic/Scene/Textures/T_LR_Wood_BC.T_LR_Wood_BC"
+            },
+            "expressionGUId": "63A6173C-4D29-2FFB-CE90-8C92F6C6932C"
+          },
+          {
+            "parameterInfo": {
+              "name": "StylizedMaskTexture",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": {
+              "refPath": "/Game/LostRunic/Scene/Textures/T_LR_Neutral_SMK.T_LR_Neutral_SMK"
+            },
+            "expressionGUId": "E6541331-420A-3122-8404-12B1799BD5D7"
+          }
+        ],
+        "basePropertyOverrides": {
+          "bOverride_OpacityMaskClipValue": false,
+          "bOverride_BlendMode": false,
+          "bOverride_ShadingModel": false,
+          "bOverride_DitheredLODTransition": false,
+          "bOverride_CastDynamicShadowAsMasked": false,
+          "bOverride_TwoSided": false,
+          "bOverride_bIsThinSurface": false,
+          "bOverride_OutputTranslucentVelocity": false,
+          "bOverride_bHasPixelAnimation": false,
+          "bOverride_bEnableTessellation": false,
+          "bOverride_DisplacementScaling": false,
+          "bOverride_bEnableDisplacementFade": false,
+          "bOverride_DisplacementFadeRange": false,
+          "bOverride_MaxWorldPositionOffsetDisplacement": false,
+          "bOverride_CompatibleWithLumenCardSharing": false,
+          "bOverride_UsageFlags": 0,
+          "twoSided": false,
+          "bIsThinSurface": false,
+          "ditheredLODTransition": false,
+          "bCastDynamicShadowAsMasked": false,
+          "bOutputTranslucentVelocity": false,
+          "bHasPixelAnimation": false,
+          "bEnableTessellation": false,
+          "bEnableDisplacementFade": false,
+          "bCompatibleWithLumenCardSharing": false,
+          "blendMode": "BLEND_Opaque",
+          "shadingModel": "MSM_DefaultLit",
+          "opacityMaskClipValue": 0.33329999446868896,
+          "displacementScaling": {
+            "magnitude": 4,
+            "center": 0.5
+          },
+          "displacementFadeRange": {
+            "startSizePixels": 4,
+            "endSizePixels": 1
+          },
+          "maxWorldPositionOffsetDisplacement": 0,
+          "usageFlags": 4194304
+        },
+        "blendableLocationOverride": "BL_SceneColorAfterTonemapping",
+        "blendablePriorityOverride": 0
+      },
+      "inheritanceStatus": "direct parent captured; parent asset internals not recursively expanded by bounded P0 capture"
+    },
+    {
+      "assetPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_Rug_BC.MI_LR_Scene_Rug_BC",
+      "parameterList": [
+        {
+          "type": "Scalar",
+          "name": "BaseColorSaturation"
+        },
+        {
+          "type": "Scalar",
+          "name": "BaseColorContrast"
+        },
+        {
+          "type": "Scalar",
+          "name": "StructureCavityStrength"
+        },
+        {
+          "type": "Scalar",
+          "name": "PainterlyTiling"
+        },
+        {
+          "type": "Scalar",
+          "name": "PainterlyStrength"
+        },
+        {
+          "type": "Scalar",
+          "name": "DetailTiling"
+        },
+        {
+          "type": "Scalar",
+          "name": "DetailStrength"
+        },
+        {
+          "type": "Scalar",
+          "name": "RoughnessBase"
+        },
+        {
+          "type": "Scalar",
+          "name": "RoughnessVariation"
+        },
+        {
+          "type": "Scalar",
+          "name": "RoughnessMin"
+        },
+        {
+          "type": "Scalar",
+          "name": "RoughnessMax"
+        },
+        {
+          "type": "Scalar",
+          "name": "NormalStrength"
+        },
+        {
+          "type": "Scalar",
+          "name": "Metallic"
+        },
+        {
+          "type": "Scalar",
+          "name": "SurfaceDebugView"
+        },
+        {
+          "type": "Scalar",
+          "name": "SurfaceUTiling"
+        },
+        {
+          "type": "Scalar",
+          "name": "SurfaceVTiling"
+        },
+        {
+          "type": "Scalar",
+          "name": "CutawayLocalAmount"
+        },
+        {
+          "type": "Scalar",
+          "name": "CutawayGroupAmount"
+        },
+        {
+          "type": "Scalar",
+          "name": "CutawayForegroundAmount"
+        },
+        {
+          "type": "Scalar",
+          "name": "CutawayCenterUVX"
+        },
+        {
+          "type": "Scalar",
+          "name": "CutawayCenterUVY"
+        },
+        {
+          "type": "Scalar",
+          "name": "CutawayRadiusRefPx"
+        },
+        {
+          "type": "Scalar",
+          "name": "CutawayRootOverrideAmount"
+        },
+        {
+          "type": "Scalar",
+          "name": "CutawayRootHeight01"
+        },
+        {
+          "type": "Scalar",
+          "name": "CutawayRootFeather01"
+        },
+        {
+          "type": "Scalar",
+          "name": "RootPreserveEnabled"
+        },
+        {
+          "type": "Scalar",
+          "name": "DefaultRootHeightCm"
+        },
+        {
+          "type": "Scalar",
+          "name": "DefaultRootFeatherCm"
+        },
+        {
+          "type": "Scalar",
+          "name": "ForegroundFullyCutDistanceCm"
+        },
+        {
+          "type": "Scalar",
+          "name": "ForegroundVisibleDistanceCm"
+        },
+        {
+          "type": "Vector",
+          "name": "BaseColorTint"
+        },
+        {
+          "type": "Vector",
+          "name": "StructureCavityTint"
+        },
+        {
+          "type": "Vector",
+          "name": "PainterlyTint"
+        },
+        {
+          "type": "Texture",
+          "name": "BaseColorTexture"
+        },
+        {
+          "type": "Texture",
+          "name": "StylizedMaskTexture"
+        },
+        {
+          "type": "Texture",
+          "name": "DetailTexture"
+        },
+        {
+          "type": "Texture",
+          "name": "PainterlyWashTexture"
+        },
+        {
+          "type": "Texture",
+          "name": "NormalTexture"
+        }
+      ],
+      "serializedOverrides": {
+        "parent": {
+          "refPath": "/Game/LostRunic/Materials/Master/M_LR_StylizedOpaque.M_LR_StylizedOpaque"
+        },
+        "scalarParameterValues": [
+          {
+            "atlasData": {
+              "bIsUsedAsAtlasPosition": false,
+              "curve": "None",
+              "atlas": "None"
+            },
+            "parameterInfo": {
+              "name": "BaseColorSaturation",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": 1,
+            "expressionGUId": "CD646AE5-4C6E-B228-9ABA-B6A3CDE23C88"
+          },
+          {
+            "atlasData": {
+              "bIsUsedAsAtlasPosition": false,
+              "curve": "None",
+              "atlas": "None"
+            },
+            "parameterInfo": {
+              "name": "BaseColorContrast",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": 1,
+            "expressionGUId": "0116820E-4804-6A54-29DD-A6AC7C378BA6"
+          },
+          {
+            "atlasData": {
+              "bIsUsedAsAtlasPosition": false,
+              "curve": "None",
+              "atlas": "None"
+            },
+            "parameterInfo": {
+              "name": "RoughnessBase",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": 0.5,
+            "expressionGUId": "B4F652FC-465E-CF2F-6B62-958495CD1CE2"
+          },
+          {
+            "atlasData": {
+              "bIsUsedAsAtlasPosition": false,
+              "curve": "None",
+              "atlas": "None"
+            },
+            "parameterInfo": {
+              "name": "RoughnessMin",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": 0.25,
+            "expressionGUId": "1C62F2E6-4C04-FAB0-FE51-59936F8CA1BF"
+          },
+          {
+            "atlasData": {
+              "bIsUsedAsAtlasPosition": false,
+              "curve": "None",
+              "atlas": "None"
+            },
+            "parameterInfo": {
+              "name": "RoughnessMax",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": 0.949999988079071,
+            "expressionGUId": "C2C52966-4A2C-9D01-A343-65855AFD31A5"
+          },
+          {
+            "atlasData": {
+              "bIsUsedAsAtlasPosition": false,
+              "curve": "None",
+              "atlas": "None"
+            },
+            "parameterInfo": {
+              "name": "RoughnessVariation",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": 0.03999999910593033,
+            "expressionGUId": "23D56E7B-4A04-2500-7495-4DAB59E07AE1"
+          },
+          {
+            "atlasData": {
+              "bIsUsedAsAtlasPosition": false,
+              "curve": "None",
+              "atlas": "None"
+            },
+            "parameterInfo": {
+              "name": "Metallic",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": 0,
+            "expressionGUId": "99153AA9-4717-4184-3A6E-26852C21167E"
+          },
+          {
+            "atlasData": {
+              "bIsUsedAsAtlasPosition": false,
+              "curve": "None",
+              "atlas": "None"
+            },
+            "parameterInfo": {
+              "name": "NormalStrength",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": 0,
+            "expressionGUId": "E6C39548-4183-BB2C-4CE2-67BE98909BB0"
+          },
+          {
+            "atlasData": {
+              "bIsUsedAsAtlasPosition": false,
+              "curve": "None",
+              "atlas": "None"
+            },
+            "parameterInfo": {
+              "name": "PainterlyStrength",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": 0.02500000037252903,
+            "expressionGUId": "550C824C-457E-1FE4-CE10-028690C133CF"
+          },
+          {
+            "atlasData": {
+              "bIsUsedAsAtlasPosition": false,
+              "curve": "None",
+              "atlas": "None"
+            },
+            "parameterInfo": {
+              "name": "StructureCavityStrength",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": 0,
+            "expressionGUId": "5C52B4FB-4EDD-8D39-324C-69B9422FF336"
+          },
+          {
+            "atlasData": {
+              "bIsUsedAsAtlasPosition": false,
+              "curve": "None",
+              "atlas": "None"
+            },
+            "parameterInfo": {
+              "name": "DetailStrength",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": 0,
+            "expressionGUId": "4BFA85D7-4946-F015-09F2-F8937C9B4629"
+          },
+          {
+            "atlasData": {
+              "bIsUsedAsAtlasPosition": false,
+              "curve": "None",
+              "atlas": "None"
+            },
+            "parameterInfo": {
+              "name": "SurfaceUTiling",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": 1,
+            "expressionGUId": "58626BCC-44B3-59F3-A8F2-13A09417344A"
+          },
+          {
+            "atlasData": {
+              "bIsUsedAsAtlasPosition": false,
+              "curve": "None",
+              "atlas": "None"
+            },
+            "parameterInfo": {
+              "name": "SurfaceVTiling",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": 1,
+            "expressionGUId": "713D5A31-4C9D-852B-087E-F1A384B7C420"
+          }
+        ],
+        "vectorParameterValues": [
+          {
+            "parameterInfo": {
+              "name": "BaseColorTint",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": {
+              "r": 1,
+              "g": 1,
+              "b": 1,
+              "a": 1
+            },
+            "expressionGUId": "2A5DC1DA-40FD-CBCF-55BA-2CA16E9E2BFA"
+          }
+        ],
+        "textureParameterValues": [
+          {
+            "parameterInfo": {
+              "name": "BaseColorTexture",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": {
+              "refPath": "/Game/LostRunic/Scene/Textures/T_LR_Rug_BC.T_LR_Rug_BC"
+            },
+            "expressionGUId": "63A6173C-4D29-2FFB-CE90-8C92F6C6932C"
+          },
+          {
+            "parameterInfo": {
+              "name": "StylizedMaskTexture",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": {
+              "refPath": "/Game/LostRunic/Scene/Textures/T_LR_Neutral_SMK.T_LR_Neutral_SMK"
+            },
+            "expressionGUId": "E6541331-420A-3122-8404-12B1799BD5D7"
+          }
+        ],
+        "basePropertyOverrides": {
+          "bOverride_OpacityMaskClipValue": false,
+          "bOverride_BlendMode": false,
+          "bOverride_ShadingModel": false,
+          "bOverride_DitheredLODTransition": false,
+          "bOverride_CastDynamicShadowAsMasked": false,
+          "bOverride_TwoSided": false,
+          "bOverride_bIsThinSurface": false,
+          "bOverride_OutputTranslucentVelocity": false,
+          "bOverride_bHasPixelAnimation": false,
+          "bOverride_bEnableTessellation": false,
+          "bOverride_DisplacementScaling": false,
+          "bOverride_bEnableDisplacementFade": false,
+          "bOverride_DisplacementFadeRange": false,
+          "bOverride_MaxWorldPositionOffsetDisplacement": false,
+          "bOverride_CompatibleWithLumenCardSharing": false,
+          "bOverride_UsageFlags": 0,
+          "twoSided": false,
+          "bIsThinSurface": false,
+          "ditheredLODTransition": false,
+          "bCastDynamicShadowAsMasked": false,
+          "bOutputTranslucentVelocity": false,
+          "bHasPixelAnimation": false,
+          "bEnableTessellation": false,
+          "bEnableDisplacementFade": false,
+          "bCompatibleWithLumenCardSharing": false,
+          "blendMode": "BLEND_Opaque",
+          "shadingModel": "MSM_DefaultLit",
+          "opacityMaskClipValue": 0.33329999446868896,
+          "displacementScaling": {
+            "magnitude": 4,
+            "center": 0.5
+          },
+          "displacementFadeRange": {
+            "startSizePixels": 4,
+            "endSizePixels": 1
+          },
+          "maxWorldPositionOffsetDisplacement": 0,
+          "usageFlags": 4194304
+        },
+        "blendableLocationOverride": "BL_SceneColorAfterTonemapping",
+        "blendablePriorityOverride": 0
+      },
+      "inheritanceStatus": "direct parent captured; parent asset internals not recursively expanded by bounded P0 capture"
+    }
+  ],
+  "missingEvidence": [
+    "Exhaustive level-wide mesh/material instance inventory: NOT_CAPTURED",
+    "Parent Material graph and transitive texture dependencies: NOT_CAPTURED beyond direct parent and serialized texture overrides"
+  ],
+  "inventoryStatus": {
+    "sampledSceneMeshes": 4,
+    "sampledSceneMIs": 5,
+    "fullSceneMeshCount": "NOT_CAPTURED",
+    "fullSceneMICount": 32,
+    "fullSceneMIValues": "NOT_CAPTURED",
+    "reason": "P0 scope was narrowed to actionable render assets; no destructive or broad enumeration was performed."
+  }
+}

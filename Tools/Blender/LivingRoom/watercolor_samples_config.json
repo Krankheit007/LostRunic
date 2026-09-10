@@ -1,0 +1,1061 @@
+{
+  "schema_version": "1.0",
+  "purpose": "P2 candidate watercolor surface samples for the LivingRoom. These are source candidates only; no UE import or art sign-off is implied.",
+  "generated_by": "Tools/Blender/LivingRoom/generate_watercolor_samples.py",
+  "camera_contract": {
+    "distance_cm": 500,
+    "pitch_degrees": -52,
+    "fov_degrees": 68,
+    "note": "User camera contract recorded for later review; this script creates texture plates and does not recompose a scene."
+  },
+  "style_contract": {
+    "reference": "Docs/Art/References/NormalTarget_C_WatercolorLighting.png",
+    "direction": "Clean low-frequency watercolor color fields, restrained directional marks, and simple readable motifs.",
+    "required": [
+      "BaseColor stays free of baked lighting, AO, specular highlights, dust, peeling grime, and full-surface noise.",
+      "SMK.R is selective detail permission; SMK.G is only explicitly authored structure; SMK.B is low-frequency variation.",
+      "Unused alpha is not stored. Normal maps are omitted when the revised albedo has no justified matching normal source."
+    ],
+    "forbidden": [
+      "high-frequency noise over the whole surface",
+      "photographic micro wood grain",
+      "cloth weave or automatic furniture cavity",
+      "light, AO, or shadow baked into BaseColor"
+    ]
+  },
+  "source_contract": {
+    "art_bible": "Docs/Art/01_LostRunicArtBibleAndTechnicalArtStandard.md",
+    "blender_workflow": "Docs/Art/02_ConceptDrivenBlenderWorkflow.md",
+    "watercolor_plan": "Docs/Art/03_WatercolorPipelineImplementation.md",
+    "iteration02_manifest": "ArtSource/LivingRoom/Iteration02/Manifest.json",
+    "iteration02_texture_manifest": "ArtSource/LivingRoom/Iteration02/TextureManifest.json",
+    "iteration02_cloth_atlas_manifest": "ArtSource/LivingRoom/Iteration02/ClothAtlasManifest.json",
+    "iteration02_materials": "ArtSource/LivingRoom/Iteration02/UEImport/Materials.json",
+    "iteration02_ue_validation": "ArtSource/LivingRoom/Iteration02/UEImport/UEValidation.json"
+  },
+  "output": {
+    "root": "ArtSource/LivingRoom/WatercolorSamples",
+    "preview_directory": "Previews",
+    "manifest": "WatercolorSamplesManifest.json",
+    "overwrite_scope": "Only files named by this config under the output root. Existing Iteration02 and Delivery files are never written."
+  },
+  "shared_ue_contract": {
+    "opaque_master": "/Game/LostRunic/Materials/Master/M_LR_StylizedOpaque",
+    "opaque_parameter_suggestions": {
+      "SurfaceUTiling": {
+        "candidate": 1.0,
+        "authority": "Mesh UV0 / existing family scale",
+        "note": "Keep 1.0 for Plaster, FloorMass, and ordinary Wood unless a later UE benchmark approves a family exception."
+      },
+      "SurfaceVTiling": {
+        "candidate": 1.0,
+        "authority": "Mesh UV0 / existing family scale",
+        "note": "Keep 1.0 for Plaster, FloorMass, and ordinary Wood unless a later UE benchmark approves a family exception."
+      },
+      "DetailTiling": {
+        "candidate": 1.0,
+        "authority": "Material Instance candidate only",
+        "note": "Does not replace the physical UV scale."
+      },
+      "NormalStrength": {
+        "candidate": 0.0,
+        "authority": "Existing Iteration02 UEImport README baseline",
+        "note": "No new normal candidate is generated in this pass."
+      }
+    },
+    "glass_master": "/Game/LostRunic/Materials/Master/M_LR_StylizedGlass",
+    "glass_recipe": {
+      "blend_mode": "Translucent",
+      "shading_model": "Thin Translucent",
+      "lighting_mode": "Surface ForwardShading",
+      "two_sided": false,
+      "refraction": false,
+      "scene_color": false,
+      "wpo": false,
+      "opacity_formula": "Saturate(OpacityBase + Fresnel * EdgeOpacityStrength)",
+      "wash_rule": "Wash may tint/transmit lightly; it must never drive Opacity."
+    }
+  },
+  "families": [
+    {
+      "id": "CoolPlaster",
+      "label": "Cool plaster wall",
+      "generator": "cool_plaster",
+      "status_if_generated": "candidate_source_generated",
+      "source_material_ids": [
+        "S01_CoolPlaster.003",
+        "S01_CoolPlaster.005",
+        "S01_CoolPlaster.006",
+        "S01_CoolPlaster.007",
+        "S01_CoolPlaster.008",
+        "S01_CoolPlaster.009",
+        "S01_CoolPlaster.011"
+      ],
+      "source_bc": "ArtSource/LivingRoom/Iteration02/Textures/T_LR_CoolPlaster_BC.png",
+      "source_smk": "ArtSource/LivingRoom/Iteration02/Textures/T_LR_Neutral_SMK.png",
+      "source_dimensions_px": [
+        1254,
+        1254
+      ],
+      "source_uv": "Regular UV0; physical scale remains Mesh UV0 authority.",
+      "output": {
+        "bc": "T_LR_Watercolor_CoolPlaster_BC.png",
+        "smk": "T_LR_Watercolor_CoolPlaster_SMK.png",
+        "dimensions_px": [
+          1024,
+          1024
+        ],
+        "seamless": true,
+        "alpha": false,
+        "channel_contract": {
+          "BC": "RGB / sRGB / no alpha",
+          "SMK": "RGB / linear Masks / R=DetailAmount, G=StructureCavity, B=MacroVariation / no alpha"
+        }
+      },
+      "physical_scale": {
+        "surface_tiling": [
+          1.0,
+          1.0
+        ],
+        "meters_per_tile": 2.0,
+        "authority": "Mesh UV0; Iteration02 Analysis records the wall candidate as a 2m scale.",
+        "validation": "Candidate value; confirm with the real imported mesh UV and UE Gameplay Camera."
+      },
+      "ue_binding": {
+        "master": "/Game/LostRunic/Materials/Master/M_LR_StylizedOpaque",
+        "material_instance": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_CoolPlaster_BC",
+        "texture_roles": {
+          "BC": "Replace the existing CoolPlaster BaseColor input with the candidate file.",
+          "SMK": "Use the independent candidate packed mask; do not substitute AO."
+        },
+        "scalar_parameters": {
+          "SurfaceUTiling": 1.0,
+          "SurfaceVTiling": 1.0,
+          "DetailTiling": 1.0,
+          "NormalStrength": 0.0
+        }
+      },
+      "render_parameters": {
+        "base": "#71808F",
+        "softness_px": 48,
+        "washes": [
+          {
+            "shape": "ellipse",
+            "center": [
+              0.18,
+              0.17
+            ],
+            "radius": [
+              0.28,
+              0.18
+            ],
+            "color": "#8795A6",
+            "opacity": 92
+          },
+          {
+            "shape": "ellipse",
+            "center": [
+              0.78,
+              0.25
+            ],
+            "radius": [
+              0.32,
+              0.20
+            ],
+            "color": "#5F6B82",
+            "opacity": 74
+          },
+          {
+            "shape": "ellipse",
+            "center": [
+              0.42,
+              0.73
+            ],
+            "radius": [
+              0.34,
+              0.19
+            ],
+            "color": "#7D718A",
+            "opacity": 58
+          },
+          {
+            "shape": "polygon",
+            "points": [
+              [
+                0.03,
+                0.67
+              ],
+              [
+                0.16,
+                0.59
+              ],
+              [
+                0.30,
+                0.66
+              ],
+              [
+                0.24,
+                0.82
+              ],
+              [
+                0.08,
+                0.87
+              ]
+            ],
+            "color": "#8290A0",
+            "opacity": 46
+          }
+        ],
+        "smk": {
+          "r_base": 0.06,
+          "g_base": 0.0,
+          "b_base": 0.46,
+          "b_washes": [
+            {
+              "shape": "ellipse",
+              "center": [
+                0.20,
+                0.17
+              ],
+              "radius": [
+                0.32,
+                0.22
+              ],
+              "value": 0.58,
+              "opacity": 110
+            },
+            {
+              "shape": "ellipse",
+              "center": [
+                0.76,
+                0.72
+              ],
+              "radius": [
+                0.30,
+                0.20
+              ],
+              "value": 0.34,
+              "opacity": 96
+            }
+          ],
+          "r_washes": [],
+          "lines": []
+        }
+      }
+    },
+    {
+      "id": "FloorMass",
+      "label": "Continuous floor boards",
+      "generator": "floor_mass",
+      "status_if_generated": "candidate_source_generated",
+      "source_material_ids": [
+        "S01_FloorMass.003",
+        "S01_FloorMass.004",
+        "S01_FloorMass.005"
+      ],
+      "source_bc": "ArtSource/LivingRoom/Iteration02/Textures/T_LR_FloorMass_BC.png",
+      "source_smk": "ArtSource/LivingRoom/Iteration02/Textures/T_LR_Neutral_SMK.png",
+      "source_dimensions_px": [
+        1254,
+        1254
+      ],
+      "source_uv": "Continuous metric UV0 on the floor top; no geometry change.",
+      "output": {
+        "bc": "T_LR_Watercolor_FloorMass_BC.png",
+        "smk": "T_LR_Watercolor_FloorMass_SMK.png",
+        "dimensions_px": [
+          1024,
+          1024
+        ],
+        "seamless": true,
+        "alpha": false,
+        "channel_contract": {
+          "BC": "RGB / sRGB / no alpha",
+          "SMK": "RGB / linear Masks / R=DetailAmount, G=authored board seams, B=MacroVariation / no alpha"
+        }
+      },
+      "physical_scale": {
+        "surface_tiling": [
+          1.0,
+          1.0
+        ],
+        "meters_per_tile": 2.0,
+        "authority": "Continuous metric Mesh UV0; Iteration02 analysis calls the floor texture a 2m scale.",
+        "validation": "Candidate value; verify the UV readback and the 500cm/-52/FOV68 Gameplay Camera."
+      },
+      "ue_binding": {
+        "master": "/Game/LostRunic/Materials/Master/M_LR_StylizedOpaque",
+        "material_instance": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_FloorMass_BC",
+        "texture_roles": {
+          "BC": "Replace the existing FloorMass BaseColor input with the candidate file.",
+          "SMK": "Use the independent candidate packed mask; SMK.G contains only the drawn board seams."
+        },
+        "scalar_parameters": {
+          "SurfaceUTiling": 1.0,
+          "SurfaceVTiling": 1.0,
+          "DetailTiling": 1.0,
+          "NormalStrength": 0.0
+        }
+      },
+      "render_parameters": {
+        "base": "#796149",
+        "rows": [
+          {
+            "y0": 0.0,
+            "y1": 0.14,
+            "x_offset": 0.06,
+            "segments": [
+              0.22,
+              0.68
+            ],
+            "fills": [
+              "#8A6C53",
+              "#7C6048",
+              "#84664D"
+            ]
+          },
+          {
+            "y0": 0.14,
+            "y1": 0.29,
+            "x_offset": -0.21,
+            "segments": [
+              0.36,
+              0.79
+            ],
+            "fills": [
+              "#765943",
+              "#806149",
+              "#725640"
+            ]
+          },
+          {
+            "y0": 0.29,
+            "y1": 0.45,
+            "x_offset": 0.14,
+            "segments": [
+              0.24,
+              0.63
+            ],
+            "fills": [
+              "#86674D",
+              "#795B43",
+              "#8B6A4F"
+            ]
+          },
+          {
+            "y0": 0.45,
+            "y1": 0.62,
+            "x_offset": -0.09,
+            "segments": [
+              0.31,
+              0.76
+            ],
+            "fills": [
+              "#755841",
+              "#83634A",
+              "#795B43"
+            ]
+          },
+          {
+            "y0": 0.62,
+            "y1": 0.80,
+            "x_offset": 0.24,
+            "segments": [
+              0.19,
+              0.66
+            ],
+            "fills": [
+              "#89694F",
+              "#765841",
+              "#806048"
+            ]
+          },
+          {
+            "y0": 0.80,
+            "y1": 1.0,
+            "x_offset": -0.16,
+            "segments": [
+              0.34,
+              0.81
+            ],
+            "fills": [
+              "#795B43",
+              "#87664C",
+              "#735640"
+            ]
+          }
+        ],
+      "seam_color": "#3D302B",
+      "seam_width_px": 4,
+      "seam_opacity": 195,
+        "washes": [
+          {
+            "shape": "ellipse",
+            "center": [
+              0.25,
+              0.25
+            ],
+            "radius": [
+              0.35,
+              0.18
+            ],
+            "color": "#B08058",
+            "opacity": 30
+          },
+          {
+            "shape": "ellipse",
+            "center": [
+              0.76,
+              0.73
+            ],
+            "radius": [
+              0.30,
+              0.22
+            ],
+            "color": "#5B5161",
+            "opacity": 25
+          }
+        ],
+        "softness_px": 28,
+        "smk": {
+          "r_base": 0.18,
+          "g_base": 0.0,
+          "b_base": 0.45,
+          "b_washes": [
+            {
+              "shape": "ellipse",
+              "center": [
+                0.25,
+                0.25
+              ],
+              "radius": [
+                0.35,
+                0.18
+              ],
+              "value": 0.62,
+              "opacity": 100
+            },
+            {
+              "shape": "ellipse",
+              "center": [
+                0.76,
+                0.73
+              ],
+              "radius": [
+                0.30,
+                0.22
+              ],
+              "value": 0.30,
+              "opacity": 100
+            }
+          ],
+          "r_washes": [],
+          "lines": [
+            {
+              "orientation": "horizontal",
+              "position": 0.14,
+              "width_px": 4,
+              "value": 0.10,
+              "opacity": 215
+            },
+            {
+              "orientation": "horizontal",
+              "position": 0.29,
+              "width_px": 4,
+              "value": 0.10,
+              "opacity": 215
+            },
+            {
+              "orientation": "horizontal",
+              "position": 0.45,
+              "width_px": 4,
+              "value": 0.10,
+              "opacity": 215
+            },
+            {
+              "orientation": "horizontal",
+              "position": 0.62,
+              "width_px": 4,
+              "value": 0.10,
+              "opacity": 215
+            },
+            {
+              "orientation": "horizontal",
+              "position": 0.80,
+              "width_px": 4,
+              "value": 0.10,
+              "opacity": 215
+            },
+            {
+              "orientation": "vertical",
+              "position": 0.0,
+              "width_px": 3,
+              "value": 0.10,
+              "opacity": 180
+            },
+            {
+              "orientation": "vertical",
+              "position": 0.5,
+              "width_px": 3,
+              "value": 0.10,
+              "opacity": 180
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "Wood",
+      "label": "Dark walnut wood",
+      "generator": "wood",
+      "status_if_generated": "candidate_source_generated",
+      "source_material_ids": [
+        "S02_WoodPanel",
+        "S02_Wood",
+        "S01_Wood.004",
+        "S02_DetailWood"
+      ],
+      "source_bc": "ArtSource/LivingRoom/Iteration02/Textures/T_LR_Wood_BC.png",
+      "source_smk": "ArtSource/LivingRoom/Iteration02/Textures/T_LR_Neutral_SMK.png",
+      "source_dimensions_px": [
+        1254,
+        1254
+      ],
+      "source_uv": "Regular UV0 on ordinary furniture; no atlas tiling or geometry change.",
+      "output": {
+        "bc": "T_LR_Watercolor_Wood_BC.png",
+        "smk": "T_LR_Watercolor_Wood_SMK.png",
+        "dimensions_px": [
+          1024,
+          1024
+        ],
+        "seamless": true,
+        "alpha": false,
+        "channel_contract": {
+          "BC": "RGB / sRGB / no alpha",
+          "SMK": "RGB / linear Masks / R=selective directional detail, G=0 unless later authored structure, B=MacroVariation / no alpha"
+        }
+      },
+      "physical_scale": {
+        "surface_tiling": [
+          1.0,
+          1.0
+        ],
+        "meters_per_tile": null,
+        "authority": "Mesh UV0; no numeric wood tile value is present in the Iteration02 manifests.",
+        "validation": "Candidate retains the current UV layout and Surface U/V=1; set a numeric exception only after UE screen-size review."
+      },
+      "ue_binding": {
+        "master": "/Game/LostRunic/Materials/Master/M_LR_StylizedOpaque",
+        "material_instance": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_Wood_BC",
+        "texture_roles": {
+          "BC": "Replace the existing shared Wood BaseColor input with the candidate file.",
+          "SMK": "Use the independent candidate packed mask; G is zero because no furniture seam layout is inferred here."
+        },
+        "scalar_parameters": {
+          "SurfaceUTiling": 1.0,
+          "SurfaceVTiling": 1.0,
+          "DetailTiling": 1.0,
+          "NormalStrength": 0.0
+        }
+      },
+      "render_parameters": {
+        "base": "#583824",
+        "softness_px": 18,
+        "washes": [
+          {
+            "shape": "ellipse",
+            "center": [
+              0.20,
+              0.22
+            ],
+            "radius": [
+              0.36,
+              0.20
+            ],
+            "color": "#6F4930",
+            "opacity": 58
+          },
+          {
+            "shape": "ellipse",
+            "center": [
+              0.78,
+              0.72
+            ],
+            "radius": [
+              0.30,
+              0.22
+            ],
+            "color": "#402B2A",
+            "opacity": 48
+          }
+        ],
+        "strokes": [
+          {
+            "y": 0.18,
+            "amplitude": 0.018,
+            "cycles": 1,
+            "phase": 0.10,
+            "color": "#80553A",
+            "width_px": 18,
+            "opacity": 88
+          },
+          {
+            "y": 0.43,
+            "amplitude": 0.024,
+            "cycles": 2,
+            "phase": 0.34,
+            "color": "#3F2A27",
+            "width_px": 12,
+            "opacity": 110
+          },
+          {
+            "y": 0.69,
+            "amplitude": 0.016,
+            "cycles": 1,
+            "phase": 0.62,
+            "color": "#71462F",
+            "width_px": 16,
+            "opacity": 78
+          },
+          {
+            "y": 0.88,
+            "amplitude": 0.020,
+            "cycles": 2,
+            "phase": 0.20,
+            "color": "#332425",
+            "width_px": 10,
+            "opacity": 92
+          }
+        ],
+        "stroke_softness_px": 7,
+        "smk": {
+          "r_base": 0.23,
+          "g_base": 0.0,
+          "b_base": 0.47,
+          "r_strokes": true,
+          "r_stroke_value": 0.38,
+          "r_stroke_opacity": 145,
+          "b_washes": [
+            {
+              "shape": "ellipse",
+              "center": [
+                0.20,
+                0.22
+              ],
+              "radius": [
+                0.36,
+                0.20
+              ],
+              "value": 0.60,
+              "opacity": 95
+            },
+            {
+              "shape": "ellipse",
+              "center": [
+                0.78,
+                0.72
+              ],
+              "radius": [
+                0.30,
+                0.22
+              ],
+              "value": 0.34,
+              "opacity": 95
+            }
+          ],
+          "r_washes": [],
+          "lines": []
+        }
+      }
+    },
+    {
+      "id": "Rug",
+      "label": "Warm rug with restrained border pattern",
+      "generator": "rug",
+      "status_if_generated": "candidate_source_generated",
+      "source_material_ids": [
+        "S01_RugMass.003",
+        "S01_RugMass.004"
+      ],
+      "source_bc": "ArtSource/LivingRoom/Iteration02/Textures/T_LR_Rug_BC.png",
+      "source_smk": "ArtSource/LivingRoom/Iteration02/Textures/T_LR_RugMass_SMK.png",
+      "source_dimensions_px": [
+        1086,
+        1448
+      ],
+      "source_uv": "Full rug border mapping; unique rectangle, not a repeat tile.",
+      "output": {
+        "bc": "T_LR_Watercolor_Rug_BC.png",
+        "smk": "T_LR_Watercolor_Rug_SMK.png",
+        "dimensions_px": [
+          1024,
+          2048
+        ],
+        "seamless": false,
+        "alpha": false,
+        "channel_contract": {
+          "BC": "RGB / sRGB / no alpha",
+          "SMK": "RGB / linear Masks / R=border and motif detail permission, G=0, B=low-frequency field variation / no alpha"
+        }
+      },
+      "physical_scale": {
+        "surface_tiling": [
+          1.0,
+          1.0
+        ],
+        "meters_per_tile": null,
+        "coverage_m": {
+          "SM_LR_Rug": [
+            4.18,
+            4.12
+          ],
+          "SM_LR_Rug_001": [
+            1.2183,
+            1.0402
+          ]
+        },
+        "authority": "Mesh UV0 full-border mapping and Iteration02 Manifest bounds; no repeat tiling."
+      },
+      "ue_binding": {
+        "master": "/Game/LostRunic/Materials/Master/M_LR_StylizedOpaque",
+        "material_instance": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_Rug_BC",
+        "texture_roles": {
+          "BC": "Replace the existing shared Rug BaseColor input with the candidate file.",
+          "SMK": "Use the independent candidate packed mask; G remains zero because the border is a pattern/detail decision."
+        },
+        "scalar_parameters": {
+          "SurfaceUTiling": 1.0,
+          "SurfaceVTiling": 1.0,
+          "DetailTiling": 1.0,
+          "NormalStrength": 0.0
+        }
+      },
+      "render_parameters": {
+        "base": "#D0B38D",
+        "field_washes": [
+          {
+            "shape": "ellipse",
+            "center": [
+              0.28,
+              0.28
+            ],
+            "radius": [
+              0.26,
+              0.20
+            ],
+            "color": "#DEC69F",
+            "opacity": 80
+          },
+          {
+            "shape": "ellipse",
+            "center": [
+              0.74,
+              0.66
+            ],
+            "radius": [
+              0.24,
+              0.22
+            ],
+            "color": "#BDA485",
+            "opacity": 58
+          }
+        ],
+        "field_softness_px": 32,
+        "border_margin": 0.035,
+        "border_bands": [
+          {
+            "width": 0.010,
+            "color": "#A97F60"
+          },
+          {
+            "width": 0.015,
+            "color": "#E3C8A0"
+          },
+          {
+            "width": 0.012,
+            "color": "#B18461"
+          },
+          {
+            "width": 0.022,
+            "color": "#D6B58B"
+          },
+          {
+            "width": 0.010,
+            "color": "#9F765B"
+          }
+        ],
+        "motifs": [
+          {
+            "shape": "diamond",
+            "center": [
+              0.14,
+              0.10
+            ],
+            "size": 0.030,
+            "color": "#AF805E"
+          },
+          {
+            "shape": "diamond",
+            "center": [
+              0.50,
+              0.10
+            ],
+            "size": 0.034,
+            "color": "#B58965"
+          },
+          {
+            "shape": "diamond",
+            "center": [
+              0.86,
+              0.10
+            ],
+            "size": 0.030,
+            "color": "#AF805E"
+          },
+          {
+            "shape": "diamond",
+            "center": [
+              0.14,
+              0.90
+            ],
+            "size": 0.030,
+            "color": "#AF805E"
+          },
+          {
+            "shape": "diamond",
+            "center": [
+              0.50,
+              0.90
+            ],
+            "size": 0.034,
+            "color": "#B58965"
+          },
+          {
+            "shape": "diamond",
+            "center": [
+              0.86,
+              0.90
+            ],
+            "size": 0.030,
+            "color": "#AF805E"
+          },
+          {
+            "shape": "leaf",
+            "center": [
+              0.06,
+              0.28
+            ],
+            "size": 0.035,
+            "color": "#9C826A"
+          },
+          {
+            "shape": "leaf",
+            "center": [
+              0.94,
+              0.48
+            ],
+            "size": 0.035,
+            "color": "#9C826A"
+          },
+          {
+            "shape": "leaf",
+            "center": [
+              0.06,
+              0.66
+            ],
+            "size": 0.035,
+            "color": "#9C826A"
+          },
+          {
+            "shape": "leaf",
+            "center": [
+              0.94,
+              0.72
+            ],
+            "size": 0.035,
+            "color": "#9C826A"
+          }
+        ],
+        "smk": {
+          "r_base": 0.04,
+          "g_base": 0.0,
+          "b_base": 0.46,
+          "detail_value": 0.55,
+          "detail_opacity": 180,
+          "b_washes": [
+            {
+              "shape": "ellipse",
+              "center": [
+                0.28,
+                0.28
+              ],
+              "radius": [
+                0.28,
+                0.20
+              ],
+              "value": 0.57,
+              "opacity": 108
+            },
+            {
+              "shape": "ellipse",
+              "center": [
+                0.74,
+                0.66
+              ],
+              "radius": [
+                0.25,
+                0.22
+              ],
+              "value": 0.36,
+              "opacity": 100
+            }
+          ],
+          "r_washes": [],
+          "lines": []
+        }
+      }
+    },
+    {
+      "id": "ClothAtlas",
+      "label": "Furniture cloth atlases",
+      "generator": "cloth_atlas",
+      "status_if_generated": "deferred_atlas_bake",
+      "source_uv": "Packed group atlas; baked box mapping; keep each existing 2048² atlas and Surface U/V=1.0.",
+      "ue_binding": {
+        "master": "/Game/LostRunic/Materials/Master/M_LR_StylizedOpaque",
+        "texture_role": "Existing furniture-group BC atlas; do not replace until an island-aware bake is reviewed.",
+        "scalar_parameters": {
+          "SurfaceUTiling": 1.0,
+          "SurfaceVTiling": 1.0,
+          "DetailTiling": 1.0,
+          "NormalStrength": 0.0
+        }
+      },
+      "root_mappings": [
+        {
+          "root": "ROOT_Sofa",
+          "meshes": 17,
+          "atlas_bc": "ArtSource/LivingRoom/Iteration02/Textures/T_LR_ROOT_Sofa_Cloth_BC.png",
+          "atlas_resolution_px": [
+            2048,
+            2048
+          ],
+          "material_instance": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_ROOT_Sofa_Cloth_BC"
+        },
+        {
+          "root": "ROOT_ArmchairOchre",
+          "meshes": 14,
+          "atlas_bc": "ArtSource/LivingRoom/Iteration02/Textures/T_LR_ROOT_ArmchairOchre_Cloth_BC.png",
+          "atlas_resolution_px": [
+            2048,
+            2048
+          ],
+          "material_instance": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_ROOT_ArmchairOchre_Cloth_BC"
+        },
+        {
+          "root": "ROOT_ArmchairRusset",
+          "meshes": 11,
+          "atlas_bc": "ArtSource/LivingRoom/Iteration02/Textures/T_LR_ROOT_ArmchairRusset_Cloth_BC.png",
+          "atlas_resolution_px": [
+            2048,
+            2048
+          ],
+          "material_instance": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_ROOT_ArmchairRusset_Cloth_BC"
+        },
+        {
+          "root": "ROOT_Ottoman",
+          "meshes": 5,
+          "atlas_bc": "ArtSource/LivingRoom/Iteration02/Textures/T_LR_ROOT_Ottoman_Cloth_BC.png",
+          "atlas_resolution_px": [
+            2048,
+            2048
+          ],
+          "material_instance": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_ROOT_Ottoman_Cloth_BC"
+        },
+        {
+          "root": "ROOT_WoodChair",
+          "meshes": 1,
+          "atlas_bc": "ArtSource/LivingRoom/Iteration02/Textures/T_LR_ROOT_WoodChair_Cloth_BC.png",
+          "atlas_resolution_px": [
+            2048,
+            2048
+          ],
+          "material_instance": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_ROOT_WoodChair_Cloth_BC"
+        },
+        {
+          "root": "ROOT_CoatStand",
+          "meshes": 1,
+          "atlas_bc": "ArtSource/LivingRoom/Iteration02/Textures/T_LR_ROOT_CoatStand_Cloth_BC.png",
+          "atlas_resolution_px": [
+            2048,
+            2048
+          ],
+          "material_instance": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_ROOT_CoatStand_Cloth_BC"
+        },
+        {
+          "root": "ROOT_Curtains",
+          "meshes": 2,
+          "atlas_bc": "ArtSource/LivingRoom/Iteration02/Textures/T_LR_ROOT_Curtains_Cloth_BC.png",
+          "atlas_resolution_px": [
+            2048,
+            2048
+          ],
+          "material_instance": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_ROOT_Curtains_Cloth_BC"
+        }
+      ],
+      "production_method": [
+        "Copy the target .blend to an isolated working file; never edit the Iteration02 .blend in place.",
+        "For each root, collect UV0 loops by material slot and render an island ID/margin mask at the existing 2048² atlas resolution.",
+        "Paint broad flat color and a few large fold accents inside the mask; keep all original island coordinates and at least the original mip-safe padding.",
+        "Dilate RGB into transparent/unused padding before saving the BC; do not add alpha or infer per-furniture structure from the atlas alone.",
+        "Round-trip the copied mesh and inspect UV0, island bounds, padding, and material-slot binding before any UE import review."
+      ],
+      "blocking_reason": "The manifests identify packed atlases and roots but do not provide island polygons. This pass does not invent furniture UV structure or overwrite the existing atlases.",
+      "art_review": "Pending isolated island-aware bake and visual review."
+    },
+    {
+      "id": "Glass",
+      "label": "Thin living-room glass",
+      "generator": "glass_recipe",
+      "status_if_generated": "config_only_no_texture",
+      "source_material_ids": [
+        "S01_WindowPlaceholder.003"
+      ],
+      "source_uv": "Existing window mesh UV/material contract; this pass does not request a new glass texture.",
+      "output": {
+        "bc": null,
+        "smk": null,
+        "normal": null,
+        "dimensions_px": null,
+        "alpha": null,
+        "note": "No glass texture is generated; use the existing glass Master configuration recipe."
+      },
+      "physical_scale": {
+        "surface_tiling": null,
+        "meters_per_tile": null,
+        "authority": "Existing glass material and mesh UV; no new pattern scale."
+      },
+      "ue_binding": {
+        "master": "/Game/LostRunic/Materials/Master/M_LR_StylizedGlass",
+        "material_instance": "/Game/LostRunic/Materials/Instances/Scenes/MI_LR_Scene_WindowGlass",
+        "properties": {
+        "blend_mode": "Translucent",
+        "shading_model": "Thin Translucent",
+        "lighting_mode": "Surface ForwardShading",
+          "two_sided": false,
+          "refraction": false,
+          "scene_color": false,
+          "wpo": false,
+          "decal_response": "None"
+        },
+        "parameters": {
+          "OpacityBase": "Use the existing MI value; tune only in a later glass A/B review.",
+          "EdgeOpacityStrength": "Use the existing MI value; Fresnel is only a restrained presence cue.",
+          "Wash": "Tint/transmittance only; never opacity."
+        }
+      },
+      "art_review": "Recipe only; no glass texture demand or sign-off in this pass."
+    }
+  ]
+}

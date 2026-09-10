@@ -1,0 +1,798 @@
+{
+  "schemaVersion": "1.0",
+  "captureDate": "2026-09-08",
+  "captureSource": "UE MCP over localhost / read-only",
+  "materials": [
+    {
+      "name": "MI_PP_LR_StyleOutline_Benchmark",
+      "assetPath": "/Game/LostRunic/Materials/Benchmark/Instances/MI_PP_LR_StyleOutline_Benchmark.MI_PP_LR_StyleOutline_Benchmark",
+      "parent": {
+        "refPath": "/Game/LostRunic/Materials/PostProcess/M_PP_LR_StyleOutline.M_PP_LR_StyleOutline"
+      },
+      "blendableLocationOverride": "BL_SceneColorAfterTonemapping",
+      "blendablePriorityOverride": 0,
+      "parameterList": [
+        {
+          "type": "Scalar",
+          "name": "OutlineWidthPx"
+        },
+        {
+          "type": "Scalar",
+          "name": "DepthThreshold"
+        },
+        {
+          "type": "Scalar",
+          "name": "NormalThreshold"
+        },
+        {
+          "type": "Scalar",
+          "name": "InternalEdgeStrength"
+        },
+        {
+          "type": "Scalar",
+          "name": "DistanceFadeStart"
+        },
+        {
+          "type": "Scalar",
+          "name": "DistanceFadeEnd"
+        },
+        {
+          "type": "Scalar",
+          "name": "ArtEdgeDebugView"
+        },
+        {
+          "type": "Scalar",
+          "name": "OutlineDarkenFactor"
+        },
+        {
+          "type": "Scalar",
+          "name": "OutlineBaseHueInfluence"
+        }
+      ],
+      "currentParameters": [
+        {
+          "name": "OutlineWidthPx",
+          "type": "Scalar",
+          "currentValue": 1
+        },
+        {
+          "name": "DepthThreshold",
+          "type": "Scalar",
+          "currentValue": 0.0020000000949949026
+        },
+        {
+          "name": "NormalThreshold",
+          "type": "Scalar",
+          "currentValue": 0.18000000715255737
+        },
+        {
+          "name": "InternalEdgeStrength",
+          "type": "Scalar",
+          "currentValue": 0.44999998807907104
+        },
+        {
+          "name": "DistanceFadeStart",
+          "type": "Scalar",
+          "currentValue": 1000
+        },
+        {
+          "name": "DistanceFadeEnd",
+          "type": "Scalar",
+          "currentValue": 4000
+        },
+        {
+          "name": "ArtEdgeDebugView",
+          "type": "Scalar",
+          "currentValue": 0
+        },
+        {
+          "name": "OutlineDarkenFactor",
+          "type": "Scalar",
+          "currentValue": 0.550000011920929
+        },
+        {
+          "name": "OutlineBaseHueInfluence",
+          "type": "Scalar",
+          "currentValue": 0.15000000596046448
+        }
+      ],
+      "serializedOverrides": {
+        "scalarParameterValues": [
+          {
+            "atlasData": {
+              "bIsUsedAsAtlasPosition": false,
+              "curve": "None",
+              "atlas": "None"
+            },
+            "parameterInfo": {
+              "name": "OutlineWidthPx",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": 1,
+            "expressionGUId": "6407ABF3-4F90-9E7E-E6EF-149218AB17C4"
+          },
+          {
+            "atlasData": {
+              "bIsUsedAsAtlasPosition": false,
+              "curve": "None",
+              "atlas": "None"
+            },
+            "parameterInfo": {
+              "name": "DepthThreshold",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": 0.0020000000949949026,
+            "expressionGUId": "C177C77E-4F33-8ECE-B265-CEBF8B695FE9"
+          },
+          {
+            "atlasData": {
+              "bIsUsedAsAtlasPosition": false,
+              "curve": "None",
+              "atlas": "None"
+            },
+            "parameterInfo": {
+              "name": "NormalThreshold",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": 0.18000000715255737,
+            "expressionGUId": "EE0E9316-4759-4673-662C-F4A2024CB30A"
+          },
+          {
+            "atlasData": {
+              "bIsUsedAsAtlasPosition": false,
+              "curve": "None",
+              "atlas": "None"
+            },
+            "parameterInfo": {
+              "name": "InternalEdgeStrength",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": 0.44999998807907104,
+            "expressionGUId": "40030A21-41B3-DBA9-82B3-23907EDC873D"
+          },
+          {
+            "atlasData": {
+              "bIsUsedAsAtlasPosition": false,
+              "curve": "None",
+              "atlas": "None"
+            },
+            "parameterInfo": {
+              "name": "DistanceFadeStart",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": 1000,
+            "expressionGUId": "943BC6CD-4144-6923-85F7-0F8D98E1B5D1"
+          },
+          {
+            "atlasData": {
+              "bIsUsedAsAtlasPosition": false,
+              "curve": "None",
+              "atlas": "None"
+            },
+            "parameterInfo": {
+              "name": "DistanceFadeEnd",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": 4000,
+            "expressionGUId": "12A079D3-481A-0BF5-6698-9E85F90E83CC"
+          },
+          {
+            "atlasData": {
+              "bIsUsedAsAtlasPosition": false,
+              "curve": "None",
+              "atlas": "None"
+            },
+            "parameterInfo": {
+              "name": "ArtEdgeDebugView",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": 0,
+            "expressionGUId": "25D0F229-4F2D-B984-2836-35806746E7E2"
+          }
+        ],
+        "vectorParameterValues": [
+          {
+            "parameterInfo": {
+              "name": "InkTint",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": {
+              "r": 0.014999999664723873,
+              "g": 0.019999999552965164,
+              "b": 0.03500000014901161,
+              "a": 1
+            },
+            "expressionGUId": "965A3FF3-4616-2635-B206-AFB1FD5B1288"
+          },
+          {
+            "parameterInfo": {
+              "name": "LocalSceneTint",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": {
+              "r": 0.07999999821186066,
+              "g": 0.10000000149011612,
+              "b": 0.1599999964237213,
+              "a": 1
+            },
+            "expressionGUId": "60E9968E-4BC5-7AFB-D7A7-42B5C44E3DB2"
+          }
+        ],
+        "textureParameterValues": [],
+        "basePropertyOverrides": {
+          "bOverride_OpacityMaskClipValue": false,
+          "bOverride_BlendMode": false,
+          "bOverride_ShadingModel": false,
+          "bOverride_DitheredLODTransition": false,
+          "bOverride_CastDynamicShadowAsMasked": false,
+          "bOverride_TwoSided": false,
+          "bOverride_bIsThinSurface": false,
+          "bOverride_OutputTranslucentVelocity": false,
+          "bOverride_bHasPixelAnimation": false,
+          "bOverride_bEnableTessellation": false,
+          "bOverride_DisplacementScaling": false,
+          "bOverride_bEnableDisplacementFade": false,
+          "bOverride_DisplacementFadeRange": false,
+          "bOverride_MaxWorldPositionOffsetDisplacement": false,
+          "bOverride_CompatibleWithLumenCardSharing": false,
+          "bOverride_UsageFlags": 0,
+          "twoSided": false,
+          "bIsThinSurface": false,
+          "ditheredLODTransition": false,
+          "bCastDynamicShadowAsMasked": false,
+          "bOutputTranslucentVelocity": false,
+          "bHasPixelAnimation": false,
+          "bEnableTessellation": false,
+          "bEnableDisplacementFade": false,
+          "bCompatibleWithLumenCardSharing": false,
+          "blendMode": "BLEND_Opaque",
+          "shadingModel": "MSM_Unlit",
+          "opacityMaskClipValue": 0.33329999446868896,
+          "displacementScaling": {
+            "magnitude": 4,
+            "center": 0.5
+          },
+          "displacementFadeRange": {
+            "startSizePixels": 4,
+            "endSizePixels": 1
+          },
+          "maxWorldPositionOffsetDisplacement": 0,
+          "usageFlags": 4194304
+        },
+        "userSceneTextureOverrides": []
+      },
+      "dependencies": [
+        "/Game/LostRunic/Materials/PostProcess/M_PP_LR_StyleOutline"
+      ],
+      "blendableOverrideState": {
+        "parentOutputAlpha": false,
+        "parentIsBlendable": true,
+        "serializedLocation": "BL_SceneColorAfterTonemapping",
+        "effectiveSource": "parent material because instance override flags are false",
+        "effectivePriority": 0,
+        "effectiveLocation": "BL_SceneColorAfterDOF",
+        "bOverrideBlendableLocation": false,
+        "parentMaterial": "/Game/LostRunic/Materials/PostProcess/M_PP_LR_StyleOutline.M_PP_LR_StyleOutline",
+        "serializedPriority": 0,
+        "bOverrideBlendablePriority": false
+      },
+      "parentBlendableProperties": {
+        "blendableLocation": "BL_SceneColorAfterDOF",
+        "blendablePriority": 0,
+        "bIsBlendable": true,
+        "blendableOutputAlpha": false
+      },
+      "effectiveBlendableLocation": "BL_SceneColorAfterDOF",
+      "effectiveBlendablePriority": 0
+    },
+    {
+      "name": "MI_PP_LR_InteractionOutline_Diag0707",
+      "assetPath": "/Game/LostRunic/Materials/Benchmark/Instances/MI_PP_LR_InteractionOutline_Diag0707.MI_PP_LR_InteractionOutline_Diag0707",
+      "parent": {
+        "refPath": "/Game/LostRunic/Materials/M_PP_InteractionOutline.M_PP_InteractionOutline"
+      },
+      "blendableLocationOverride": "BL_SceneColorAfterTonemapping",
+      "blendablePriorityOverride": 0,
+      "parameterList": [
+        {
+          "type": "Scalar",
+          "name": "InteractionOutlineWidthPx"
+        },
+        {
+          "type": "Scalar",
+          "name": "InteractionDiagonalScale"
+        },
+        {
+          "type": "Scalar",
+          "name": "InteractionDepthBiasCm"
+        },
+        {
+          "type": "Vector",
+          "name": "InteractionOutlineTint"
+        }
+      ],
+      "currentParameters": [
+        {
+          "name": "InteractionOutlineWidthPx",
+          "type": "Scalar",
+          "currentValue": 1
+        },
+        {
+          "name": "InteractionDiagonalScale",
+          "type": "Scalar",
+          "currentValue": 0.7071067690849304
+        },
+        {
+          "name": "InteractionDepthBiasCm",
+          "type": "Scalar",
+          "currentValue": 1
+        },
+        {
+          "name": "InteractionOutlineTint",
+          "type": "Vector",
+          "currentValue": {
+            "r": 1,
+            "g": 1,
+            "b": 1,
+            "a": 1
+          }
+        }
+      ],
+      "serializedOverrides": {
+        "scalarParameterValues": [
+          {
+            "atlasData": {
+              "bIsUsedAsAtlasPosition": false,
+              "curve": "None",
+              "atlas": "None"
+            },
+            "parameterInfo": {
+              "name": "InteractionDiagonalScale",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": 0.7071067690849304,
+            "expressionGUId": "01BB2932-440F-C427-762C-8999BFA6CF2F"
+          },
+          {
+            "atlasData": {
+              "bIsUsedAsAtlasPosition": false,
+              "curve": "None",
+              "atlas": "None"
+            },
+            "parameterInfo": {
+              "name": "InteractionOutlineWidthPx",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": 1,
+            "expressionGUId": "6DE1DCB1-4CBD-F8BF-A33D-1BB0A7D7901E"
+          },
+          {
+            "atlasData": {
+              "bIsUsedAsAtlasPosition": false,
+              "curve": "None",
+              "atlas": "None"
+            },
+            "parameterInfo": {
+              "name": "InteractionDepthBiasCm",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": 1,
+            "expressionGUId": "2A9E997F-41BE-125E-6C24-78B4A8ABBC70"
+          }
+        ],
+        "vectorParameterValues": [
+          {
+            "parameterInfo": {
+              "name": "InteractionOutlineTint",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": {
+              "r": 1,
+              "g": 1,
+              "b": 1,
+              "a": 1
+            },
+            "expressionGUId": "A5BE802F-4A48-4BDE-BC95-68956B5CECF0"
+          }
+        ],
+        "textureParameterValues": [],
+        "basePropertyOverrides": {
+          "bOverride_OpacityMaskClipValue": false,
+          "bOverride_BlendMode": false,
+          "bOverride_ShadingModel": false,
+          "bOverride_DitheredLODTransition": false,
+          "bOverride_CastDynamicShadowAsMasked": false,
+          "bOverride_TwoSided": false,
+          "bOverride_bIsThinSurface": false,
+          "bOverride_OutputTranslucentVelocity": false,
+          "bOverride_bHasPixelAnimation": false,
+          "bOverride_bEnableTessellation": false,
+          "bOverride_DisplacementScaling": false,
+          "bOverride_bEnableDisplacementFade": false,
+          "bOverride_DisplacementFadeRange": false,
+          "bOverride_MaxWorldPositionOffsetDisplacement": false,
+          "bOverride_CompatibleWithLumenCardSharing": false,
+          "bOverride_UsageFlags": 0,
+          "twoSided": false,
+          "bIsThinSurface": false,
+          "ditheredLODTransition": false,
+          "bCastDynamicShadowAsMasked": false,
+          "bOutputTranslucentVelocity": false,
+          "bHasPixelAnimation": false,
+          "bEnableTessellation": false,
+          "bEnableDisplacementFade": false,
+          "bCompatibleWithLumenCardSharing": false,
+          "blendMode": "BLEND_Opaque",
+          "shadingModel": "MSM_Unlit",
+          "opacityMaskClipValue": 0.33329999446868896,
+          "displacementScaling": {
+            "magnitude": 4,
+            "center": 0.5
+          },
+          "displacementFadeRange": {
+            "startSizePixels": 4,
+            "endSizePixels": 1
+          },
+          "maxWorldPositionOffsetDisplacement": 0,
+          "usageFlags": 4194304
+        },
+        "userSceneTextureOverrides": []
+      },
+      "dependencies": [
+        "/Game/LostRunic/Materials/M_PP_InteractionOutline"
+      ],
+      "blendableOverrideState": {
+        "parentOutputAlpha": false,
+        "parentIsBlendable": true,
+        "serializedLocation": "BL_SceneColorAfterTonemapping",
+        "effectiveSource": "parent material because instance override flags are false",
+        "effectivePriority": 10,
+        "effectiveLocation": "BL_SceneColorAfterDOF",
+        "bOverrideBlendableLocation": false,
+        "parentMaterial": "/Game/LostRunic/Materials/M_PP_InteractionOutline.M_PP_InteractionOutline",
+        "serializedPriority": 0,
+        "bOverrideBlendablePriority": false
+      },
+      "parentBlendableProperties": {
+        "blendableLocation": "BL_SceneColorAfterDOF",
+        "blendablePriority": 10,
+        "bIsBlendable": true,
+        "blendableOutputAlpha": false
+      },
+      "effectiveBlendableLocation": "BL_SceneColorAfterDOF",
+      "effectiveBlendablePriority": 10
+    },
+    {
+      "name": "MI_PP_LR_LivingRoomOutline",
+      "assetPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_PP_LR_LivingRoomOutline.MI_PP_LR_LivingRoomOutline",
+      "parent": {
+        "refPath": "/Game/LostRunic/Materials/PostProcess/M_PP_LR_StyleOutline.M_PP_LR_StyleOutline"
+      },
+      "blendableLocationOverride": "BL_SceneColorAfterTonemapping",
+      "blendablePriorityOverride": 0,
+      "parameterList": [
+        {
+          "type": "Scalar",
+          "name": "OutlineWidthPx"
+        },
+        {
+          "type": "Scalar",
+          "name": "DepthThreshold"
+        },
+        {
+          "type": "Scalar",
+          "name": "NormalThreshold"
+        },
+        {
+          "type": "Scalar",
+          "name": "InternalEdgeStrength"
+        },
+        {
+          "type": "Scalar",
+          "name": "DistanceFadeStart"
+        },
+        {
+          "type": "Scalar",
+          "name": "DistanceFadeEnd"
+        },
+        {
+          "type": "Scalar",
+          "name": "ArtEdgeDebugView"
+        },
+        {
+          "type": "Scalar",
+          "name": "OutlineDarkenFactor"
+        },
+        {
+          "type": "Scalar",
+          "name": "OutlineBaseHueInfluence"
+        }
+      ],
+      "currentParameters": [
+        {
+          "name": "OutlineWidthPx",
+          "type": "Scalar",
+          "currentValue": 1
+        },
+        {
+          "name": "DepthThreshold",
+          "type": "Scalar",
+          "currentValue": 0.0020000000949949026
+        },
+        {
+          "name": "NormalThreshold",
+          "type": "Scalar",
+          "currentValue": 0.18000000715255737
+        },
+        {
+          "name": "InternalEdgeStrength",
+          "type": "Scalar",
+          "currentValue": 0.44999998807907104
+        },
+        {
+          "name": "DistanceFadeStart",
+          "type": "Scalar",
+          "currentValue": 1000
+        },
+        {
+          "name": "DistanceFadeEnd",
+          "type": "Scalar",
+          "currentValue": 4000
+        },
+        {
+          "name": "ArtEdgeDebugView",
+          "type": "Scalar",
+          "currentValue": 0
+        },
+        {
+          "name": "OutlineDarkenFactor",
+          "type": "Scalar",
+          "currentValue": 0.550000011920929
+        },
+        {
+          "name": "OutlineBaseHueInfluence",
+          "type": "Scalar",
+          "currentValue": 0.15000000596046448
+        }
+      ],
+      "serializedOverrides": {
+        "scalarParameterValues": [
+          {
+            "atlasData": {
+              "bIsUsedAsAtlasPosition": false,
+              "curve": "None",
+              "atlas": "None"
+            },
+            "parameterInfo": {
+              "name": "OutlineWidthPx",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": 1,
+            "expressionGUId": "6407ABF3-4F90-9E7E-E6EF-149218AB17C4"
+          },
+          {
+            "atlasData": {
+              "bIsUsedAsAtlasPosition": false,
+              "curve": "None",
+              "atlas": "None"
+            },
+            "parameterInfo": {
+              "name": "DepthThreshold",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": 0.0020000000949949026,
+            "expressionGUId": "C177C77E-4F33-8ECE-B265-CEBF8B695FE9"
+          },
+          {
+            "atlasData": {
+              "bIsUsedAsAtlasPosition": false,
+              "curve": "None",
+              "atlas": "None"
+            },
+            "parameterInfo": {
+              "name": "NormalThreshold",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": 0.18000000715255737,
+            "expressionGUId": "EE0E9316-4759-4673-662C-F4A2024CB30A"
+          },
+          {
+            "atlasData": {
+              "bIsUsedAsAtlasPosition": false,
+              "curve": "None",
+              "atlas": "None"
+            },
+            "parameterInfo": {
+              "name": "InternalEdgeStrength",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": 0.44999998807907104,
+            "expressionGUId": "40030A21-41B3-DBA9-82B3-23907EDC873D"
+          },
+          {
+            "atlasData": {
+              "bIsUsedAsAtlasPosition": false,
+              "curve": "None",
+              "atlas": "None"
+            },
+            "parameterInfo": {
+              "name": "DistanceFadeStart",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": 1000,
+            "expressionGUId": "943BC6CD-4144-6923-85F7-0F8D98E1B5D1"
+          },
+          {
+            "atlasData": {
+              "bIsUsedAsAtlasPosition": false,
+              "curve": "None",
+              "atlas": "None"
+            },
+            "parameterInfo": {
+              "name": "DistanceFadeEnd",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": 4000,
+            "expressionGUId": "12A079D3-481A-0BF5-6698-9E85F90E83CC"
+          },
+          {
+            "atlasData": {
+              "bIsUsedAsAtlasPosition": false,
+              "curve": "None",
+              "atlas": "None"
+            },
+            "parameterInfo": {
+              "name": "ArtEdgeDebugView",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": 0,
+            "expressionGUId": "25D0F229-4F2D-B984-2836-35806746E7E2"
+          }
+        ],
+        "vectorParameterValues": [
+          {
+            "parameterInfo": {
+              "name": "InkTint",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": {
+              "r": 0.014999999664723873,
+              "g": 0.019999999552965164,
+              "b": 0.03500000014901161,
+              "a": 1
+            },
+            "expressionGUId": "965A3FF3-4616-2635-B206-AFB1FD5B1288"
+          },
+          {
+            "parameterInfo": {
+              "name": "LocalSceneTint",
+              "association": "GlobalParameter",
+              "index": -1
+            },
+            "parameterValue": {
+              "r": 0.07999999821186066,
+              "g": 0.10000000149011612,
+              "b": 0.1599999964237213,
+              "a": 1
+            },
+            "expressionGUId": "60E9968E-4BC5-7AFB-D7A7-42B5C44E3DB2"
+          }
+        ],
+        "textureParameterValues": [],
+        "basePropertyOverrides": {
+          "bOverride_OpacityMaskClipValue": false,
+          "bOverride_BlendMode": false,
+          "bOverride_ShadingModel": false,
+          "bOverride_DitheredLODTransition": false,
+          "bOverride_CastDynamicShadowAsMasked": false,
+          "bOverride_TwoSided": false,
+          "bOverride_bIsThinSurface": false,
+          "bOverride_OutputTranslucentVelocity": false,
+          "bOverride_bHasPixelAnimation": false,
+          "bOverride_bEnableTessellation": false,
+          "bOverride_DisplacementScaling": false,
+          "bOverride_bEnableDisplacementFade": false,
+          "bOverride_DisplacementFadeRange": false,
+          "bOverride_MaxWorldPositionOffsetDisplacement": false,
+          "bOverride_CompatibleWithLumenCardSharing": false,
+          "bOverride_UsageFlags": 0,
+          "twoSided": false,
+          "bIsThinSurface": false,
+          "ditheredLODTransition": false,
+          "bCastDynamicShadowAsMasked": false,
+          "bOutputTranslucentVelocity": false,
+          "bHasPixelAnimation": false,
+          "bEnableTessellation": false,
+          "bEnableDisplacementFade": false,
+          "bCompatibleWithLumenCardSharing": false,
+          "blendMode": "BLEND_Opaque",
+          "shadingModel": "MSM_Unlit",
+          "opacityMaskClipValue": 0.33329999446868896,
+          "displacementScaling": {
+            "magnitude": 4,
+            "center": 0.5
+          },
+          "displacementFadeRange": {
+            "startSizePixels": 4,
+            "endSizePixels": 1
+          },
+          "maxWorldPositionOffsetDisplacement": 0,
+          "usageFlags": 4194304
+        },
+        "userSceneTextureOverrides": []
+      },
+      "dependencies": [
+        "/Game/LostRunic/Materials/PostProcess/M_PP_LR_StyleOutline"
+      ],
+      "blendableOverrideState": {
+        "parentOutputAlpha": false,
+        "parentIsBlendable": true,
+        "serializedLocation": "BL_SceneColorAfterTonemapping",
+        "effectiveSource": "parent material because instance override flags are false",
+        "effectivePriority": 0,
+        "effectiveLocation": "BL_SceneColorAfterDOF",
+        "bOverrideBlendableLocation": false,
+        "parentMaterial": "/Game/LostRunic/Materials/PostProcess/M_PP_LR_StyleOutline.M_PP_LR_StyleOutline",
+        "serializedPriority": 0,
+        "bOverrideBlendablePriority": false
+      },
+      "parentBlendableProperties": {
+        "blendableLocation": "BL_SceneColorAfterDOF",
+        "blendablePriority": 0,
+        "bIsBlendable": true,
+        "blendableOutputAlpha": false
+      },
+      "effectiveBlendableLocation": "BL_SceneColorAfterDOF",
+      "effectiveBlendablePriority": 0
+    }
+  ],
+  "sceneMesh": {
+    "slotResolutionStatus": "CharacterMesh0 override and Ruth1 slot/material captured in CharacterMaterial.json; exhaustive skeletal component property inventory is NOT_CAPTURED",
+    "overrideMaterials": [
+      {
+        "refPath": "/Game/LostRunic/Materials/Instances/Characters/MI_LR_Ruth_Child.MI_LR_Ruth_Child"
+      }
+    ],
+    "availableProperties": [
+      "skeletalMeshAsset",
+      "overrideMaterials",
+      "relativeLocation",
+      "relativeRotation",
+      "relativeScale3D",
+      "mobility",
+      "bVisible",
+      "bHiddenInGame"
+    ],
+    "skeletalMesh": {
+      "refPath": "/Game/LostRunic/Characters/Mesh/Ruth1.Ruth1"
+    },
+    "component": "/Game/LostRunic/Levels/PIE_Test/L_Art_Demo.L_Art_Demo:PersistentLevel.BP_Ruth_C_0.CharacterMesh0",
+    "evidenceNote": "The prior oversized list_properties schema was removed; this file intentionally stores only the bounded property names used for capture."
+  },
+  "notes": [
+    "The serialized blendableLocationOverride and blendablePriorityOverride values are retained as raw evidence.",
+    "All three instances reported bOverrideBlendableLocation=false and bOverrideBlendablePriority=false; effective location/priority therefore inherit from the parent material and are recorded explicitly.",
+    "Do not infer AfterTonemapping from the inactive serialized fields."
+  ]
+}

@@ -1,0 +1,1158 @@
+{
+  "schemaVersion": "1.0",
+  "captureDate": "2026-09-08",
+  "capturedAtLocal": "2026-09-08T12:32:07.1615432+08:00",
+  "captureSource": "UE MCP over localhost / read-only EditorAppToolset.SearchCVars",
+  "scope": "Rendering whitelist only: Lumen, VSM/virtual shadow query, AA/TSR, screen percentage, exposure, fog, default feature",
+  "queries": [
+    "r.AntiAliasingMethod",
+    "r.TSR",
+    "r.ScreenPercentage",
+    "r.Lumen",
+    "r.VSM",
+    "r.VirtualShadowMaps",
+    "r.Exposure",
+    "r.Fog",
+    "r.DefaultFeature",
+    "r.Shadow.Virtual"
+  ],
+  "queryResultCounts": {
+    "r.AntiAliasingMethod": 1,
+    "r.TSR": 45,
+    "r.ScreenPercentage": 9,
+    "r.Lumen": 535,
+    "r.VSM": 1,
+    "r.VirtualShadowMaps": 0,
+    "r.Exposure": 1,
+    "r.Fog": 6,
+    "r.DefaultFeature": 12,
+    "r.Shadow.Virtual": 116
+  },
+  "selectedCVarCount": 223,
+  "values": {
+    "r.AntiAliasingMethod": {
+      "value": 4,
+      "help": "Engine default (project setting) for AntiAliasingMethod is (postprocess volume/camera/game setting still can override)\n 0: off (no anti-aliasing)\n 1: Fast Approximate Anti-Aliasing (FXAA)\n 2: Temporal Anti-Aliasing (TAA)\n 3: Multisample Anti-Aliasing (MSAA, Only available on the desktop forward renderer)\n 4: Temporal Super-Resolution (TSR, Default)\n 5: Subpixel Morphological Anti-Aliasing (SMAA)",
+      "query": "r.AntiAliasingMethod"
+    },
+    "r.TSR.Support.LensDistortion": {
+      "value": 1,
+      "help": "Whether to compile lens distortion support in TSR's shaders (adds the lens distortion LUT in the HistoryUpdate pass in branches that even disabled can add a bit of VALU cost when no lens distortion is used).\n 0: unsupported;\n 1: supported only on desktop (default);\n 2: supported everywhere;\n",
+      "query": "r.TSR"
+    },
+    "r.TSR.AlphaChannel": {
+      "value": -1,
+      "help": "Controls whether TSR should process the scene color's alpha channel.\n -1: based of r.PostProcessing.PropagateAlpha (default);\n  0: disabled;\n  1: enabled.\n",
+      "query": "r.TSR"
+    },
+    "r.TSR.History.SampleCount": {
+      "value": 16,
+      "help": "Maximum number sample for each output pixel in the history. Higher values means more stability on highlights on static images, but may introduce additional ghosting on firefliers style of VFX. Minimum value supported is 8.0 as TSR was in 5.0 and 5.1. Maximum value possible due to the encoding of the TSR.History.Metadata is 32.0. Defaults to 16.0.\n\nUse \"r.TSR.Visualize 0\" command to see how many samples where accumulated in TSR history on areas of the screen.",
+      "query": "r.TSR"
+    },
+    "r.TSR.History.ScreenPercentage": {
+      "value": 200,
+      "help": "Resolution multiplier of the history of TSR based of output resolution. While increasing the resolution adds runtime cost to TSR, it allows to maintain a better sharpness and stability of the details stored in history through out the reprojection.\n\nSetting to 200 brings on a very particular property relying on NyQuist-Shannon sampling theorem that establishes a sufficient condition for the sample rate of the accumulated details in the history. As a result only values between 100 and 200 are supported.\nIt is controlled by default in the anti-aliasing scalability group set to 200 on Epic and Cinematic, 100 otherwise.",
+      "query": "r.TSR"
+    },
+    "r.TSR.History.R11G11B10": {
+      "value": 1,
+      "help": "Select the bitdepth of the history. r.TSR.History.R11G11B10=1 Saves memory bandwidth that is of particular interest of the TSR's UpdateHistory's runtime performance by saving memory both at previous frame's history reprojection and write out of the output and new history.\nThis optimisation is unsupported with r.PostProcessing.PropagateAlpha=True.\n\nPlease also not that increasing r.TSR.History.ScreenPercentage=200 adds 2 additional implicit encoding bits in the history compared to the TSR.Output's bitdepth thanks to the downscaling pass from TSR history resolution to TSR output resolution.",
+      "query": "r.TSR"
+    },
+    "r.TSR.History.UpdateQuality": {
+      "value": 3,
+      "help": "Selects shader permutation of the quality of the update of the history in the TSR HistoryUpdate pass currently driven by the sg.AntiAliasingQuality scalability group. For further details about what each offers, you are invited to look at DIM_UPDATE_QUALITY in TSRUpdateHistory.usf and customise to your need.",
+      "query": "r.TSR"
+    },
+    "r.TSR.WaveOps": {
+      "value": 1,
+      "help": "Whether to use wave ops in the shading rejection heuristics to speeds up convolutions.\n\nThe shading rejection heuristic optimisation can be particularily hard for shader compiler and hit bug in them causing corruption/quality loss.\n\nNote this optimisation is currently disabled on SPIRV platforms (mainly Vulkan and Metal) due to 5min+ compilation times in SPIRV backend of DXC which is not great for editor startup.",
+      "query": "r.TSR"
+    },
+    "r.TSR.WaveSize": {
+      "value": 0,
+      "help": "Overrides the WaveSize to use.\n 0: Automatic (default);\n 16: WaveSizeOps 16;\n 32: WaveSizeOps 32;\n 64: WaveSizeOps 64;\n",
+      "query": "r.TSR"
+    },
+    "r.TSR.16BitVALU": {
+      "value": 1,
+      "help": "Whether to use 16bit VALU on platform that have bSupportsRealTypes=RuntimeDependent",
+      "query": "r.TSR"
+    },
+    "r.TSR.16BitVALU.AMD": {
+      "value": 1,
+      "help": "Overrides whether to use 16bit VALU on AMD desktop GPUs",
+      "query": "r.TSR"
+    },
+    "r.TSR.16BitVALU.Intel": {
+      "value": 1,
+      "help": "Overrides whether to use 16bit VALU on Intel desktop GPUs",
+      "query": "r.TSR"
+    },
+    "r.TSR.16BitVALU.Nvidia": {
+      "value": 0,
+      "help": "Overrides whether to use 16bit VALU on Nvidia desktop GPUs",
+      "query": "r.TSR"
+    },
+    "r.TSR.ShadingRejection.Mode": {
+      "value": 1,
+      "help": ".\n  0: More responsiveness and less ghosting but tends to have more blocky artifacts.\n  1: Better stability and shading rejection control but tends to have ghosting.\n",
+      "query": "r.TSR"
+    },
+    "r.TSR.ShadingRejection.SampleCount": {
+      "value": 2,
+      "help": "Maximum number of sample in each output pixel of the history after total shading rejection.\n\nLower values means higher clarity of the image after shading rejection of the history, but at the trade of higher instability of the pixel on following frames accumulating new details which can be distracting to the human eye (Defaults to 2.0).",
+      "query": "r.TSR"
+    },
+    "r.TSR.ShadingRejection.Flickering": {
+      "value": 1,
+      "help": "Instability in TSR output 99% of the time coming from instability of the shading rejection, for different reasons:\n - One first source of instability is most famously moire pattern between structured geometry and the rendering pixel grid changing every frame due to the offset of the jittering pixel grid offset;\n - Another source of instability can happen on extrem geometric complexity due to temporal history's chicken-and-egg problem that can not be overcome by other mechanisms in place in TSR's RejectHistory pass: how can the history be identical to rendered frame if the amount of details you have in the rendered frame is not in history? how can the history accumulate details if the history is too different from the rendered frame?\n\nWhen enabled, this flickering temporal analysis monitor how the luminance of the scene right before any translucency drawing stored in the TSR.Flickering.Luminance resource how it involves over successive frames. And if it is detected to constantly flicker regularily above a certain threshold defined with this r.TSR.ShadingRejection.Flickering.* cvars, the heuristic attempts to stabilize the image by letting ghost within luminance boundary tied to the amplititude of flickering.\n\nUse \"r.TSR.Visualize 7\" command to see on screen where this heuristic quicks in orange and red. Pink is where it is disabled.\n\nOne particular caveat of this heuristic is that any opaque geometry with incorrect motion vector can make a pixel look identically flickery quicking this heuristic in and leaving undesired ghosting effects on the said geometry. When that happens, it is highly encourage to verify the motion vector through the VisualizeMotionBlur show flag and how these motion vectors are able to reproject previous frame with the VisualizeReprojection show flag.\n\nThe variable to countrol the frame frequency at which a pixel is considered flickery and needs to be stabilized with this heuristic is defined with the r.TSR.ShadingRejection.Flickering.Period in frames. For instance, a value r.TSR.ShadingRejection.Flickering.Period=3, it means any pixel that have its luminance changing of variation every more often than every frames is considered flickering.\n\nHowever another caveats on this boundary between flickering pixel versus animated pixel is that: flickering happens regardless of frame rate, whereas a visual effects that are/should be based on time and are therefore independent of the frame rate. This mean that a visual effect that looks smooth at 60hz might appear to 'flicker' at lower frame rates, like 24hz for instance.\nTo make sure a visual effect authored by an artists doesn't start to ghost of frame rate, r.TSR.ShadingRejection.Flickering.AdjustToFrameRate is enabled by default such that this frame frequency boundary is automatically when the frame rate drops below a refresh rate below r.TSR.ShadingRejection.Flickering.FrameRateCap.\n\nWhile r.TSR.ShadingRejection.Flickering is controled based of scalability settings turn on/off this heuristic on lower/high-end GPU the other r.TSR.ShadingRejection.Flickering.* can be set orthogonally in the Project's DefaultEngine.ini for a consistent behavior across all platforms.\n\nIt is enabled by default in the anti-aliasing scalability group High, Epic and Cinematic.",
+      "query": "r.TSR"
+    },
+    "r.TSR.ShadingRejection.Flickering.FrameRateCap": {
+      "value": 60,
+      "help": "Framerate cap in hertz at which point there is automatic adjustment of r.TSR.ShadingRejection.Flickering.Period when the rendering frame rate is lower. Please read r.TSR.ShadingRejection.Flickering's help for further details. (Default to 60hz)",
+      "query": "r.TSR"
+    },
+    "r.TSR.ShadingRejection.Flickering.AdjustToFrameRate": {
+      "value": 1,
+      "help": "Whether r.TSR.ShadingRejection.Flickering.Period settings should adjust to frame rate when below r.TSR.ShadingRejection.Flickering.FrameRateCap. Please read r.TSR.ShadingRejection.Flickering's help for further details. (Enabled by default).",
+      "query": "r.TSR"
+    },
+    "r.TSR.ShadingRejection.Flickering.Period": {
+      "value": 2,
+      "help": "Periode in frames in which luma oscilations at equal or greater frequency is considered flickering and should ghost to stabilize the image Please read r.TSR.ShadingRejection.Flickering's help for further details. (Default to 3 frames).",
+      "query": "r.TSR"
+    },
+    "r.TSR.ShadingRejection.Flickering.MaxParallaxVelocity": {
+      "value": 10,
+      "help": "Some material might for instance might do something like parallax occlusion mapping such as CitySample's buildings' window's interiors. This often can not render accurately a motion vector of this fake interior geometry and therefore make the heuristic believe it is in fact flickering.\n\nThis variable define the parallax velocity in 1080p pixel at frame rate defined by r.TSR.ShadingRejection.Flickering.FrameRateCap at which point the heuristic should be disabled to not ghost. \n(Default to 10 pixels 1080p).\n",
+      "query": "r.TSR"
+    },
+    "r.TSR.ShadingRejection.TileOverscan": {
+      "value": 3,
+      "help": "The shading rejection run a network of convolutions on the GPU all in single 32x32 without roundtrip to main video memory. However chaining many convlutions in this tiles means that some convolutions on the edge arround are becoming corrupted and therefor need to overlap the tile by couple of padding to hide it. Higher means less prones to tiling artifacts, but performance loss.",
+      "query": "r.TSR"
+    },
+    "r.TSR.ShadingRejection.ExposureOffset": {
+      "value": 0,
+      "help": "The shading rejection needs to have a representative idea how bright a linear color pixel ends up displayed to the user. And the shading rejection detect if a color become to changed to be visible in the back buffer by comparing to MeasureBackbufferLDRQuantizationError().\n\nIt is important to have TSR's MeasureBackbufferLDRQuantizationError() ends up distributed uniformly across the range of color intensity or it could otherwise disregard some subtle VFX causing ghosting.\n\nThis controls adjusts the exposure of the linear color space solely in the TSR's rejection heuristic, such that higher value lifts the shadows's LDR intensity, meaning MeasureBackbufferLDRQuantizationError() is decreased in these shadows and increased in the highlights, control directly.\n\nThe best TSR internal buffer to verify this is TSR.Flickering.Luminance, either with the \"show VisualizeTemporalUpscaler\" command or in DumpGPU with the RGB Linear[0;1] source color space against the Tonemaper's output in sRGB source color space.\n",
+      "query": "r.TSR"
+    },
+    "r.TSR.LensDistortion": {
+      "value": 1,
+      "help": "Whether to apply lens distortion in TSR at runtime (enabled by default, requires r.TSR.Support.LensDistortion enabled at cook time).",
+      "query": "r.TSR"
+    },
+    "r.TSR.RejectionAntiAliasingQuality": {
+      "value": 2,
+      "help": "Controls the quality of TSR's built-in spatial anti-aliasing technology when the history needs to be rejected. While this may not be critical when the rendering resolution is not much lowered than display resolution, this technic however becomes essential to hide lower rendering resolution rendering because of two reasons:\n - the screen space size of aliasing is inverse proportional to rendering resolution;\n - rendering at lower resolution means need more frame to reach at least 1 rendered pixel per display pixel.\n\nUse \"r.TSR.Visualize 6\" command to see on screen where the spatial anti-aliaser quicks in green.\n\nBy default, it is only disabled by default in the low anti-aliasing scalability group.",
+      "query": "r.TSR"
+    },
+    "r.TSR.Resurrection": {
+      "value": 1,
+      "help": "Allows TSR to resurrect previously discarded details from many frames ago.\n\nWhen enabled, the entire frames of the TSR are stored in a same unique Texture2DArray including a configurable number of persistent frame (defined by r.TSR.Resurrection.PersistentFrameCount) that are occasionally recorded (defined by r.TSR.Resurrection.PersistentFrameInterval).\nThen every frame, TSR will attempt to reproject either previous frame, or the oldest persistent frame available based which matches best the current frames. The later option will happen when something previously seen by TSR shows up again (no matter through parallax disocclusion, shading changes, translucent VFX moving) which will have the advantage bypass the need to newly accumulate a second time by simply resurrected the previously accumulated details.\n\nCommand \"r.TSR.Visualize 4\" too see parts of the screen is being resurrected by TSR in green.\nCommand \"r.TSR.Visualize 5\" too see the oldest frame being possibly resurrected.\n\nCurrently experimental and disabled by default.",
+      "query": "r.TSR"
+    },
+    "r.TSR.Resurrection.PersistentFrameCount": {
+      "value": 2,
+      "help": "Configures the number of persistent frame to record in history for futur history resurrection. This will increase the memory footprint of the entire TSR history. Must be an even number greater or equal to 2. (default=2)",
+      "query": "r.TSR"
+    },
+    "r.TSR.Resurrection.PersistentFrameInterval": {
+      "value": 31,
+      "help": "Configures in number of frames how often persistent frame should be recorded in history for futur history resurrection. This has no implication on memory footprint of the TSR history. Must be an odd number greater or equal to 1. Uses the VisualizeTSR show flag and r.TSR.Visualize=5 to tune this parameter to your content. (default=31)",
+      "query": "r.TSR"
+    },
+    "r.TSR.AsyncCompute": {
+      "value": 2,
+      "help": "Controls how TSR run on async compute. Some TSR passes can overlap with previous passes.\n 0: Disabled;\n 1: Run on async compute only passes that are completly independent from any intermediary resource of this frame, namely ClearPrevTextures and ForwardScatterDepth passes;\n 2: Run on async compute only passes that are completly independent or only dependent on the depth and velocity buffer which can overlap for instance with translucency or DOF. Any passes on critical path remains on the graphics queue (default);\n 3: Run all passes on async compute;",
+      "query": "r.TSR"
+    },
+    "r.TSR.ReprojectionField": {
+      "value": 1,
+      "help": "Enables TSR's reprojection field for higher reprojection vector upscale and dilate quality (Enabled by default on high, epic and cinematic anti-aliasing quality).\n\nWhen the reprojection fields is enabled, it dilates the reprojection vector by half spatially anti-aliased rendering pixel from the depth buffer, instead by a full rendering pixel in dilate velocity pass. This allows hide the rendering resolution due whenever velocity buffer ends up extruding some object to edges, for instance when rotating. This come at the cost of spatial anti-aliasing in the DilateVelocity pass as well as an extra dependent texture fetches right at the begining of the HistoryUpdate pass.\n\nThe reprojection field also embeds a jacobian 2x2 matrix for each pixel to have more precise reprojection of the historyfor the display pixels in the rendering pixels. This for instance allows to maintains sharp geometric edges on movements.",
+      "query": "r.TSR"
+    },
+    "r.TSR.ReprojectionField.AntiAliasPixelSpeed": {
+      "value": 0.125,
+      "help": "Defines the output pixel velocity at which point the dilation should be spatial anti-aliased based of the depth buffer to avoid reprojection aliasing by extrusion on fast geometric edges (Default to 0.125, best tuned with r.TSR.Visualize=11).",
+      "query": "r.TSR"
+    },
+    "r.TSR.Velocity.WeightClampingSampleCount": {
+      "value": 4,
+      "help": "Number of sample to count to in history pixel to clamp history to when output pixel velocity reach r.TSR.Velocity.WeightClampingPixelSpeed. Higher value means higher stability on movement, but at the expense of additional blur due to successive convolution of each history reprojection.\n\nUse \"r.TSR.Visualize 0\" command to see how many samples where accumulated in TSR history on areas of the screen.\n\nPlease note this clamp the sample count in history pixel, not output pixel, and therefore lower values are by designed less noticeable with higher r.TSR.History.ScreenPercentage. This is done so such that increasing r.TSR.History.ScreenPercentage uniterally & automatically give more temporal stability and maintaining sharpness of the details reprojection at the expense of that extra runtime cost regardless of this setting.\n\nA story telling game might preferer to keep this 4.0 for a 'cinematic look' whereas a competitive game like Fortnite would preferer to lower that to 2.0. (Default = 4.0f).",
+      "query": "r.TSR"
+    },
+    "r.TSR.Velocity.WeightClampingPixelSpeed": {
+      "value": 1,
+      "help": "Defines the output pixel velocity at which the the high frequencies of the history get's their contributing weight clamped. It's basically to lerp the effect of r.TSR.Velocity.WeightClampingSampleCount when the pixel velocity get smaller than r.TSR.Velocity.WeightClampingPixelSpeed. (Default = 1.0f).",
+      "query": "r.TSR"
+    },
+    "r.TSR.ThinGeometryDetection": {
+      "value": 0,
+      "help": "Define if we should perform another pass to detect thin geometries (sub-pixel in frame buffer) either due to sampling algorithm before TSR or the geometry being too thin (Default = 0). When enabled thin geometry pixels will relax history rejection based on the types.\n    Edge line: single pixel line over non foliage (Red in r.TSR.Visualize 15)\n    Cluster hole region: foliage pixels with partial coverage against background material (Green)\n    Other: no history relaxation (Yellow).\nNOTE: When Nanite Foliage is enabled in the Project Settings, this option is enabled by default, and a value < 0 must be used to disable it.\n",
+      "query": "r.TSR"
+    },
+    "r.TSR.ThinGeometryDetection.Coverage.ShadingRange": {
+      "value": 3,
+      "help": "The shading model range regarded as thin geometry and accumulate the coverage.\n0: Two-sided foliage only.\n1: Two-sided foliage and hair.\n2: All shading models except unlit.\n3: All shading models except unlit participate in coverage. Foliage gets full relaxation dilation.\n\tRegular materials get lightweight edge-only relaxation (no dilation).\n\tRequires \"r.TSR.ShadingRejection.Flickering 1\" or \"r.TSR.ThinGeometryDetection.Coverage.MinKeepLineContrast\" > 0.\n\tOtherwise falls back to 0 (foliage only). (Default)\n",
+      "query": "r.TSR"
+    },
+    "r.TSR.ThinGeometryDetection.Coverage.MaxRelaxationWeight": {
+      "value": 0.03700000047683716,
+      "help": "The max history clamping box relaxation weight due to thin geometry detection (0 to 1)",
+      "query": "r.TSR"
+    },
+    "r.TSR.ThinGeometryDetection.Coverage.MinKeepLineContrast": {
+      "value": 0.30000001192092896,
+      "help": "The minimum luminance contrast needed to keep a detected intensity line after normalization",
+      "query": "r.TSR"
+    },
+    "r.TSR.ThinGeometryDetection.HighContrastLineFadeRate": {
+      "value": 0.10000000149011612,
+      "help": "How quickly reprojected high contrast line markers fade out outside validated thin geometry regions. 0=never, 1=instant (default=0.1).",
+      "query": "r.TSR"
+    },
+    "r.TSR.ThinGeometryDetection.HighContrastLineFadeRateInsideRegion": {
+      "value": 0.029999999329447746,
+      "help": "How quickly reprojected high contrast line markers fade out inside validated thin geometry regions. 0=never, 1=instant (default=0.03).",
+      "query": "r.TSR"
+    },
+    "r.TSR.ThinGeometryDetection.HighContrastLineWeight": {
+      "value": 0.6000000238418579,
+      "help": "Relaxation weight applied to detected high contrast lines when no cluster-based relaxation is active.",
+      "query": "r.TSR"
+    },
+    "r.TSR.ThinGeometryDetection.WeightRelaxation": {
+      "value": 1,
+      "help": "Adaptively trim the history relaxation to avoid ghosting.",
+      "query": "r.TSR"
+    },
+    "r.TSR.ThinGeometryDetection.ErrorMultiplier": {
+      "value": 200,
+      "help": "Scales the depth-based edge detection threshold. Higher values require larger depth discontinuities to classify as thin geometry edges.\nReduce for more sensitive detection at higher upscale ratios (Default = 200).",
+      "query": "r.TSR"
+    },
+    "r.TSR.ThinGeometryDetection.AntiFlickering": {
+      "value": 1,
+      "help": "Thin geometry detection can sometimes fail. Whether the anti-flickering logic considers the thin geometry detection pass.",
+      "query": "r.TSR"
+    },
+    "r.TSR.ThinGeometryDetection.RejectTranslucency": {
+      "value": 0.6000000238418579,
+      "help": "Translucency ratio threshold above which all thin geometry detection is rejected for a pixel in the next frame (0 to disable).",
+      "query": "r.TSR"
+    },
+    "r.TSR.Visualize": {
+      "value": -1,
+      "help": "Selects the TSR internal visualization mode.\n -3: Display the reprojection field's grid based overview;\n -2: Display an grid based overview regardless of VisualizeTSR show flag;\n -1: Display an grid based overview on the VisualizeTSR show flag (default, opened with the `show VisualizeTSR` command at runtime or Show > Visualize > TSR in editor viewports);\n  0: Number of accumulated samples in the history, particularily interesting to tune r.TSR.ShadingRejection.SampleCount and r.TSR.Velocity.WeightClampingSampleCount;\n  1: Parallax disocclusion based of depth and velocity buffers;\n  2: Mask where the history is rejected;\n  3: Mask where the history is clamped;\n  4: Mask where the history is resurrected (with r.TSR.Resurrection=1);\n  5: Mask where the history is resurrected in the resurrected frame (with r.TSR.Resurrection=1), particularily interesting to tune r.TSR.Resurrection.PersistentFrameInterval;\n  6: Mask where spatial anti-aliasing is being computed;\n  7: Mask where the flickering temporal analysis heuristic is taking effects (with r.TSR.ShadingRejection.Flickering=1);\n  8: Summary of the reprojection field, show the the jacobian on X in green and Y in blue;\n  9: Reprojection field's dilating offset to apply in the HistoryUpdate;\n 10: Coverage of the dilating offset to apply in the HistoryUpdate (red the coverage is close to 0, green is close to 1, blue has been fully dilated to 1 without computing any spatial anti-aliasing from the depth buffer);\n 11: Mask where the reprojection field is anti-aliased from the depth buffer in green (handy to tune r.TSR.ReprojectionField.AntiAliasPixelSpeed);\n 12: Mask where the pixel's jacobian is null in the reprojection field in orange;\n 13: Mask where the pixel's jacobian has reached its encoding limit in the reprojection field in red;\n 14: Mask where the reprojected history is upscaled (in red) or downscaled (in green) by the reprojection field's jacobian (for instance due to getting closer or further away from camera respectively, or an object is getting scaled dynamicaly);\n 15: Mask where thin geometry is detected by (edge line:red, potential cluster hole with partial coverage:green, other: yellow);\n",
+      "query": "r.TSR"
+    },
+    "r.TSR.Debug.ArraySize": {
+      "value": 1,
+      "help": "Size of array for the TSR.Debug.* RDG textures",
+      "query": "r.TSR"
+    },
+    "r.TSR.ForceSeparateTranslucency": {
+      "value": 1,
+      "help": "Overrides r.SeparateTranslucency whenever TSR is enabled (enabled by default).\n",
+      "query": "r.TSR"
+    },
+    "r.ScreenPercentage.Default": {
+      "value": 100,
+      "help": "",
+      "query": "r.ScreenPercentage"
+    },
+    "r.ScreenPercentage.Default.Desktop.Mode": {
+      "value": 1,
+      "help": "",
+      "query": "r.ScreenPercentage"
+    },
+    "r.ScreenPercentage.Default.Mobile.Mode": {
+      "value": 0,
+      "help": "",
+      "query": "r.ScreenPercentage"
+    },
+    "r.ScreenPercentage.Default.VR.Mode": {
+      "value": 0,
+      "help": "",
+      "query": "r.ScreenPercentage"
+    },
+    "r.ScreenPercentage.Default.PathTracer.Mode": {
+      "value": 0,
+      "help": "",
+      "query": "r.ScreenPercentage"
+    },
+    "r.ScreenPercentage": {
+      "value": 0,
+      "help": "To render in lower resolution and upscale for better performance (combined up with the blenable post process setting).\n70 is a good value for low aliasing and performance, can be verified with 'show TestImage'\nin percent, >0 and <=100, larger numbers are possible (supersampling) but the downsampling quality is improvable.<=0 compute the screen percentage is determined by r.ScreenPercentage.Default cvars.",
+      "query": "r.ScreenPercentage"
+    },
+    "r.ScreenPercentage.Auto.PixelCountMultiplier": {
+      "value": 1,
+      "help": "",
+      "query": "r.ScreenPercentage"
+    },
+    "r.ScreenPercentage.MinResolution": {
+      "value": 0,
+      "help": "Controls the absolute minimum number of rendered pixel.",
+      "query": "r.ScreenPercentage"
+    },
+    "r.ScreenPercentage.MaxResolution": {
+      "value": 0,
+      "help": "Controls the absolute maximum number of rendered pixel before any upscaling such that doesn't go higher than the specified 16:9 resolution of this variable. For instance set this value to 1440 so that you are not rendering more than 2560x1440 = 3.6M pixels. This is useful to set this on PC in your project's DefaultEditor.ini so you are not rendering more pixel on PC in PIE that you would in average on console with your project specific dynamic resolution settings.",
+      "query": "r.ScreenPercentage"
+    },
+    "r.Lumen.ProbeHierarchy.SamplePerPixel": {
+      "value": 8,
+      "help": "Number of sample to do per full res pixel.",
+      "query": "r.Lumen"
+    },
+    "r.Lumen.UsesLightFunctionAtlas": {
+      "value": 1,
+      "help": "Whether the light function atlas is sampled for lumen scene lighting.",
+      "query": "r.Lumen"
+    },
+    "r.Lumen.Supported": {
+      "value": 1,
+      "help": "Whether Lumen is supported at all for the project, regardless of platform. This can be used to avoid compiling shaders and other load time overhead.",
+      "query": "r.Lumen"
+    },
+    "r.Lumen.AsyncCompute": {
+      "value": 1,
+      "help": "Whether Lumen should use async compute if supported.",
+      "query": "r.Lumen"
+    },
+    "r.Lumen.WaveOps": {
+      "value": 1,
+      "help": "Whether Lumen should use wave ops if supported.",
+      "query": "r.Lumen"
+    },
+    "r.Lumen.LightingDataFormat": {
+      "value": 0,
+      "help": "Data format for surfaces storing lighting information (e.g. radiance, irradiance).\n0 - Float_R11G11B10 (fast default)\n1 - Float16_RGBA (slow, but higher precision, mostly for testing)\n2 - Float32_RGBA (reference for testing)",
+      "query": "r.Lumen"
+    },
+    "r.Lumen.FinalGatherMethod": {
+      "value": 1,
+      "help": "Lumen Final Gather Method\n0 - Irradiance Field Gather - places World Space Radiance Cache probes around pixels, pre-calculates their irradiance, and interpolates to pixels with probe occlusion. Faster but lower quality GI. Targeted at mid range PC and Switch 2.\n1 - Screen Probe Gather - traces from Screen Probes placed on pixels, giving adaptive downsampling, with World Space Radiance Cache for distant lighting. Requires its own temporal accumulation. Higher quality GI that can scale from consoles to enterprise.",
+      "query": "r.Lumen"
+    },
+    "r.Lumen.DiffuseIndirect.Allow": {
+      "value": 1,
+      "help": "Whether to allow Lumen Global Illumination.  Lumen GI is enabled in the project settings, this cvar can only disable it.",
+      "query": "r.Lumen"
+    },
+    "r.Lumen.TraceDistanceScale": {
+      "value": 1,
+      "help": "Scales the tracing distance for all tracing methods and Lumen features, used by scalability.",
+      "query": "r.Lumen"
+    },
+    "r.Lumen.TraceMeshSDFs": {
+      "value": 0,
+      "help": "Whether Lumen should trace against Mesh Signed Distance fields.  When enabled, Lumen's Software Tracing will be more accurate, but scenes with high instance density (overlapping meshes) will have high tracing costs.  When disabled, lower resolution Global Signed Distance Field will be used instead.",
+      "query": "r.Lumen"
+    },
+    "r.Lumen.TraceMeshSDFs.Allow": {
+      "value": 1,
+      "help": "Whether Lumen should trace against Mesh Signed Distance fields.  When enabled, Lumen's Software Tracing will be more accurate, but scenes with high instance density (overlapping meshes) will have high tracing costs.  When disabled, lower resolution Global Signed Distance Field will be used instead.",
+      "query": "r.Lumen"
+    },
+    "r.Lumen.TraceMeshSDFs.TraceDistance": {
+      "value": 180,
+      "help": "Max trace distance against Mesh Distance Fields and Heightfields.",
+      "query": "r.Lumen"
+    },
+    "r.Lumen.DiffuseIndirect.SSAO": {
+      "value": 0,
+      "help": "Whether to render and apply SSAO to Lumen GI, only when r.Lumen.ScreenProbeGather.ShortRangeAO is disabled.  This is useful for providing short range occlusion when Lumen's Screen Bent Normal is disabled due to scalability, however SSAO settings like screen radius come from the user's post process settings.",
+      "query": "r.Lumen"
+    },
+    "r.Lumen.HardwareRayTracing": {
+      "value": 1,
+      "help": "Uses Hardware Ray Tracing for Lumen features, when available.\nLumen will fall back to Software Ray Tracing otherwise.\nNote: Hardware ray tracing has significant scene update costs for\nscenes with more than 100k instances.",
+      "query": "r.Lumen"
+    },
+    "r.Lumen.HardwareRayTracing.LightingMode": {
+      "value": 0,
+      "help": "Determines the ray hit lighting mode:\n0 - Use Lumen Surface Cache for ray hit lighting. This method gives the best GI and reflection performance, but quality will be limited by how well surface cache represents given scene.\n1 - Calculate lighting at a ray hit point for GI and reflections. This will improve both GI and reflection quality, but greatly increases GPU cost, as full material and lighting will be evaluated at every hit point. Lumen Surface Cache will still be used for secondary bounces.\n2 - Calculate lighting at a ray hit point for reflections. This will improve reflection quality, but increases GPU cost, as full material needs to be evaluated and shadow rays traced. Lumen Surface Cache will still be used for GI and secondary bounces, including GI seen in reflections.",
+      "query": "r.Lumen"
+    },
+    "r.Lumen.HardwareRayTracing.HitLighting.Allowed": {
+      "value": 1,
+      "help": "Whether to allow HitLighting",
+      "query": "r.Lumen"
+    },
+    "r.Lumen.HardwareRayTracing.HitLighting.DirectLighting": {
+      "value": 1,
+      "help": "Whether to calculate direct lighting when doing Hit Lighting or sample it from the Surface Cache.",
+      "query": "r.Lumen"
+    },
+    "r.Lumen.HardwareRayTracing.HitLighting.ShadowMode": {
+      "value": 2,
+      "help": "Which shadow mode to use for calculating direct lighting in ray hits:\n0 - Disabled shadows\n1 - Hard shadows, but less noise\n2 - Area shadows, but more noise",
+      "query": "r.Lumen"
+    },
+    "r.Lumen.HardwareRayTracing.HitLighting.Skylight": {
+      "value": 2,
+      "help": "Whether to calculate unshadowed skylight when doing Hit Lighting or sample shadowed skylight from the Surface Cache.\n0 - Disabled\n1 - Enabled\n2 - Enabled only for standalone Lumen Reflections",
+      "query": "r.Lumen"
+    },
+    "r.Lumen.HardwareRayTracing.HitLighting.ReflectionCaptures": {
+      "value": 0,
+      "help": "Whether to apply Reflection Captures to ray hits when using Hit Lighting.",
+      "query": "r.Lumen"
+    },
+    "r.Lumen.HardwareRayTracing.HitLighting.ForceOpaque": {
+      "value": false,
+      "help": "Allow forcing hit lighting rays to be marked as opaque so they do not execute the Any Hit Shader:\n0 - Rays will execute the any hit shader, allowing masked materials to be seen correctly (default) \n1 - Rays are forced to be marked opaque which improves performance but may incorrectly deal with masked materials.",
+      "query": "r.Lumen"
+    },
+    "r.Lumen.HardwareRayTracing.HitLighting.ShadowTranslucencyMode": {
+      "value": 1,
+      "help": "Controls how opacity is handled for shadow rays in hit lighting:\n0 - Rays will treat all geometry as opaque (even masked geometry). Meshes with multiple segments with different shadow casting settings won't be supported.\n1 - Rays will execute any-hit shaders on masked geometry and support shadow casting settings on mesh segments (default)\n2 - Rays will execute any-hit shaders on masked and translucent geometry, supporting fractional visiblity",
+      "query": "r.Lumen"
+    },
+    "r.Lumen.HardwareRayTracing.ShaderExecutionReordering": {
+      "value": true,
+      "help": "When true, use Shader Execution Reordering (SER) to improve coherence of material evaluation. This may improve performance for scenes with many materials. This has no effect if the hardware does not support SER.",
+      "query": "r.Lumen"
+    },
+    "r.Lumen.HardwareRayTracing.Inline": {
+      "value": 1,
+      "help": "Uses Hardware Inline Ray Tracing for selected Lumen passes, when available.\n",
+      "query": "r.Lumen"
+    },
+    "r.Lumen.HardwareRayTracing.PullbackBias": {
+      "value": 8,
+      "help": "Determines the pull-back bias when resuming a screen-trace ray (default = 8.0)",
+      "query": "r.Lumen"
+    },
+    "r.Lumen.HardwareRayTracing.FarFieldBias": {
+      "value": 500,
+      "help": "Determines bias for the far field traces. Default = 500",
+      "query": "r.Lumen"
+    },
+    "r.Lumen.HardwareRayTracing.MaxIterations": {
+      "value": 8192,
+      "help": "Limit number of ray tracing traversal iterations on supported platfoms.\nIncomplete misses will be treated as hitting a black surface (can cause overocculsion).\nIncomplete hits will be treated as a hit (can cause leaking).",
+      "query": "r.Lumen"
+    },
+    "r.Lumen.HardwareRayTracing.AvoidSelfIntersections": {
+      "value": 3,
+      "help": "Whether to skip back face hits for a small distance in order to avoid self-intersections when BLAS mismatches rasterized geometry.\n0 - Disabled. May have extra leaking, but it's the fastest mode.\n1 - Enabled. This mode retraces to skip first backface hit up to r.Lumen.HardwareRayTracing.SkipBackFaceHitDistance. Good default on most platforms.\n2 - Enabled. This mode uses AHS to skip any backface hits up to r.Lumen.HardwareRayTracing.SkipBackFaceHitDistance. Faster on platforms with inline AHS support.\n3 - Enabled. Automatically chooses between mode 1 and 2 depending on platform for best performance.",
+      "query": "r.Lumen"
+    },
+    "r.Lumen.HardwareRayTracing.MeshSectionVisibilityTest": {
+      "value": 1,
+      "help": "Whether to test mesh section visibility at runtime.\nWhen enabled translucent mesh sections are automatically hidden based on the material, but it slows down performance due to extra visibility tests per intersection.\nWhen disabled translucent meshes can be hidden only if they are fully translucent. Individual mesh sections need to be hidden upfront inside the static mesh editor.",
+      "query": "r.Lumen"
+    },
+    "r.Lumen.HardwareRayTracing.MinTraceDistanceToSampleSurfaceCache": {
+      "value": 10,
+      "help": "Ray hit distance from which we can start sampling surface cache in order to fix feedback loop where surface cache texel hits itself and propagates lighting.",
+      "query": "r.Lumen"
+    },
+    "r.Lumen.HardwareRayTracing.SurfaceCacheSampling.DepthBias": {
+      "value": 10,
+      "help": "Max distance to project a texel from a mesh card onto a hit point. Higher values will fix issues of mismatch between ray tracing geometry and rasterization, but will also increase leaking.",
+      "query": "r.Lumen"
+    },
+    "r.Lumen.HardwareRayTracing.SkipBackFaceHitDistance": {
+      "value": 5,
+      "help": "Distance to trace with backface culling enabled, useful when the Ray Tracing geometry doesn't match the GBuffer (Nanite Proxy geometry).",
+      "query": "r.Lumen"
+    },
+    "r.Lumen.HardwareRayTracing.SkipTwoSidedHitDistance": {
+      "value": 1,
+      "help": "When the SkipBackFaceHitDistance is enabled, the first two-sided material hit within this distance will be skipped. This is useful for avoiding self-intersections with the Nanite fallback mesh on foliage, as SkipBackFaceHitDistance doesn't work on two sided materials.",
+      "query": "r.Lumen"
+    },
+    "r.ExposureOffset": {
+      "value": 0,
+      "help": "For adjusting the exposure on top of post process settings and eye adaptation. 0: default",
+      "query": "r.Exposure"
+    },
+    "r.Fog": {
+      "value": 1,
+      "help": " 0: disabled\n 1: enabled (default)",
+      "query": "r.Fog"
+    },
+    "r.FogUseDepthBounds": {
+      "value": true,
+      "help": "Allows enable depth bounds optimization on fog full screen pass.\n false: disabled\n true: enabled (default)",
+      "query": "r.Fog"
+    },
+    "r.Fog.ScreenSpaceScattering.TAA": {
+      "value": 1,
+      "help": "Enable temporal anti-aliasing filtering in order to reduce flickering of FSSS blurred scene color.",
+      "query": "r.Fog"
+    },
+    "r.Fog.SeparateComposition": {
+      "value": -1,
+      "help": "Renders the fog into its own separate texture that can be then upsample on screen. It will contain height fog, volumetric fog as well as local fog volumes contributions. -1: default behavior, 0: force disabled. 1 force enabled.",
+      "query": "r.Fog"
+    },
+    "r.Fog.ScreenSpaceScattering": {
+      "value": 1,
+      "help": "Enabled Fog Screen Space Scattering (FSSS). When 0, it is disabled.",
+      "query": "r.Fog"
+    },
+    "r.Fog.ScreenSpaceScattering.MaxExposedLuminance": {
+      "value": 10,
+      "help": "FSSS maximum luminance. This is too avoid the blur kernel to become too saturated with visible artefact due to high luminance value in the scene color buffer such as the sun disk or other bright elements.",
+      "query": "r.Fog"
+    },
+    "r.DefaultFeature.Bloom": {
+      "value": 1,
+      "help": "Engine default (project setting) for Bloom is (postprocess volume/camera/game setting still can override)\n 0: off, set BloomIntensity to 0\n 1: on (default)",
+      "query": "r.DefaultFeature"
+    },
+    "r.DefaultFeature.AmbientOcclusion": {
+      "value": 1,
+      "help": "Engine default (project setting) for AmbientOcclusion is (postprocess volume/camera/game setting still can override)\n 0: off, sets AmbientOcclusionIntensity to 0\n 1: on (default)",
+      "query": "r.DefaultFeature"
+    },
+    "r.DefaultFeature.AmbientOcclusionStaticFraction": {
+      "value": 1,
+      "help": "Engine default (project setting) for AmbientOcclusion is (postprocess volume/camera/game setting still can override)\n 0: off, sets AmbientOcclusionStaticFraction to 0\n 1: on (default, costs extra pass, only useful if there is some baked lighting)",
+      "query": "r.DefaultFeature"
+    },
+    "r.DefaultFeature.AutoExposure": {
+      "value": 1,
+      "help": "Engine default (project setting) for AutoExposure is (postprocess volume/camera/game setting still can override)\n 0: off, sets AutoExposureMinBrightness and AutoExposureMaxBrightness to 1\n 1: on (default)",
+      "query": "r.DefaultFeature"
+    },
+    "r.DefaultFeature.AutoExposure.Method": {
+      "value": 0,
+      "help": "Engine default (project setting) for AutoExposure Method (postprocess volume/camera/game setting still can override)\n 0: Histogram based (requires compute shader, default)\n 1: Basic AutoExposure",
+      "query": "r.DefaultFeature"
+    },
+    "r.DefaultFeature.AutoExposure.Bias": {
+      "value": 1,
+      "help": "Engine default (project setting) for AutoExposure Exposure Bias (postprocess volume/camera/game setting still can override)\n",
+      "query": "r.DefaultFeature"
+    },
+    "r.DefaultFeature.AutoExposure.ExtendDefaultLuminanceRange": {
+      "value": 1,
+      "help": "Whether the default values for AutoExposure should support an extended range of scene luminance.\nThis also change the PostProcessSettings.Exposure.MinBrightness, MaxBrightness, HistogramLogMin and HisogramLogMax\nto be expressed in EV100 values instead of in Luminance and Log2 Luminance.\n 0: Legacy range (UE4 default)\n 1: Extended range (UE5 default)",
+      "query": "r.DefaultFeature"
+    },
+    "r.DefaultFeature.LocalExposure.HighlightContrastScale": {
+      "value": 0.800000011920929,
+      "help": "Engine default (project setting) for Local Exposure Highlight Contrast (postprocess volume/camera/game setting still can override)\n",
+      "query": "r.DefaultFeature"
+    },
+    "r.DefaultFeature.LocalExposure.ShadowContrastScale": {
+      "value": 0.800000011920929,
+      "help": "Engine default (project setting) for Local Exposure Shadow Contrast (postprocess volume/camera/game setting still can override)\n",
+      "query": "r.DefaultFeature"
+    },
+    "r.DefaultFeature.MotionBlur": {
+      "value": 1,
+      "help": "Engine default (project setting) for MotionBlur is (postprocess volume/camera/game setting still can override)\n 0: off, sets MotionBlurAmount to 0\n 1: on (default)",
+      "query": "r.DefaultFeature"
+    },
+    "r.DefaultFeature.LensFlare": {
+      "value": 0,
+      "help": "Engine default (project setting) for LensFlare is (postprocess volume/camera/game setting still can override)\n 0: off, sets LensFlareIntensity to 0\n 1: on (default)",
+      "query": "r.DefaultFeature"
+    },
+    "r.DefaultFeature.LightUnits": {
+      "value": 1,
+      "help": "Default units to use for point, spot and rect lights\n 0: unitless \n 1: candelas (default)\n 2: lumens",
+      "query": "r.DefaultFeature"
+    },
+    "r.Shadow.Virtual.ProjectEnabled": {
+      "value": 1,
+      "help": "This setting allows you to disable Virtual Shadow Maps on platforms that support it to reduce the number of shaders.\n",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.NonNanite.ProjectEnabled": {
+      "value": 1,
+      "help": "This can be used to disable non-nanite rendering into Virtual Shadow Maps and related shader permutations.\nOnly use this if you do not need any non-nanite geometry to cast shadows in VSMs.",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.Visualize.Advanced": {
+      "value": 0,
+      "help": "Enable to show advanced VSM debug modes in the visualization UI menu.",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.OnePassProjection.SkipScreenShadowMask": {
+      "value": 1,
+      "help": "Allows skipping the screen space shadow mask entirely when only a virtual shadow map would write into it.\nShould generally be left enabled outside of debugging.",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.UseFarShadowCulling": {
+      "value": 1,
+      "help": "Switch between implementing the far shadow culling logic for VSMs.",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.Clipmap.UseConservativeCulling": {
+      "value": 0,
+      "help": "Conservative culling removes the frustum-clipped culling volume for the non-nanite geometry for VSM rendering. This means a lot more geometry is submitted, and also marked as rendered.\nUseful to diagnose if there are culling artifacts in virtual shadow map clip maps due to errors in the tracking code.",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.Nanite.MaterialVisibility": {
+      "value": 0,
+      "help": "Enable Nanite CPU-side visibility filtering of draw commands, depends on r.Nanite.MaterialVisibility being enabled.",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.MaxDistantUpdatePerFrame": {
+      "value": 1,
+      "help": "Maximum number of distant lights to update each frame. Invalidated lights that were missed may be updated in a later frame (round-robin).",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.DistantLightMode": {
+      "value": 1,
+      "help": "Control whether distant light mode is enabled for local lights.\n0 == Off, \n1 == On (default), \n2 == Force All.\nWhen on, lights with a pixel footprint below the threshold are marked as distant. Updates to distant lights are throttled (force-cached), they use simpler page-table logic and the memory cost is lower.",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.OnePassProjection": {
+      "value": 1,
+      "help": "Projects all local light virtual shadow maps in a single pass for better performance.",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.ResolutionLodBiasLocal": {
+      "value": 0,
+      "help": "Bias applied to LOD calculations for local lights. -1.0 doubles resolution, 1.0 halves it and so on.",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.ResolutionLodBiasLocalMoving": {
+      "value": 1,
+      "help": "Bias applied to LOD calculations for local lights that are moving. -1.0 doubles resolution, 1.0 halves it and so on.\nThe bias transitions smoothly back to ResolutionLodBiasLocal as the light transitions to non-moving, see 'r.Shadow.Scene.LightActiveFrameCount'.",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.Nanite.AllowMultipassViews": {
+      "value": 1,
+      "help": "When enabled, allows multiple Nanite passes if the view count might exceed Nanite limits.\nThis has some performance overhead and is generally not required since views are aggressively culled on the GPU, but can maintain correct rendering in some extreme cases.",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.Cache.ForceInvalidateLocal": {
+      "value": 0,
+      "help": "Controls local light VSM invalidation behavior:\n0: No forced invalidation (default)\n1: Force invalidate all non-distant lights\n2: Force invalidate all lights",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.DeferredInvalidationBudget": {
+      "value": -1,
+      "help": "Maximum number of VSM physical pages whose deferred-invalidation extended flag may be consumed per frame.\nExcess pages keep the flag set and retry next frame, so the total work is preserved but spread across frames.\nToday's only source of this flag is the streaming-LOD-delta channel from Nanite (see r.Nanite.VSMInvalidateOnLODDelta).\n  0  disables consumption entirely.\n -1  (default) is unbounded (pre-throttle behavior, may spike).",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.ShowLightDrawEvents": {
+      "value": 0,
+      "help": "Enable Virtual Shadow Maps per-light draw events - may affect performance especially when there are many small lights in the scene.",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.MarkPagesUsingFroxels": {
+      "value": 0,
+      "help": "Experimental: If enabled the virtual shadow map pages are marked using froxels that are generated during HZB build.\n  Higher throughput as it is not bandwidth limited. Is approximate as it only marks the center of each froxel representing 8x8 pixels.",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.DebugDrawFroxels": {
+      "value": 0,
+      "help": "Render the froxels using shaderprint (which needs to be enabled) r.ShaderPrint.MaxLine also needs to be set to a high value as this produces many lines.",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.DebugDrawFroxelRange": {
+      "value": 20,
+      "help": "Range in froxel tiles from the mouse cursor which to draw debug froxels in.",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.Enable": {
+      "value": 1,
+      "help": "Enable Virtual Shadow Maps. Renders geometry into virtualized shadow depth maps for shadowing.\nProvides high - quality shadows for next - gen projects with simplified setup.High efficiency culling when used with Nanite.",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.MaxPhysicalPages": {
+      "value": 4096,
+      "help": "Maximum number of physical pages in the pool.\nMore space for pages means more memory usage, but allows for higher resolution shadows.\nIdeally this value is large enough to fit enough pages for all the lights in the scene, but not too large to waste memory.\nEnable 'ShowStats' to see how many pages are allocated in the pool right now.\nFor more page pool control, see the 'ResolutionLodBias*' cvars.",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.DynamicHZB": {
+      "value": 0,
+      "help": "When enabled, a separate HZB is built for dynamic cached pages.\nThis can improve performance in cached scenes with a lot of dynamic overdraw, e.g. a forest with a static sun light.\nConstructing separate HZB doubles the memory cost of the HZB (1/4 of the page pool) and incurs some cost for building the second HZB.",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.Stats.Visible": {
+      "value": false,
+      "help": "Render VSM Stats to screen",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.Nanite.AllowTessellationDirectional": {
+      "value": 1,
+      "help": "When enabled, allows Nanite Tessellation to be rendered in directional light shadows.",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.Nanite.AllowTessellationLocal": {
+      "value": 1,
+      "help": "When enabled, allows Nanite Tessellation to be rendered in local light shadows.",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.Stats.Sections": {
+      "value": "all",
+      "help": "Select which parts of the stats visualization should be visible.",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.PageDilationBorderSizeDirectional": {
+      "value": 0.05000000074505806,
+      "help": "If a screen pixel falls within this fraction of a page border for directional lights, the adacent page will also be mapped.Higher values can reduce page misses at screen edges or disocclusions, but increase total page counts.",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.MaxDOFResolutionBias": {
+      "value": 1,
+      "help": "Determine which pixels are out of focus, and request a lower VSM resolution in those areas.\nSince DOF will blur these anyway, the lowered resolution should not be noticable.\nSet to 0 to turn off this feature. A higher value more aggressively lowers resolution.",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.PageDilationBorderSizeLocal": {
+      "value": 0.05000000074505806,
+      "help": "If a screen pixel falls within this fraction of a page border for local lights, the adacent page will also be mapped.Higher values can reduce page misses at screen edges or disocclusions, but increase total page counts.",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.MarkPixelPages": {
+      "value": 1,
+      "help": "Marks pages in virtual shadow maps based on depth buffer pixels. Ability to disable is primarily for profiling and debugging.",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.MarkPixelPagesMipModeLocal": {
+      "value": 0,
+      "help": "When enabled, this uses a subset of mips to reduce instance duplication in VSMs. Will result in better performance but a harsher falloff on mip transitions.\n 0 - Disabled: Use all 8 mips\n 1 - Quality Mode: Use 4 higher res mips (16k, 4k, 1k, 256)\n 2 - Performance Mode: Use 4 lower res mips (8k, 2k, 512, 128)\n",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.MarkCoarsePagesLocal": {
+      "value": 1,
+      "help": "Marks coarse pages in local light virtual shadow maps so that low resolution data is available everywhere.\n 0 - Disabled\n 1 - Always mark the last mip level.\n 2 - (default) Performance Mode: Suppress dynamic invalidations due to geometry changes (e.g., moving objects or WPO or animation).\n",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.NonNanite.IncludeInCoarsePages": {
+      "value": 1,
+      "help": "Include non-Nanite geometry in coarse pages.Rendering non-Nanite geometry into large coarse pages can be expensive; disabling this can be a significant performance win.",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.NonNanite.CulledInstanceAllocationFactor": {
+      "value": 1,
+      "help": "Allocation size scale factor for the buffer used to store instances after culling.\nThe total size accounts for the worst-case scenario in which all instances are emitted into every clip or mip level.\nThis is far more than we'd expect in reasonable circumstances, so this scale factor is used to reduce memory pressure.\nThe actual number cannot be known on the CPU as the culling emits an instance for each clip/mip level that is overlapped.\nSetting to 1.0 is fully conservative. Lowering this is likely to produce artifacts unless you're certain the buffer won't overflow.",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.NonNanite.MaxCulledInstanceAllocationSize": {
+      "value": 134217728,
+      "help": "Maximum number of instances that may be output from the culling pass into all VSM mip/clip levels. At 12 byte per instance reference this represents a 1.5GB clamp.",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.ShowClipmapStats": {
+      "value": -1,
+      "help": "Set to the number of clipmap you want to show stats for (-1 == off)",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.CullBackfacingPixels": {
+      "value": 1,
+      "help": "When enabled does not generate shadow data for pixels that are backfacing to the light.",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.NonNanite.UseHZB": {
+      "value": 1,
+      "help": "Enable two-pass Nanite culling with HZB from the current frame.",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.OnePassProjection.MaxLightsPerPixel": {
+      "value": 16,
+      "help": "Maximum lights per pixel that get full filtering when using one pass projection and clustered shading.Generally set to 8 (32bpp), 16 (64bpp) or 32 (128bpp). Lower values require less transient VRAM during the lighting pass.",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.NonNanite.Batch": {
+      "value": 1,
+      "help": ".",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.NonNanite.UseRadiusThreshold": {
+      "value": 1,
+      "help": "If enabled (default) the r.Shadow.RadiusThreshold cvar is also used for uncached virtual shadow maps to cull small non-nanite instances.",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.CoarsePagePixelThresholdDynamic": {
+      "value": 16,
+      "help": "If a dynamic (non-nanite) instance has a smaller estimated pixel footprint than this value, it should not be drawn into a coarse page. Higher values cull away more instances.",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.CoarsePagePixelThresholdStatic": {
+      "value": 1,
+      "help": "If a static (non-nanite) instance has a smaller estimated pixel footprint than this value, it should not be drawn into a coarse page. Higher values cull away more instances.\nThis value is typically lower than the non-static one because the static pages have better caching.",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.CoarsePagePixelThresholdDynamicNanite": {
+      "value": 4,
+      "help": "If a dynamic Nanite instance has a smaller estimated pixel footprint than this value, it should not be drawn into a coarse page. Higher values cull away more instances.\nThis value is typically lower than the non-Nanite one because Nanite has lower overhead for drawing small objects.",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.Cache.AllocateViaLRU": {
+      "value": 1,
+      "help": "Prioritizes keeping more recently requested cached physical pages when allocating for new requests.",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.ForceFullPageClears": {
+      "value": 0,
+      "help": "Always clear physical pages, even when nothing has been written to them.",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.Visualize.LightName": {
+      "value": "",
+      "help": "Sets the name of a specific light to visualize (for developer use in non-shipping builds)",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.Visualize.Layout": {
+      "value": 0,
+      "help": "Overlay layout when virtual shadow map visualization is enabled:\n  0: Full screen\n  1: Thumbnail\n  2: Split screen",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.VisualizeDynamicMeshBounds": {
+      "value": 0,
+      "help": "\n",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.DebugSkipMergePhysical": {
+      "value": 0,
+      "help": "Skip the merging of the static VSM cache into the dynamic one. This will create obvious visual artifacts when disabled.",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.Cache.DebugSkipDynamicPageInvalidation": {
+      "value": 0,
+      "help": "Skip invalidation of cached pages when geometry moves for debugging purposes. This will create obvious visual artifacts when disabled.",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.NonNanite.NumPageAreaDiagSlots": {
+      "value": 0,
+      "help": "Number of slots in diagnostics to report non-nanite instances with the largest page area coverage, < 0 uses the max number allowed, 0 disables.",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.NonNanite.LargeInstancePageAreaThreshold": {
+      "value": -1,
+      "help": "How large area is considered a 'large' footprint, summed over all overlapped levels, if set to -1 uses the physical page pool size / 8.\nUsed as a threshold when storing page area coverage stats for diagnostics.",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.UseHZB": {
+      "value": 1,
+      "help": "Enables two pass occlusion culling for (Nanite) Virtual Shadow Maps\nNon-Nanite has a separate flag: r.Shadow.Virtual.NonNanite.UseHZB.",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.ForceFullHZBUpdate": {
+      "value": 0,
+      "help": "Forces full HZB update every frame rather than just dirty pages.\n",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.NonNanite.SinglePassBatched": {
+      "value": 1,
+      "help": ".",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.PageMarkingPixelStrideX": {
+      "value": 2,
+      "help": "During page marking, instead of testing every screen pixel, test every Nth pixel.\nPage marking from screen pixels is used to determine which VSM pages are seen from the camera and need to be rendered.\nIncreasing this value reduces page-marking costs, but could introduce artifacts due to missing pages.\nWith sufficiently low values, it is likely a neighbouring pixel will mark the required page anyway.",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.PageMarkingPixelStrideY": {
+      "value": 2,
+      "help": "Same as PageMarkingPixelStrideX, but on the vertical axis of the screen.",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.ScreenRayLength": {
+      "value": 0.014999999664723873,
+      "help": "Length of the screen space shadow trace away from receiver surface (smart shadow bias) before the VSM / SMRT lookup.",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.NormalBias": {
+      "value": 0.5,
+      "help": "Receiver offset along surface normal for shadow lookup. Scaled by distance to camera.Higher values avoid artifacts on surfaces nearly parallel to the light, but also visibility offset shadows and increase the chance of hitting unmapped pages.",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.SMRT.AdaptiveRayCount": {
+      "value": 1,
+      "help": "Shoot fewer rays in fully shadowed and unshadowed regions. Currently only supported with OnePassProjection. ",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.SMRT.RayCountLocal": {
+      "value": 8,
+      "help": "Ray count for shadow map tracing of local lights. 0 = disabled.",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.SMRT.SamplesPerRayLocal": {
+      "value": 4,
+      "help": "Shadow map samples per ray for local lights",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.SMRT.MaxRayAngleFromLight": {
+      "value": 0.029999999329447746,
+      "help": "Max angle (in radians) a ray is allowed to span from the light's perspective for local lights.Smaller angles limit the screen space size of shadow penumbra. Larger angles lead to more noise. ",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.SMRT.ExtrapolateMaxSlopeLocal": {
+      "value": 0.05000000074505806,
+      "help": "Maximum depth slope when extrapolating behind occluders for local lights.\nHigher values allow softer penumbra edges but can introduce light leaks behind second occluders.\nSetting to 0 will disable slope extrapolation slightly improving projection performance, at the cost of reduced penumbra quality.",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.SMRT.TexelDitherScaleLocal": {
+      "value": 2,
+      "help": "Applies a dither to the shadow map ray casts for local lights to help hide aliasing due to insufficient shadow resolution.\nSetting this too high can cause shadows light leaks near occluders.",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.SMRT.MaxSlopeBiasLocal": {
+      "value": 50,
+      "help": "Maximum depth slope. Low values produce artifacts if shadow resolution is insufficient. High values can worsen light leaks near occluders and sparkly pixels in shadowed areas.",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.SMRT.RayCountDirectional": {
+      "value": 8,
+      "help": "Ray count for shadow map tracing of directional lights. 0 = disabled.",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.SMRT.SamplesPerRayDirectional": {
+      "value": 4,
+      "help": "Shadow map samples per ray for directional lights",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.SMRT.ExtrapolateMaxSlopeDirectional": {
+      "value": 5,
+      "help": "Maximum depth slope when extrapolating behind occluders for directional lights.\nHigher values allow softer penumbra edges but can introduce light leaks behind second occluders.\nSetting to 0 will disable slope extrapolation slightly improving projection performance, at the cost of reduced penumbra quality.",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.SMRT.TexelDitherScaleDirectional": {
+      "value": 2,
+      "help": "Applies a dither to the shadow map ray casts for directional lights to help hide aliasing due to insufficient shadow resolution.\nSetting this too high can cause shadows light leaks near occluders.",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.SMRT.RayLengthScaleDirectional": {
+      "value": 1.5,
+      "help": "Length of ray to shoot for directional lights, scaled by distance to camera.Shorter rays limit the screen space size of shadow penumbra. Longer rays require more samples to avoid shadows disconnecting from contact points. ",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.SMRT.SamplesPerRayHair": {
+      "value": 1,
+      "help": "Shadow map samples per ray for hair",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.UseReceiverMaskLocal": {
+      "value": false,
+      "help": "Use receiver page masks with local lights. This enables much more effective culling especially at lower resolutions.",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.DynamicRes.TimeBudgetMs": {
+      "value": 0,
+      "help": "Frame's time budget for VSM ShadowDepths in milliseconds. Non-Nanite not included.\nDisabled when set to 0. Experimental.",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.DynamicRes.LoadBudget": {
+      "value": 0,
+      "help": "Scale LOD bias based on an estimate of the ShadowDepths load. Lower value means more aggressive resolution downscaling.\nDisabled when TimeBudgetMs is active, or if set to 0. Experimental.",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.DynamicRes.PerVSMBiasHistoryWeight": {
+      "value": 0.8999999761581421,
+      "help": "Smoothen out the per-VSM LOD bias over time. Value between 0 and 1.",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.PrefilteredDistant.HistoryBlendFactor": {
+      "value": 0.8700000047683716,
+      "help": "How large a proportion of history to blend into the current frame. Larger values means slower shadow update and more temporal aliasing. 0.0f turns the reprojection off.",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.PrefilteredDistant": {
+      "value": false,
+      "help": "Enable/Disable the experimental prefiltered distant shadow feature at runtime. r.Shadow.Virtual.PrefilteredDistant.ProjectEnable must be enabled for this to have any effect.",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.PrefilteredDistant.ProjectEnable": {
+      "value": false,
+      "help": "Enable/Disable the experimental prefiltered distant shadow feature for the project (enabling compiles additional shader permutations, e.g., for shadow projection)",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.DynamicDeallocationMode": {
+      "value": 0,
+      "help": "Controls the behavior of VSM resources being dynamically allocated/deallocated based on whether VSM shadows are present:\n0 (default): Enables dynamic deallocation when MegaLights are also enabled, otherwise disabled\n1: Enables dynamic deallocation always\n2: Disables dynamic deallocation always\nDynamic deallocation can save memory if there are significant times when VSMs are not in use, but can add allocator churn.",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.AccumulateStats": {
+      "value": 0,
+      "help": "When nonzero, VSM stats will be collected over multiple frames and written to a CSV file output to the Saved/Profiling directory.\n  If set to a number N > 0 it will auto disable and write the result after N frames, if < 0 it must be manually turned off by setting back to 0.",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.Cache": {
+      "value": 1,
+      "help": "Turn on to enable caching",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.Cache.InvalidateUseHZB": {
+      "value": 1,
+      "help": " When enabled, instances invalidations are tested against the HZB. Instances that are fully occluded will not cause page invalidations.",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.Cache.DeformableMeshesInvalidate": {
+      "value": 1,
+      "help": "If enabled, Primitive Proxies that are marked as having deformable meshes (HasDeformableMesh() == true) cause invalidations regardless of whether their transforms are updated.",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.Cache.DebugSkipRevealedPrimitivesInvalidation": {
+      "value": 0,
+      "help": "Debug skip invalidation of revealed Non-Nanite primitives, i.e. they go from being culled on the CPU to unculled.",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.Cache.MaxPageAgeSinceLastRequest": {
+      "value": 1000,
+      "help": "The maximum number of frames to allow cached pages that aren't requested in the current frame to live. 0=disabled.",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.Cache.MaxLightAgeSinceLastRequest": {
+      "value": 10,
+      "help": "The maximum number of frames to allow lights (and their associated pages) that aren't present in the current frame to live in the cache.\nLarger values can allow pages from offscreen local lights to live longer, but can also increase various page table management overheads.",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.Cache.FramesStaticThreshold": {
+      "value": 100,
+      "help": "Number of frames without an invalidation before an object will transition to static caching.",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.AllocatePagePoolAsReservedResource": {
+      "value": 1,
+      "help": "Allocate VSM page pool as a reserved/virtual texture, backed by N small physical memory allocations to reduce fragmentation.",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.DynamicRes.MaxResolutionLodBias": {
+      "value": 2,
+      "help": "As memory or compute-time cost limits are approached, VSM resolution ramps down by biasing the LOD up, similar to 'ResolutionLodBiasDirectional'.\nMemory pressure is based on page allocation compared to pool capacity.\nThis is the maximum LOD bias to clamp to for global dynamic shadow resolution reduction. 0 = disabled",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.DynamicRes.MaxComputeResolutionLodBiasDirectional": {
+      "value": 99999,
+      "help": "As compute-time cost limits are approached, VSM resolution ramps down by biasing the LOD up.\nThe maximum LOD bias that is applied is min(this variable, MaxResolutionLodBias).\nThis variable applies to directional lights only.",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.DynamicRes.MaxComputeResolutionLodBiasLocal": {
+      "value": 99999,
+      "help": "As compute-time cost limits are approached, VSM resolution ramps down by biasing the LOD up.\nThe maximum LOD bias that is applied is min(this variable, MaxResolutionLodBias).\nThis variable applies to local lights only.",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.DynamicRes.MaxPagePoolLoadFactor": {
+      "value": 0.8500000238418579,
+      "help": "If allocation exceeds this factor of total page pool capacity, shadow resolution will be biased downwards. 0 = disabled",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.Clipmap.WPODisableDistance.InvalidateOnScaleChange": {
+      "value": 0,
+      "help": "When enabled, forces an invalidation of clipmap levels when the distance disable clipmap level shifts due to resolution or FOV changes.\nThis can sometimes make things visually more consistent but can also introduce unpredictable performance spikes, so it is disabled by default.",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.Cache.CPUCullInvalidationsOutsideLightRadius": {
+      "value": 1,
+      "help": "CPU culls invalidations that are outside a local light's radius.",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.AllowScreenOverflowMessages": {
+      "value": 1,
+      "help": "Can be used to disable on-screen VSM-related overflow messages. Even with the messages disabled, overflows will still be logged and can result in visual corruption.",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.Cache.ForceInvalidateDirectional": {
+      "value": 0,
+      "help": "Forces the clipmap to always invalidate, useful to emulate a moving sun to avoid misrepresenting cache performance.",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.ResolutionLodBiasDirectional": {
+      "value": -1.5,
+      "help": "Bias applied to LOD calculations for directional lights. -1.0 doubles resolution, 1.0 halves it and so on.",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.ResolutionLodBiasDirectionalMoving": {
+      "value": -1.5,
+      "help": "Bias applied to LOD calculations for directional lights that are moving. -1.0 doubles resolution, 1.0 halves it and so on.\nThe bias transitions smoothly back to ResolutionLodBiasDirectional as the light transitions to non-moving, see 'r.Shadow.Scene.LightActiveFrameCount'.",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.Clipmap.FirstLevel": {
+      "value": 6,
+      "help": "First level of the virtual clipmap. Lower values allow higher resolution shadows closer to the camera, but may increase page count.",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.Clipmap.LastLevel": {
+      "value": 22,
+      "help": "Last level of the virtual clipmap. Indirectly determines radius the clipmap can cover. Each extra level doubles the maximum range, but may increase page count.",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.Clipmap.FirstCoarseLevel": {
+      "value": 15,
+      "help": "First level of the clipmap to mark coarse pages for. Lower values allow higher resolution coarse pages near the camera but increase total page counts.",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.Clipmap.LastCoarseLevel": {
+      "value": 18,
+      "help": "Last level of the clipmap to mark coarse pages for. Higher values provide dense clipmap data for a longer radius but increase total page counts.",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.Clipmap.ZRangeScale": {
+      "value": 1000,
+      "help": "Scale of the clipmap level depth range relative to the radius. Affects z-near/z-far of the shadow map. Should generally be at least 10 or it will result in excessive cache invalidations. Values that are too large cause depth imprecisions and shadow flickering.",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.Clipmap.MinCameraViewportWidth": {
+      "value": 0,
+      "help": "If greater than zero, clamps the camera viewport dimensions used to adjust the clipmap resolution.\nThis can be useful to avoid dynamic resolution indirectly dropping the shadow resolution far too low.",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.Clipmap.WPODisableDistance": {
+      "value": 1,
+      "help": "When enabled, disables WPO animation in clipmap levels based on a primitive's WPO disable distance and r.Shadow.Virtual.Clipmap.WPODisableDistance.LodBias setting.",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.Clipmap.WPODisableDistance.LodBias": {
+      "value": 3,
+      "help": "The number of clipmap levels further than the distance that an instance would be animated to allow shadow animation.\nTypically 2-4 works well but may need to be adjusted for very low light angles with significant WPO movement.",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.MarkCoarsePagesDirectional": {
+      "value": 2,
+      "help": "Marks coarse pages in local light virtual shadow maps so that low resolution data is available everywhere.\n 0 - Disabled\n 1 - Always mark the last clipmap level and levels indicated by First/LastCoarseLevel.\n 2 - Performance Mode: Suppress dynamic invalidations in coarse pages due to geometry changes (e.g., moving objects or WPO or animation).\n",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.Clipmap.CullDynamicTightly": {
+      "value": true,
+      "help": "When enabled(default) the far culling plane for uncached clipmpap levels is set to the size of the clipmap level.\n  Currently, this is only used when r.Shadow.Virtual.Cache.ForceInvalidateDirectional is enabled, as cached levels need a larger range.",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.UseReceiverMaskDirectional": {
+      "value": true,
+      "help": "Use receiver page masks with directional lights. This enables much more effective culling especially at lower resolutions.",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.ForcePerLightShadowMaskClear": {
+      "value": 0,
+      "help": "For debugging purposes. When enabled, the shadow mask texture is cleared before the projection pass writes to it. Projection pass writes all relevant pixels, so clearing should be unnecessary.",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.TranslucentQuality": {
+      "value": 0,
+      "help": "Quality of shadow for lit translucent surfaces. This will be applied on all translucent surfaces, and has high-performance impact.\nSet to 1 to enable the high-quality mode.",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.SubsurfaceShadowMinSourceAngle": {
+      "value": 5,
+      "help": "Minimum source angle (in degrees) used for shadow & transmittance of sub-surface materials with directional lights.\nTo emulate light diffusion with sub-surface materials, VSM can increase the light source radius depending on the material opacity.\nThe higher this value, the more diffuse the shadowing with these materials will appear.",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.Visualize.ShowCachedPagesOnly": {
+      "value": 0,
+      "help": "When true, shows the cached pages for all lights and hides uncached pages.",
+      "query": "r.Shadow.Virtual"
+    },
+    "r.Shadow.Virtual.Visualize": {
+      "value": "",
+      "help": "When the viewport view-mode is set to 'Virtual Shadow Map Visualization', this command specifies which of the various channels to display. Values entered other than the allowed values shown below will be ignored.\n  mask\n  mip\n  vpage\n  cache\n  naniteoverdraw\n  casters\n  raycount\n  dirty\n  invalid\n  merged\n  debug\n  clipmapvirtual",
+      "query": "r.Shadow.Virtual"
+    }
+  },
+  "missingEvidence": [
+    "GPU visualizer/profile and per-frame effective renderer state: NOT_CAPTURED",
+    "Console variables outside the explicit rendering whitelist: NOT_CAPTURED"
+  ],
+  "notes": [
+    "Values are current console-variable values returned by the editor interface, with query provenance per entry.",
+    "The generic VSM/VirtualShadowMaps searches returned only what the active interface exposed; absent generic results are preserved as NOT_CAPTURED rather than inferred.",
+    "This file is a bounded rendering snapshot and intentionally excludes unrelated config keys and credentials."
+  ]
+}

@@ -1,0 +1,237 @@
+{
+  "schemaVersion": "1.0",
+  "captureDate": "2026-09-08",
+  "capturedAtLocal": "2026-09-08T12:29:27.8506746+08:00",
+  "captureSource": "UE MCP over localhost / read-only",
+  "level": "/Game/LostRunic/Levels/PIE_Test/L_Art_Demo",
+  "userCameraContract": {
+    "pitchDegrees": -52,
+    "fovDegrees": 68,
+    "authority": "User-confirmed contract",
+    "distanceCm": 500,
+    "projection": "Perspective",
+    "yaw": "UNSPECIFIED_BY_USER"
+  },
+  "editorAuthoredPawn": {
+    "label": "ArtBench_Ruth",
+    "actorTransform": {
+      "location": {
+        "x": 3800,
+        "y": 420,
+        "z": 70
+      },
+      "rotation": {
+        "pitch": 0,
+        "yaw": 180,
+        "roll": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      }
+    },
+    "cameraRigRef": "/Game/LostRunic/Levels/PIE_Test/L_Art_Demo.L_Art_Demo:PersistentLevel.BP_Ruth_C_0.CameraRig",
+    "cameraRef": "/Game/LostRunic/Levels/PIE_Test/L_Art_Demo.L_Art_Demo:PersistentLevel.BP_Ruth_C_0.Camera",
+    "actor": "/Game/LostRunic/Levels/PIE_Test/L_Art_Demo.L_Art_Demo:PersistentLevel.BP_Ruth_C_0",
+    "cameraBoomRef": "/Game/LostRunic/Levels/PIE_Test/L_Art_Demo.L_Art_Demo:PersistentLevel.BP_Ruth_C_0.CameraBoom",
+    "cameraRig": {
+      "defaultCameraDistance": 700
+    },
+    "camera": {
+      "fieldOfView": 68,
+      "aspectRatio": 1.7777780294418335,
+      "aspectRatioAxisConstraint": "AspectRatio_MaintainXFOV",
+      "bConstrainAspectRatio": false,
+      "bOverrideAspectRatioAxisConstraint": false,
+      "projectionMode": "Perspective",
+      "postProcessBlendWeight": 1
+    },
+    "cameraBoom": {
+      "targetArmLength": 500,
+      "relativeLocation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "relativeRotation": {
+        "pitch": -52,
+        "yaw": -52,
+        "roll": 0
+      },
+      "relativeScale3D": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "bDoCollisionTest": false,
+      "probeSize": 12,
+      "probeChannel": "ECC_Camera",
+      "bUsePawnControlRotation": false,
+      "bInheritPitch": true,
+      "bInheritYaw": true,
+      "bInheritRoll": true,
+      "bEnableCameraLag": false,
+      "bEnableCameraRotationLag": false
+    }
+  },
+  "presentationTuning": {
+    "sourceFile": "Source/LostRunic/Camera/LRCameraRigComponent.cpp",
+    "asset": "/Game/LostRunic/Data/Tuning/DA_LRPresentationTuning.DA_LRPresentationTuning",
+    "currentFileSha256": "6F54C08522F91121F3DE622639225EDD505CE26D1CBE94C02F94801AC455371",
+    "runtimeAuthority": "ULRCameraRigComponent::BeginPlay copies Presentation.DefaultCameraDistanceCm to SpringArm.TargetArmLength",
+    "currentWorkspaceFile": "Content/LostRunic/Data/Tuning/DA_LRPresentationTuning.uasset",
+    "properties": {
+      "DefaultCameraDistanceCm": 500,
+      "DefaultCameraDistanceBlendSeconds": 0.25
+    }
+  },
+  "pieEvidence": {
+    "beforeUserEdit": {
+      "capturedAtLocal": "2026-09-08T12:21:12.8910543+08:00",
+      "state": "PIE running before DA edit was observed",
+      "actor": "/Game/LostRunic/Levels/PIE_Test/UEDPIE_0_L_Art_Demo.L_Art_Demo:PersistentLevel.BP_Ruth_C_0",
+      "cameraBoomTargetArmLength": 700,
+      "cameraBoomRelativeRotation": {
+        "pitch": -52,
+        "roll": 0,
+        "yaw": -52
+      },
+      "cameraFOV": 68,
+      "presentationTuningDefaultCameraDistanceCm": 700,
+      "proofStatus": "Actual PIE read-only evidence; superseded by user DA edit recorded below."
+    },
+    "afterUserEdit": {
+      "capturedAtLocal": "2026-09-08T12:27:03.5232525+08:00",
+      "state": "PIE running after user DA edit",
+      "actor": "/Game/LostRunic/Levels/PIE_Test/UEDPIE_0_L_Art_Demo.L_Art_Demo:PersistentLevel.BP_Ruth_C_0",
+      "cameraBoomTargetArmLength": 500,
+      "cameraBoomRelativeRotation": {
+        "pitch": -52,
+        "roll": 0,
+        "yaw": -52
+      },
+      "cameraFOV": 68,
+      "cameraRigDefaultCameraDistance": 500,
+      "presentationTuningDefaultCameraDistanceCm": 500,
+      "proofStatus": "Actual PIE read-only evidence; no startTransform override; PIE stopped after capture."
+    }
+  },
+  "editorViewport": {
+    "location": {
+      "x": -752.0408258402607,
+      "y": 697.6131908349759,
+      "z": 1072.8872296302825
+    },
+    "rotation": {
+      "pitch": -49.79999999539753,
+      "yaw": -53.40000081062312,
+      "roll": 0
+    },
+    "scale": {
+      "x": 1,
+      "y": 1,
+      "z": 1
+    }
+  },
+  "editorViewportScreenshot": {
+    "path": "ArtSource/Baselines/ArtBaseline_20260907/OriginalScreenshot_EditorViewport.png",
+    "captureKind": "EditorViewport",
+    "sha256": "ED871578A79D42979061ECB353A212B1BBBC3B8E5E5609E29A4CBACD7F6B8413",
+    "bytes": 2811475,
+    "fileWriteTime": "2026-09-08T12:06:22.2940554+08:00",
+    "cameraFOVReportedByCapture": 90,
+    "proofStatus": "Visual evidence only; not Gameplay/PIE acceptance; editor camera remained distinct from Pawn camera."
+  },
+  "otherCameraActors": [
+    {
+      "actor": "/Game/LostRunic/Levels/PIE_Test/L_Art_Demo.L_Art_Demo:PersistentLevel.CameraActor_0",
+      "label": "ArtBench_Camera",
+      "transform": {
+        "location": {
+          "x": 2870,
+          "y": 0,
+          "z": 500
+        },
+        "rotation": {
+          "pitch": -30.000000000000004,
+          "yaw": 0,
+          "roll": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        }
+      },
+      "component": "/Game/LostRunic/Levels/PIE_Test/L_Art_Demo.L_Art_Demo:PersistentLevel.CameraActor_0.CameraComponent",
+      "properties": {
+        "fieldOfView": 90,
+        "aspectRatio": 1.7777780294418335,
+        "aspectRatioAxisConstraint": "AspectRatio_MaintainXFOV",
+        "bConstrainAspectRatio": true,
+        "projectionMode": "Perspective",
+        "orthoWidth": 1536,
+        "postProcessBlendWeight": 0
+      }
+    },
+    {
+      "actor": "/Game/LostRunic/Levels/PIE_Test/L_Art_Demo.L_Art_Demo:PersistentLevel.CameraActor_1",
+      "label": "LRScene_ConceptCamera",
+      "transform": {
+        "location": {
+          "x": -913,
+          "y": 1190,
+          "z": 1206
+        },
+        "rotation": {
+          "pitch": -36.37699999999998,
+          "yaw": -53.13000000000004,
+          "roll": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        }
+      },
+      "component": "/Game/LostRunic/Levels/PIE_Test/L_Art_Demo.L_Art_Demo:PersistentLevel.CameraActor_1.CameraComponent",
+      "properties": {
+        "fieldOfView": 90,
+        "aspectRatio": 1.3333330154418945,
+        "aspectRatioAxisConstraint": "AspectRatio_MaintainXFOV",
+        "bConstrainAspectRatio": true,
+        "projectionMode": "Orthographic",
+        "orthoWidth": 1324,
+        "postProcessBlendWeight": 1
+      }
+    }
+  ],
+  "captureStatus": {
+    "pieCameraRuntimeCaptured": true,
+    "gameplayCameraCaptured": true,
+    "gpuProfile": "NOT_CAPTURED",
+    "gameplayScreenshotCaptured": false,
+    "editorCameraIsGameplay": false,
+    "finalEffectivePostProcessStack": "NOT_CAPTURED",
+    "editorViewportRestored": true
+  },
+  "editorViewportGuard": {
+    "observedAfterPIE": {
+      "location": {
+        "x": -479.5195261000823,
+        "y": 422.5739315689995,
+        "z": 455.7347049588781
+      },
+      "rotation": {
+        "pitch": -51.99999999999965,
+        "yaw": -51.99999999999979,
+        "roll": 0
+      }
+    },
+    "restoredAtLocal": "2026-09-08T12:30:26.7771165+08:00",
+    "restoredUsing": "EditorToolset.EditorAppToolset.SetCameraTransform",
+    "restoredVerification": "GetCameraTransform matched prior recorded editor viewport transform within floating-point rounding",
+    "sceneAssetSaved": false
+  }
+}

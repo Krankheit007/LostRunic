@@ -1,0 +1,86 @@
+{
+  "rollbackAdditionalProperties": {
+    "PointLight_3_to_8_AllowMegaLights": true,
+    "PointLight_6_Mobility": "Static",
+    "note": "Other five local lights were already Movable. Preserve original two PP blendables. Does not replace ArtBaseline_20260907."
+  },
+  "rollbackAdditionalProperties": {
+    "PointLight_3_to_8_AllowMegaLights": true,
+    "PointLight_6_Mobility": "Static",
+    "note": "Other five local lights were already Movable. Preserve original two PP blendables. Does not replace ArtBaseline_20260907."
+  },
+  "lights": {
+    "/Game/LostRunic/Levels/PIE_Test/L_Art_Demo.L_Art_Demo:PersistentLevel.DirectionalLight_0.LightComponent0": {
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"returnValue\":\"{\\\"lightFunctionMaterial\\\":{\\\"refPath\\\":\\\"/Game/LostRunic/Materials/Lighting/M_LR_DirectionalWindowLightFunction_LowFreq.M_LR_DirectionalWindowLightFunction_LowFreq\\\"},\\\"castShadows\\\":true,\\\"intensity\\\":12,\\\"lightFunctionScale\\\":{\\\"x\\\":1024,\\\"y\\\":1024,\\\"z\\\":1024}}\"}"
+        }
+      ]
+    },
+    "/Game/LostRunic/Levels/PIE_Test/L_Art_Demo.L_Art_Demo:PersistentLevel.PointLight_3.LightComponent0": {
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"returnValue\":\"{\\\"lightFunctionMaterial\\\":\\\"None\\\",\\\"castShadows\\\":false,\\\"intensity\\\":20,\\\"lightFunctionScale\\\":{\\\"x\\\":1024,\\\"y\\\":1024,\\\"z\\\":1024}}\"}"
+        }
+      ]
+    },
+    "/Game/LostRunic/Levels/PIE_Test/L_Art_Demo.L_Art_Demo:PersistentLevel.PointLight_4.LightComponent0": {
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"returnValue\":\"{\\\"lightFunctionMaterial\\\":\\\"None\\\",\\\"castShadows\\\":false,\\\"intensity\\\":20,\\\"lightFunctionScale\\\":{\\\"x\\\":1024,\\\"y\\\":1024,\\\"z\\\":1024}}\"}"
+        }
+      ]
+    },
+    "/Game/LostRunic/Levels/PIE_Test/L_Art_Demo.L_Art_Demo:PersistentLevel.PointLight_5.LightComponent0": {
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"returnValue\":\"{\\\"lightFunctionMaterial\\\":\\\"None\\\",\\\"castShadows\\\":false,\\\"intensity\\\":18,\\\"lightFunctionScale\\\":{\\\"x\\\":1024,\\\"y\\\":1024,\\\"z\\\":1024}}\"}"
+        }
+      ]
+    },
+    "/Game/LostRunic/Levels/PIE_Test/L_Art_Demo.L_Art_Demo:PersistentLevel.PointLight_6.LightComponent0": {
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"returnValue\":\"{\\\"lightFunctionMaterial\\\":\\\"None\\\",\\\"castShadows\\\":false,\\\"intensity\\\":20,\\\"lightFunctionScale\\\":{\\\"x\\\":1024,\\\"y\\\":1024,\\\"z\\\":1024}}\"}"
+        }
+      ]
+    },
+    "/Game/LostRunic/Levels/PIE_Test/L_Art_Demo.L_Art_Demo:PersistentLevel.PointLight_7.LightComponent0": {
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"returnValue\":\"{\\\"lightFunctionMaterial\\\":\\\"None\\\",\\\"castShadows\\\":false,\\\"intensity\\\":20,\\\"lightFunctionScale\\\":{\\\"x\\\":1024,\\\"y\\\":1024,\\\"z\\\":1024}}\"}"
+        }
+      ]
+    },
+    "/Game/LostRunic/Levels/PIE_Test/L_Art_Demo.L_Art_Demo:PersistentLevel.PointLight_8.LightComponent0": {
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"returnValue\":\"{\\\"lightFunctionMaterial\\\":\\\"None\\\",\\\"castShadows\\\":false,\\\"intensity\\\":35,\\\"lightFunctionScale\\\":{\\\"x\\\":1024,\\\"y\\\":1024,\\\"z\\\":1024}}\"}"
+        }
+      ]
+    }
+  },
+  "postProcess": {
+    "array": [
+      {
+        "weight": 1,
+        "object": {
+          "refPath": "/Game/LostRunic/Materials/Instances/Scenes/MI_PP_LR_LivingRoomOutline.MI_PP_LR_LivingRoomOutline"
+        }
+      },
+      {
+        "weight": 1,
+        "object": {
+          "refPath": "/Game/LostRunic/Materials/Benchmark/Instances/MI_PP_LR_InteractionOutline_Diag0707.MI_PP_LR_InteractionOutline_Diag0707"
+        }
+      }
+    ]
+  }
+}

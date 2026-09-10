@@ -1,8 +1,8 @@
 # LostRunic Art Bible v1 / Technical Art Standard v1
 
-版本：1.1  
-日期：2026-09-05
-适用范围：Normal 状态、Windows PC、UE 5.8、俯视角 3D Gameplay Camera  
+版本：1.2
+日期：2026-09-08
+适用范围：Normal 状态、Windows PC、UE 5.8、俯视角 3D Gameplay Camera
 文档状态：**Approved for Vertical Slice / 候选生产基线**；Normal 仍沿用既有候选基线，Perception 以本文专章作为视觉与技术合同，Courage/Memory 的最终效果仍未定义
 
 本文档已获准指导 Normal Technical Art Vertical Slice 施工，但尚未获准驱动全项目材质批量生产。只有在 `/Game/LostRunic/Levels/PIE_Test/L_PIE_Test` 的 Mansion Benchmark 完成画面、Temporal、Interaction Outline 和目标最低配置 GPU Profile 验收后，文档状态才升级为 **Production Baseline**。
@@ -24,22 +24,23 @@ PostProcess = 最后收束器
 
 视觉决策优先级如下：
 
-1. 第一张目标图决定模型形体、BaseColor、材质简化、细节密度与轮廓语言。
-2. 第二张参考图只决定灯光、空间纵深、明暗构图和局部高光，不作为材质写实度参考。
-3. Blue Prince 提供“有限 Shader、有限 Texture Vocabulary、严格复用”的生产思想，不字面复制“一套 Master Material”。
-4. Cairn 提供“艺术家可绘制 Mask、自定义工具、参数化 Shader”的方法论，不假定其全局水彩风由某个公开技术单独实现。
-5. Disco Elysium 提供允许抽象、大色块和局部笔触的尺度。
-6. No Rest for the Wicked 提供光照、体积和空间重量的上限参考。
+1. 当前确认的第三张目标图 C 决定 Normal 的综合色、局部暖光、彩色暗部、水彩柔边、斑驳组织和描边层级；与旧图冲突时以 C 为当前方向。
+2. 历史目标图 A 保留为形体、BaseColor、材质简化、细节密度与轮廓语言的来源；历史灯光图 B 保留为光照、空间纵深和明暗构图的来源。
+3. C、A、B 都是美术方向参考，不是 Unreal 渲染证据；UE 的实际相机、PPV、材质和渲染配置必须以基线采集与 PIE/Profile 证据为准。
+4. Blue Prince 提供“有限 Shader、有限 Texture Vocabulary、严格复用”的生产思想，不字面复制“一套 Master Material”。
+5. Cairn 提供“艺术家可绘制 Mask、自定义工具、参数化 Shader”的方法论，不假定其全局水彩风由某个公开技术单独实现。
+6. Disco Elysium 提供允许抽象、大色块和局部笔触的尺度。
+7. No Rest for the Wicked 提供光照、体积和空间重量的上限参考。
 
 Normal 必须相对克制，为 Perception、Courage、Memory 留出明显的颜色、曝光、边缘、显现和失真变化空间。
 
 ## 2. 视觉目标图
 
-### 2.1 Normal 主目标：形、材质、色块
+### 2.1 Normal 主目标：形、材质、色块（历史 A，保留）
 
 ![Normal 主目标：绘画化形体、材质和色块](References/NormalTarget_A_Painterly.png)
 
-该图是 Normal 的主要美术目标。需要继承：
+该图是 Normal 的历史形体与低频语言参考，保留其可读性原则；需要继承：
 
 - 清楚的房间、门、楼梯、家具和角色 Silhouette。
 - 低频大色块、有限纹理和有选择的结构线。
@@ -47,7 +48,7 @@ Normal 必须相对克制，为 Perception、Courage、Memory 留出明显的颜
 - 细而有变化的环境染色墨线，而非统一纯黑漫画边。
 - 木、布、墙纸、金属依靠形体、方向性细节和粗糙度区分，而非微观 PBR 噪声。
 
-### 2.2 Normal 灯光参考：光、空间、明暗构图
+### 2.2 Normal 灯光参考：光、空间、明暗构图（历史 B，保留）
 
 ![Normal 灯光参考：真实光照、空间纵深和局部高光](References/NormalLightingReference_B.png)
 
@@ -60,13 +61,27 @@ Normal 必须相对克制，为 Perception、Courage、Memory 留出明显的颜
 
 不得继承：照片式材质密度、全表面微观纹理、过深黑位和 Gameplay 中明显景深。
 
-### 2.3 视觉判断句
+### 2.3 Normal 当前确认目标：综合色与水彩灯光（C）
+
+![Normal 当前确认目标：水彩柔边、局部暖光与彩色阴影](References/NormalTarget_C_WatercolorLighting.png)
+
+C 是当前确认的 Normal 综合目标，保留 A/B 作为历史对照。C 的局部暖光要有明确的集中光池；暗部使用蓝、紫、淡粉等彩色阴影；保留水彩柔边、斑驳和适度 Bloom/体积光来组织空间。材质继续使用干净的简色大面，不添加旧化污渍或微木纹，并减少墙面碎斑。描边在 1080p 下以约 1 px 的深色轮廓和约 0.5 px 的淡色结构线作为候选起点，实际线宽由 Gameplay Camera 与分辨率验证决定；亮弱暗强，变化来自稳定的材质/深度/法线关系而非随机噪声。
+
+截至 2026-09-09，StyleOutline 的当前观察版将 `MI_PP_LR_LivingRoomOutline.OutlineWidthPx` 调为 `2`，保留 `StructureWidthScale=0.5`，用于提高当前画面中的描边可读性。历史的约 1 px 深色轮廓与约 0.5 px 淡色结构线仍是 C 的 1080p 候选起点；2 与 0.5 是材质参数/采样邻域候选，不是精确的最终栅格线宽，当前结构采样宽度候选为 `2 × 0.5 = 1`。实际验证与限制见 `Docs/Art/06_OutlineHierarchyValidation.md`。
+
+该宽度调整只属于 StyleOutline 美术描边。InteractionOutline 继续独立输出可交互物的白色外轮廓，不跟随 StyleOutline 的宽度、层级或亮暗调制变化。
+
+C 不授权引擎修改、替换 Default Lit、Lumen、Virtual Shadow Maps 或引入重型全屏滤镜；Normal 仍是候选基线，必须由实际 Gameplay Camera、PIE 和目标 GPU Profile 继续验证。
+
+本轮实施与验收记录见 [水彩管线实施计划](03_WatercolorPipelineImplementation.md)。用户随后否决新贴图候选，要求保留当前贴图，后续从 UE 灯光、后处理和描边调整推进；[Asset Authoring Standard](04_AssetAuthoringStandard.md) 保留为未来制作标准，不授权替换当前贴图。不可变技术快照保存在 `ArtSource/Baselines/ArtBaseline_20260907`，实际采集日为 2026-09-08；覆盖范围和缺失证据以其 `CaptureNotes.md` 与 `Manifest.json` 为准。
+
+### 2.4 视觉判断句
 
 所有资产和截图评审都必须能回答：
 
-> 第一张是否仍然决定“它长什么样”，第二张是否只帮助“光如何落在它上面”？
+> C 是否确定当前综合色与灯光气质，同时 A 仍然决定“它长什么样”、B 只帮助“光如何落在它上面”？
 
-如果第二张开始决定木纹、墙面噪声、布料微法线或金属划痕密度，资产应退回修改。
+如果参考图要求照片式微木纹、满面墙面噪声、布料微法线或金属划痕密度，资产应退回修改；简明且方向明确的木纹仍可由材质家族规则保留。
 
 ## 3. 正式渲染路线
 
@@ -1237,7 +1252,7 @@ Cairn 与 Blue Prince 未公开的完整轮廓、色阶和水彩算法均属于�
 
 ## 23. 概念图生成记录
 
-工具：Codex 内置 `image_gen`。两张图作为方向探索与 Art Bible 参考，不是可直接投入游戏的最终资产。
+工具：Codex 内置 `image_gen`。A、B、C 三张图作为方向探索与 Art Bible 参考，不是可直接投入游戏的最终资产；C 是当前确认目标，A/B 保留为历史参考。
 
 ### 23.1 主目标图 Prompt
 
@@ -1250,6 +1265,16 @@ Create an original top-down/isometric real-time 3D game environment concept for 
 ```text
 Create the same original top-down/isometric LostRunic Home scene with grounded physically convincing light, sculpted stylized-realistic geometry, watercolor-like color grouping, matte materials and restrained colored outlines. Emphasize plausible window shafts, warm practical light pools, deep but colored cool shadows, subtle volumetric dust and strong spatial depth. Keep texture density low and the playable layout readable; avoid anime, thick black outlines, noisy normal maps, UI, text, logos and watermarks.
 ```
+
+### 23.3 当前确认目标图 C 生成方向摘要（非原始 Prompt）
+
+图像生成于 2026-09-07；引用副本于 2026-09-08 写入 `Docs/Art/References/NormalTarget_C_WatercolorLighting.png`。以下内容是根据用户确认结果整理的生成方向摘要，不是工具保存的原始 Prompt：
+
+```text
+Create an original top-down/isometric real-time 3D game environment concept for LostRunic's Home chapter, using the same readable townhouse interior layout and gameplay composition as the earlier references. Make the current Normal target feel like a restrained watercolor painting with concentrated local warm light pools, blue-violet and pale-pink colored shadows, soft watercolor edges, mottled low-frequency tonal grouping, subtle Bloom and volumetric light. Keep materials clean and simplified with flat readable color masses: no aged grime, no random dirt, no fine wood grain and fewer small wall flecks. Use a deliberate outline hierarchy: about 1 px dark silhouette contours and about 0.5 px lighter structural lines, with weak lines in bright areas and stronger lines in dark areas from stable lighting/material/depth relationships rather than random variation. Preserve Default Lit readability and a physically grounded Lumen/VSM lighting basis; do not imply engine changes or a heavy full-screen watercolor filter. Keep the complete playable layout readable and avoid photorealism, anime, noisy normal maps, UI, text, logos and watermarks.
+```
+
+The C image is a user-confirmed art-direction reference only. It must not be presented as Unreal evidence or as a final production asset; actual Gameplay Camera, PPV, material and renderer values require a separate UE capture, PIE or GPU Profile record.
 
 ## 24. Source of Truth
 
